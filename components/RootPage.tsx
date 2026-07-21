@@ -36,7 +36,7 @@ export default function RootPage() {
   return <MainLayout user={user} onLogout={() => setUser(null)} />;
 }
 
-// ─── 인증 페이지 (로그인 + 회원가입) ──────────────────────────────────────────
+// ─── 인증 페이지 ──────────────────────────────────────────────────────────────
 type AuthMode = 'login' | 'signup';
 type AccountType = 'personal' | 'shared';
 
@@ -64,7 +64,7 @@ function AuthPage() {
       </div>
 
       {/* 로그인 / 회원가입 스위치 */}
-      <div style={{ display: 'flex', marginBottom: 24, background: '#F3F4F6', borderRadius: 12, padding: 4, width: '100%', maxWidth: 360 }}>
+      <div style={{ display: 'flex', marginBottom: 24, background: '#F3F4F6', borderRadius: 12, padding: 4, width: '100%', maxWidth: 380 }}>
         {(['login', 'signup'] as AuthMode[]).map(m => (
           <button
             key={m}
@@ -89,7 +89,7 @@ function AuthPage() {
       </div>
 
       {/* 개인 / 공용폰 탭 */}
-      <div style={{ display: 'flex', marginBottom: 20, gap: 0, width: '100%', maxWidth: 360, borderBottom: '1px solid #E5E7EB' }}>
+      <div style={{ display: 'flex', width: '100%', maxWidth: 380, borderBottom: '1px solid #E5E7EB', marginBottom: 24 }}>
         {(['personal', 'shared'] as AccountType[]).map(t => (
           <button
             key={t}
@@ -114,15 +114,15 @@ function AuthPage() {
       </div>
 
       {/* 폼 */}
-      <div style={{ width: '100%', maxWidth: 360 }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
         {mode === 'login'
           ? <LoginForm accountType={accountType} />
-          : <SignupForm accountType={accountType} />
+          : <SignupForm accountType={accountType} onSuccess={() => setMode('login')} />
         }
       </div>
 
       {/* 소셜 로그인 (비활성화 - 코드 보존) */}
-      {/* TODO: 소셜 로그인 재활성화 시 아래 주석 해제
+      {/* TODO: 재활성화 시 아래 주석 해제
       <SocialLogin />
       */}
 
@@ -151,12 +151,25 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
     setLoading(true);
     setError('');
 
-    const loginEmail = accountType === 'personal'
-      ? email
-      : `${orgName.trim()}_${userId.trim()}@adminnote-shared.kr`;
+    let loginEmail = email;
+
+    if (accountType === 'shared') {
+      // 서버 API로 기관이름+아이디 → 이메일 조회
+      const res = await fetch('/api/auth/shared-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgName, userId, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.email) {
+        setError(data.error ?? '아이디 또는 비밀번호가 올바르지 않습니다.');
+        setLoading(false);
+        return;
+      }
+      loginEmail = data.email;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-
     if (error) {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       setLoading(false);
@@ -164,7 +177,7 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
   };
 
   return (
-    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {accountType === 'personal' ? (
         <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" />
       ) : (
@@ -185,13 +198,16 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
 }
 
 // ─── 회원가입 폼 ──────────────────────────────────────────────────────────────
-function SignupForm({ accountType }: { accountType: AccountType }) {
-  const [name, setName] = useState('');
+function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSuccess: () => void }) {
+  const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [orgName, setOrgName] = useState('');
   const [userId, setUserId] = useState('');
+  const [verifyEmail, setVerifyEmail] = useState(''); // 공용폰 인증용 이메일
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
@@ -202,6 +218,10 @@ function SignupForm({ accountType }: { accountType: AccountType }) {
     e.preventDefault();
     setError('');
 
+    if (!agreeTerms || !agreePrivacy) {
+      setError('이용약관 및 개인정보처리방침에 동의해주세요.');
+      return;
+    }
     if (password !== passwordConfirm) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
@@ -213,28 +233,43 @@ function SignupForm({ accountType }: { accountType: AccountType }) {
 
     setLoading(true);
 
-    const signupEmail = accountType === 'personal'
-      ? email
-      : `${orgName.trim()}_${userId.trim()}@adminnote-shared.kr`;
+    const signupEmail = accountType === 'personal' ? email : verifyEmail;
+    const displayName = accountType === 'personal'
+      ? (nickname || email.split('@')[0])
+      : `${orgName} (공용)`;
 
-    const displayName = accountType === 'personal' ? name : `${orgName} (공용)`;
-
-    const { error } = await supabase.auth.signUp({
+    const { data, error: signupError } = await supabase.auth.signUp({
       email: signupEmail,
       password,
       options: {
         data: {
           full_name: displayName,
           account_type: accountType,
-          ...(accountType === 'shared' && { org_name: orgName, user_id: userId }),
+          nickname: nickname || null,
+          ...(accountType === 'shared' && { org_name: orgName, shared_user_id: userId }),
         },
       },
     });
 
-    if (error) {
-      setError(error.message === 'User already registered' ? '이미 가입된 계정입니다.' : '가입 중 오류가 발생했습니다.');
+    if (signupError) {
+      if (signupError.message.includes('already registered')) {
+        setError('이미 가입된 이메일입니다.');
+      } else {
+        setError('가입 중 오류가 발생했습니다.');
+      }
       setLoading(false);
       return;
+    }
+
+    // profiles 테이블에 저장
+    if (data.user) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        account_type: accountType,
+        nickname: nickname || null,
+        org_name: accountType === 'shared' ? orgName : null,
+        user_id: accountType === 'shared' ? userId : null,
+      });
     }
 
     setDone(true);
@@ -243,31 +278,55 @@ function SignupForm({ accountType }: { accountType: AccountType }) {
 
   if (done) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
-        <p style={{ fontSize: 16, fontWeight: 600, color: '#1C1C1E', margin: '0 0 8px' }}>가입이 완료됐습니다!</p>
-        {accountType === 'personal' && (
-          <p style={{ fontSize: 13, color: '#6B7280', margin: 0 }}>이메일 인증 후 로그인해 주세요.</p>
-        )}
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <div style={{ fontSize: 40, marginBottom: 14 }}>✅</div>
+        <p style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E', margin: '0 0 8px' }}>가입 완료!</p>
+        <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px' }}>
+          {accountType === 'personal'
+            ? '이메일 인증 후 로그인해 주세요.'
+            : '이메일 인증 후 기관이름과 아이디로 로그인해 주세요.'}
+        </p>
+        <button onClick={onSuccess} style={{ ...submitBtn(false), width: 'auto', padding: '10px 28px' }}>
+          로그인하러 가기
+        </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {accountType === 'personal' ? (
         <>
-          <Input label="이름" type="text" value={name} onChange={setName} placeholder="이름을 입력하세요" />
+          <Input label="닉네임 (선택)" type="text" value={nickname} onChange={setNickname} placeholder="닉네임을 입력하세요" required={false} />
           <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" />
         </>
       ) : (
         <>
           <Input label="기관이름" type="text" value={orgName} onChange={setOrgName} placeholder="기관이름을 입력하세요" />
-          <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="아이디를 입력하세요" />
+          <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="로그인에 사용할 아이디" />
+          <Input label="이메일 (인증용)" type="email" value={verifyEmail} onChange={setVerifyEmail} placeholder="인증 메일 받을 이메일" />
         </>
       )}
       <Input label="비밀번호" type="password" value={password} onChange={setPassword} placeholder="6자 이상" />
       <Input label="비밀번호 확인" type="password" value={passwordConfirm} onChange={setPasswordConfirm} placeholder="비밀번호를 다시 입력하세요" />
+
+      {/* 약관 동의 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: '#2563EB' }} />
+          <span style={{ fontSize: 13, color: '#374151' }}>
+            <a href="/terms" target="_blank" style={{ color: '#2563EB', textDecoration: 'none' }}>이용약관</a>에 동의합니다 (필수)
+          </span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: '#2563EB' }} />
+          <span style={{ fontSize: 13, color: '#374151' }}>
+            <a href="/privacy" target="_blank" style={{ color: '#2563EB', textDecoration: 'none' }}>개인정보처리방침</a>에 동의합니다 (필수)
+          </span>
+        </label>
+      </div>
 
       {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
 
@@ -278,7 +337,7 @@ function SignupForm({ accountType }: { accountType: AccountType }) {
   );
 }
 
-// ─── 소셜 로그인 컴포넌트 (비활성화 상태로 보존) ─────────────────────────────
+// ─── 소셜 로그인 (비활성화 상태로 보존) ──────────────────────────────────────
 // 재활성화 시: AuthPage에서 <SocialLogin /> 주석 해제
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SocialLogin() {
@@ -294,21 +353,24 @@ function SocialLogin() {
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: 360, marginTop: 16 }}>
+    <div style={{ width: '100%', maxWidth: 380, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
         <span style={{ fontSize: 12, color: '#9CA3AF' }}>SNS 로그인</span>
         <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button onClick={() => handleSocialLogin('google')} disabled={!!socialLoading} style={{ width: '100%', padding: '12px 0', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <button onClick={() => handleSocialLogin('google')} disabled={!!socialLoading}
+          style={{ width: '100%', padding: '12px 0', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Google로 계속하기
         </button>
-        <button onClick={() => handleSocialLogin('kakao')} disabled={!!socialLoading} style={{ width: '100%', padding: '12px 0', background: '#FEE500', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+        <button onClick={() => handleSocialLogin('kakao')} disabled={!!socialLoading}
+          style={{ width: '100%', padding: '12px 0', background: '#FEE500', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
           카카오로 계속하기
         </button>
-        <button onClick={() => handleSocialLogin('apple')} disabled={!!socialLoading} style={{ width: '100%', padding: '12px 0', background: '#000', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, color: '#fff', cursor: 'pointer' }}>
+        <button onClick={() => handleSocialLogin('apple')} disabled={!!socialLoading}
+          style={{ width: '100%', padding: '12px 0', background: '#000', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, color: '#fff', cursor: 'pointer' }}>
           Apple로 계속하기
         </button>
       </div>
@@ -317,9 +379,9 @@ function SocialLogin() {
 }
 
 // ─── 공통 컴포넌트 ────────────────────────────────────────────────────────────
-function Input({ label, type, value, onChange, placeholder }: {
+function Input({ label, type, value, onChange, placeholder, required = true }: {
   label: string; type: string; value: string;
-  onChange: (v: string) => void; placeholder: string;
+  onChange: (v: string) => void; placeholder: string; required?: boolean;
 }) {
   return (
     <div>
@@ -329,7 +391,7 @@ function Input({ label, type, value, onChange, placeholder }: {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        required
+        required={required}
         style={{
           width: '100%',
           padding: '11px 14px',
