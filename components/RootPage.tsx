@@ -171,7 +171,11 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
 
     const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error) {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      if (error.message.includes('Email not confirmed')) {
+        setError('이메일 인증이 필요합니다. 받은 편지함을 확인해주세요. (스팸 폴더도 확인해주세요)');
+      } else {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
       setLoading(false);
     }
   };
@@ -277,15 +281,34 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
   };
 
   if (done) {
+    const sentEmail = accountType === 'personal' ? email : verifyEmail;
     return (
       <div style={{ textAlign: 'center', padding: '24px 0' }}>
-        <div style={{ fontSize: 40, marginBottom: 14 }}>✅</div>
-        <p style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E', margin: '0 0 8px' }}>가입 완료!</p>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px' }}>
-          {accountType === 'personal'
-            ? '이메일 인증 후 로그인해 주세요.'
-            : '이메일 인증 후 기관이름과 아이디로 로그인해 주세요.'}
+        <div style={{ fontSize: 40, marginBottom: 14 }}>📧</div>
+        <p style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E', margin: '0 0 8px' }}>인증 메일을 발송했습니다</p>
+        <p style={{ fontSize: 14, color: '#2563EB', fontWeight: 600, margin: '0 0 8px' }}>{sentEmail}</p>
+        <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 4px' }}>
+          위 이메일의 받은 편지함을 확인해주세요.
         </p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '0 0 20px' }}>
+          스팸 폴더도 확인해주세요.
+        </p>
+        {accountType === 'shared' && (
+          <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px', background: '#F3F4F6', padding: '10px 14px', borderRadius: 8 }}>
+            인증 완료 후 <strong>기관이름</strong>과 <strong>아이디</strong>로 로그인해주세요.
+          </p>
+        )}
+        <button
+          onClick={async () => {
+            const resendEmail = accountType === 'personal' ? email : verifyEmail;
+            await createClient().auth.resend({ type: 'signup', email: resendEmail });
+            alert('인증 메일을 재발송했습니다.');
+          }}
+          style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#6B7280', cursor: 'pointer', marginBottom: 12 }}
+        >
+          인증 메일 재발송
+        </button>
+        <br />
         <button onClick={onSuccess} style={{ ...submitBtn(false), width: 'auto', padding: '10px 28px' }}>
           로그인하러 가기
         </button>
