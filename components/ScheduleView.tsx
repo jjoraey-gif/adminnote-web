@@ -40,7 +40,7 @@ const emptyForm = (date: string): FormState => ({
   category: '일', color: 'blue', memo: '',
 });
 
-export default function ScheduleView({ events, onAdd, onDelete, onToggle }: Props) {
+export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle }: Props) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -113,15 +113,15 @@ export default function ScheduleView({ events, onAdd, onDelete, onToggle }: Prop
       </div>
 
       {/* 달력 */}
-      <div style={{ border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+      <div style={{ border: '2px solid #1C1C1E', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '2px solid #1C1C1E' }}>
           {WEEKDAYS.map((d, i) => (
-            <div key={d} style={{ textAlign: 'center', padding: '10px 0', fontSize: 12, fontWeight: 600, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#6B7280' }}>{d}</div>
+            <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: 700, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#1C1C1E' }}>{d}</div>
           ))}
         </div>
 
         {weeks.map((week, wi) => (
-          <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: wi < weeks.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+          <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: wi < weeks.length - 1 ? '1px solid #1C1C1E' : 'none' }}>
             {week.map((day, di) => {
               const dayEvents = eventsOn(day);
               const selected = day !== null && day === selectedDay;
@@ -129,9 +129,9 @@ export default function ScheduleView({ events, onAdd, onDelete, onToggle }: Prop
               const isSun = di === 0, isSat = di === 6;
               return (
                 <div key={di} onClick={() => day && handleDayClick(day)} style={{
-                  minHeight: 88, padding: '8px 10px', cursor: day ? 'pointer' : 'default',
+                  minHeight: 120, padding: '8px 10px', cursor: day ? 'pointer' : 'default',
                   background: selected && !todayCell ? '#EFF6FF' : '#fff',
-                  borderRight: di < 6 ? '1px solid #F3F4F6' : 'none',
+                  borderRight: di < 6 ? '1px solid #1C1C1E' : 'none',
                 }}>
                   {day && (
                     <>

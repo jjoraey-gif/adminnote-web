@@ -46,46 +46,55 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 헤더 */}
       <header style={{
-        borderBottom: '1px solid #E5E7EB', padding: '0 32px', height: 56,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid #E5E7EB', height: 56,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#fff', position: 'sticky', top: 0, zIndex: 50,
       }}>
-        <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
-          <span style={{ color: '#2563EB' }}>Admin</span>
-          <span style={{ color: '#1C1C1E' }}>Note</span>
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#6B7280' }}>{displayName}</span>
-          <button onClick={handleLogout} style={{
-            fontSize: 13, fontWeight: 500, color: '#6B7280',
-            padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
-            background: '#fff', cursor: 'pointer',
-          }}>로그아웃</button>
+        <div style={{
+          width: '100%', maxWidth: 1064, padding: '0 32px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ width: 120 }} /> {/* 좌측 빈 공간 (우측 버튼과 균형) */}
+          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+            <span style={{ color: '#2563EB' }}>Admin</span>
+            <span style={{ color: '#1C1C1E' }}>Note</span>
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: 120, justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: 13, color: '#6B7280' }}>{displayName}</span>
+            <button onClick={handleLogout} style={{
+              fontSize: 13, fontWeight: 500, color: '#6B7280',
+              padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
+              background: '#fff', cursor: 'pointer',
+            }}>로그아웃</button>
+          </div>
         </div>
       </header>
 
       {/* 탭 바 */}
       <div style={{
-        borderBottom: '1px solid #E5E7EB', padding: '0 32px',
-        display: 'flex', background: '#fff', overflowX: 'auto',
+        borderBottom: '1px solid #E5E7EB',
+        display: 'flex', justifyContent: 'center', background: '#fff',
         position: 'sticky', top: 56, zIndex: 40,
       }}>
-        {TABS.map((tab) => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-            padding: '14px 20px', fontSize: 14,
-            fontWeight: activeTab === tab.key ? 600 : 400,
-            color: activeTab === tab.key ? '#2563EB' : '#6B7280',
-            background: 'none', border: 'none',
-            borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
-            cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
-          }}>
-            {tab.label}
-          </button>
-        ))}
+        <div style={{ width: '100%', maxWidth: 1064, padding: '0 32px', display: 'flex', overflowX: 'auto' }}>
+          {TABS.map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+              padding: '14px 20px', fontSize: 14,
+              fontWeight: activeTab === tab.key ? 600 : 400,
+              color: activeTab === tab.key ? '#2563EB' : '#6B7280',
+              background: 'none', border: 'none',
+              borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
+              cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
+            }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 콘텐츠 */}
-      <main style={{ flex: 1, padding: '32px' }}>
+      <main style={{ flex: 1, padding: '32px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 1000 }}>
         {store.loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
             데이터 불러오는 중...
@@ -121,6 +130,7 @@ export default function MainLayout({ user, onLogout }: Props) {
             {activeTab === 'contacts' && <ComingSoon label="외부연락처" desc="외부 기관 및 업체 연락처를 관리합니다." />}
           </>
         )}
+        </div>
       </main>
 
       {/* 푸터 */}
