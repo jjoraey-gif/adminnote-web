@@ -15,11 +15,9 @@ export async function POST(request: Request) {
     );
 
     if (type === 'email') {
-      const { data, error } = await adminSupabase.auth.admin.getUserByEmail(value.trim().toLowerCase());
-      if (error && error.message.includes('User not found')) {
-        return NextResponse.json({ available: true });
-      }
-      if (data?.user) {
+      const { data } = await adminSupabase
+        .rpc('check_email_exists', { p_email: value.trim().toLowerCase() });
+      if (data === true) {
         return NextResponse.json({ available: false, message: '이미 사용 중인 이메일입니다.' });
       }
       return NextResponse.json({ available: true });
