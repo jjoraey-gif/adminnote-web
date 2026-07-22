@@ -170,7 +170,10 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
     setUserId(savedUid);
     setPassword(savedPw);
 
-    if (isAuto && !didAutoSubmit.current && savedPw) {
+    const skipAuto = sessionStorage.getItem('an_skip_auto') === 'true';
+    if (skipAuto) sessionStorage.removeItem('an_skip_auto');
+
+    if (isAuto && !skipAuto && !didAutoSubmit.current && savedPw) {
       const canAuto = accountType === 'personal' ? !!savedEmail : (!!savedOrg && !!savedUid);
       if (canAuto) {
         didAutoSubmit.current = true;

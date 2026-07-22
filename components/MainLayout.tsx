@@ -38,6 +38,7 @@ export default function MainLayout({ user, onLogout }: Props) {
     '사용자';
 
   const handleLogout = async () => {
+    sessionStorage.setItem('an_skip_auto', 'true');
     await supabase.auth.signOut();
     onLogout();
   };
