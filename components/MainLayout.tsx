@@ -52,15 +52,19 @@ export default function MainLayout({ user, onLogout }: Props) {
           width: '100%', maxWidth: 1064, padding: '0 32px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ width: 120 }} /> {/* 좌측 빈 공간 (우측 버튼과 균형) */}
-          <span style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1 }}>
+          {/* 좌측 균형용 빈 영역 — 우측과 동일 너비 */}
+          <div style={{ flex: '0 0 200px' }} />
+          <span style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1, flexShrink: 0 }}>
             <span style={{ color: '#2563EB' }}>Admin</span>
             <span style={{ color: '#1C1C1E' }}>Note</span>
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: 120, justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: 13, color: '#6B7280' }}>{displayName}</span>
+          <div style={{
+            flex: '0 0 200px', display: 'flex', alignItems: 'center',
+            gap: 10, justifyContent: 'flex-end', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ fontSize: 14, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{displayName}</span>
             <button onClick={handleLogout} style={{
-              fontSize: 13, fontWeight: 500, color: '#6B7280',
+              fontSize: 13, fontWeight: 500, color: '#6B7280', flexShrink: 0,
               padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
               background: '#fff', cursor: 'pointer',
             }}>로그아웃</button>
@@ -80,11 +84,11 @@ export default function MainLayout({ user, onLogout }: Props) {
               key={tab.key}
               onClick={() => !tab.disabled && setActiveTab(tab.key)}
               style={{
-                padding: '14px 20px', fontSize: 14,
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                color: tab.disabled ? '#D1D5DB' : activeTab === tab.key ? '#2563EB' : '#6B7280',
+                padding: '16px 24px', fontSize: 17,
+                fontWeight: activeTab === tab.key ? 700 : 500,
+                color: tab.disabled ? '#D1D5DB' : activeTab === tab.key ? '#1C1C1E' : '#1C1C1E',
                 background: 'none', border: 'none',
-                borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
+                borderBottom: activeTab === tab.key ? '3px solid #1C1C1E' : '3px solid transparent',
                 cursor: tab.disabled ? 'default' : 'pointer',
                 whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
               }}
