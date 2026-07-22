@@ -10,13 +10,11 @@ import TodoView from './TodoView';
 import BudgetView from './BudgetView';
 
 const TABS = [
-  { key: 'schedule', label: '업무일정' },
-  { key: 'todo', label: '오늘 할 일' },
-  { key: 'budget', label: '예산관리' },
-  { key: 'history', label: '이력관리' },
-  { key: 'promotion', label: '승진순위 관리' },
-  { key: 'org', label: '부서조직도' },
-  { key: 'contacts', label: '외부연락처' },
+  { key: 'schedule', label: '업무일정', disabled: false },
+  { key: 'todo', label: '오늘 할 일', disabled: false },
+  { key: 'budget', label: '예산관리', disabled: false },
+  { key: 'photo', label: '사진전송', disabled: false },
+  { key: 'more', label: '더보기', disabled: true },
 ];
 
 interface Props {
@@ -46,7 +44,7 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 헤더 */}
       <header style={{
-        borderBottom: '1px solid #E5E7EB', height: 56,
+        borderBottom: '1px solid #E5E7EB', height: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#fff', position: 'sticky', top: 0, zIndex: 50,
       }}>
@@ -55,7 +53,7 @@ export default function MainLayout({ user, onLogout }: Props) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ width: 120 }} /> {/* 좌측 빈 공간 (우측 버튼과 균형) */}
-          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+          <span style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1 }}>
             <span style={{ color: '#2563EB' }}>Admin</span>
             <span style={{ color: '#1C1C1E' }}>Note</span>
           </span>
@@ -74,18 +72,23 @@ export default function MainLayout({ user, onLogout }: Props) {
       <div style={{
         borderBottom: '1px solid #E5E7EB',
         display: 'flex', justifyContent: 'center', background: '#fff',
-        position: 'sticky', top: 56, zIndex: 40,
+        position: 'sticky', top: 100, zIndex: 40,
       }}>
         <div style={{ width: '100%', maxWidth: 1064, padding: '0 32px', display: 'flex', overflowX: 'auto' }}>
           {TABS.map((tab) => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-              padding: '14px 20px', fontSize: 14,
-              fontWeight: activeTab === tab.key ? 600 : 400,
-              color: activeTab === tab.key ? '#2563EB' : '#6B7280',
-              background: 'none', border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
-              cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
-            }}>
+            <button
+              key={tab.key}
+              onClick={() => !tab.disabled && setActiveTab(tab.key)}
+              style={{
+                padding: '14px 20px', fontSize: 14,
+                fontWeight: activeTab === tab.key ? 600 : 400,
+                color: tab.disabled ? '#D1D5DB' : activeTab === tab.key ? '#2563EB' : '#6B7280',
+                background: 'none', border: 'none',
+                borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
+                cursor: tab.disabled ? 'default' : 'pointer',
+                whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
+              }}
+            >
               {tab.label}
             </button>
           ))}
@@ -124,10 +127,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                 onUpdateSpent={store.updateSpent}
               />
             )}
-            {activeTab === 'history' && <ComingSoon label="이력관리" desc="업무 처리 이력을 조회하고 기록합니다." />}
-            {activeTab === 'promotion' && <ComingSoon label="승진순위 관리" desc="승진 대상자 및 순위를 관리합니다." />}
-            {activeTab === 'org' && <ComingSoon label="부서조직도" desc="부서 구성 및 조직도를 확인합니다." />}
-            {activeTab === 'contacts' && <ComingSoon label="외부연락처" desc="외부 기관 및 업체 연락처를 관리합니다." />}
+            {activeTab === 'photo' && <ComingSoon label="사진전송" desc="업무 사진을 PC로 전송합니다." />}
           </>
         )}
         </div>
