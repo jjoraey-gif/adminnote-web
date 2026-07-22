@@ -9,6 +9,7 @@ import ScheduleView from './ScheduleView';
 import TodoView from './TodoView';
 import BudgetView from './BudgetView';
 import PhotoTransferView from './PhotoTransferView';
+import AppIntroView from './AppIntroView';
 
 const TABS = [
   { key: 'schedule', label: '업무일정', disabled: false },
@@ -103,11 +104,9 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 콘텐츠 */}
       {activeTab === 'about' ? (
-        <iframe
-          src="/app-intro.html"
-          style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
-          title="앱 소개"
-        />
+        <main style={{ flex: 1 }}>
+          <AppIntroView />
+        </main>
       ) : (
         <main style={{ flex: 1, padding: '32px', display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: 1000 }}>
