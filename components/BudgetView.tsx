@@ -5,6 +5,7 @@ import { SubProject, colorHex, comma } from '@/lib/useSnapshot';
 
 interface Props {
   subProjects: SubProject[];
+  onUpdateSpent?: (spId: string, pmId: string, smId: string, spent: number) => void;
 }
 
 function spBudget(sp: SubProject) {
@@ -17,7 +18,7 @@ function execRate(budget: number, spent: number) {
   return budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
 }
 
-export default function BudgetView({ subProjects }: Props) {
+export default function BudgetView({ subProjects, onUpdateSpent }: Props) {
   const [selected, setSelected] = useState<string | null>(
     subProjects.length > 0 ? subProjects[0].id : null
   );

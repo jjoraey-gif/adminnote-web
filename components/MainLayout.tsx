@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
-import { useSnapshot } from '@/lib/useSnapshot';
+import { useWebStore } from '@/lib/useWebStore';
 import ScheduleView from './ScheduleView';
 import TodoView from './TodoView';
 import BudgetView from './BudgetView';
@@ -27,7 +27,7 @@ interface Props {
 export default function MainLayout({ user, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('schedule');
   const supabase = createClient();
-  const { data: snapshot, loading: snapLoading } = useSnapshot(user.id);
+  const store = useWebStore(user.id);
 
   const displayName =
     user.user_metadata?.full_name ??
@@ -46,16 +46,9 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 헤더 */}
       <header style={{
-        borderBottom: '1px solid #E5E7EB',
-        padding: '0 32px',
-        height: 56,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: '#fff',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
+        borderBottom: '1px solid #E5E7EB', padding: '0 32px', height: 56,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: '#fff', position: 'sticky', top: 0, zIndex: 50,
       }}>
         <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
           <span style={{ color: '#2563EB' }}>Admin</span>
@@ -63,53 +56,29 @@ export default function MainLayout({ user, onLogout }: Props) {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 13, color: '#6B7280' }}>{displayName}</span>
-          <button
-            onClick={handleLogout}
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: '#6B7280',
-              padding: '6px 14px',
-              borderRadius: 20,
-              border: '1px solid #E5E7EB',
-              background: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            로그아웃
-          </button>
+          <button onClick={handleLogout} style={{
+            fontSize: 13, fontWeight: 500, color: '#6B7280',
+            padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
+            background: '#fff', cursor: 'pointer',
+          }}>로그아웃</button>
         </div>
       </header>
 
       {/* 탭 바 */}
       <div style={{
-        borderBottom: '1px solid #E5E7EB',
-        padding: '0 32px',
-        display: 'flex',
-        background: '#fff',
-        overflowX: 'auto',
-        position: 'sticky',
-        top: 56,
-        zIndex: 40,
+        borderBottom: '1px solid #E5E7EB', padding: '0 32px',
+        display: 'flex', background: '#fff', overflowX: 'auto',
+        position: 'sticky', top: 56, zIndex: 40,
       }}>
         {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '14px 20px',
-              fontSize: 14,
-              fontWeight: activeTab === tab.key ? 600 : 400,
-              color: activeTab === tab.key ? '#2563EB' : '#6B7280',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              marginBottom: -1,
-              transition: 'all 0.15s',
-            }}
-          >
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            padding: '14px 20px', fontSize: 14,
+            fontWeight: activeTab === tab.key ? 600 : 400,
+            color: activeTab === tab.key ? '#2563EB' : '#6B7280',
+            background: 'none', border: 'none',
+            borderBottom: activeTab === tab.key ? '2px solid #2563EB' : '2px solid transparent',
+            cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
+          }}>
             {tab.label}
           </button>
         ))}
@@ -117,15 +86,35 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 콘텐츠 */}
       <main style={{ flex: 1, padding: '32px' }}>
-        {snapLoading ? (
+        {store.loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
             데이터 불러오는 중...
           </div>
         ) : (
           <>
-            {activeTab === 'schedule' && <ScheduleView events={snapshot?.events ?? []} />}
-            {activeTab === 'todo' && <TodoView todos={snapshot?.todos ?? []} />}
-            {activeTab === 'budget' && <BudgetView subProjects={snapshot?.subProjects ?? []} />}
+            {activeTab === 'schedule' && (
+              <ScheduleView
+                events={store.events}
+                onAdd={store.addEvent}
+                onUpdate={store.updateEvent}
+                onDelete={store.deleteEvent}
+                onToggle={store.toggleEvent}
+              />
+            )}
+            {activeTab === 'todo' && (
+              <TodoView
+                todos={store.todos}
+                onAdd={store.addTodo}
+                onToggle={store.toggleTodo}
+                onDelete={store.deleteTodo}
+              />
+            )}
+            {activeTab === 'budget' && (
+              <BudgetView
+                subProjects={store.subProjects}
+                onUpdateSpent={store.updateSpent}
+              />
+            )}
             {activeTab === 'history' && <ComingSoon label="이력관리" desc="업무 처리 이력을 조회하고 기록합니다." />}
             {activeTab === 'promotion' && <ComingSoon label="승진순위 관리" desc="승진 대상자 및 순위를 관리합니다." />}
             {activeTab === 'org' && <ComingSoon label="부서조직도" desc="부서 구성 및 조직도를 확인합니다." />}
@@ -148,14 +137,7 @@ export default function MainLayout({ user, onLogout }: Props) {
 
 function ComingSoon({ label, desc }: { label: string; desc: string }) {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 400,
-      gap: 10,
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 10 }}>
       <div style={{ fontSize: 36 }}>🚧</div>
       <p style={{ fontSize: 17, fontWeight: 600, color: '#374151', margin: 0 }}>{label}</p>
       <p style={{ fontSize: 14, color: '#9CA3AF', margin: 0 }}>{desc}</p>
