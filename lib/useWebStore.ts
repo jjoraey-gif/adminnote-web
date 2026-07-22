@@ -12,13 +12,26 @@ function uuid(): string {
   });
 }
 
+async function saveToSupabase(userId: string, data: SnapshotData) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('user_snapshots')
+    .upsert({ user_id: userId, data, updated_at: new Date().toISOString() });
+  if (error) console.error('[useWebStore] upsert 실패:', error);
+}
+
 export function useWebStore(userId: string | undefined) {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [subProjects, setSubProjects] = useState<SubProject[]>([]);
   const [loading, setLoading] = useState(true);
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<SnapshotData>({ events: [], todos: [], subProjects: [] });
+  // 아직 저장 안 된 데이터 (flush용)
+  const pendingRef = useRef<SnapshotData | null>(null);
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   // 최신 state를 ref에 동기화
   useEffect(() => { dataRef.current = { events, todos, subProjects }; }, [events, todos, subProjects]);
@@ -47,16 +60,56 @@ export function useWebStore(userId: string | undefined) {
       });
   }, [userId]);
 
-  // Supabase에 push (debounced)
+  // 페이지 숨김(새로고침/탭닫기) 직전에 pending 데이터를 즉시 저장
+  useEffect(() => {
+    const flushPending = () => {
+      const uid = userIdRef.current;
+      const data = pendingRef.current;
+      if (!uid || !data) return;
+      pendingRef.current = null;
+      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+      // fetch keepalive: 페이지 언로드 후에도 브라우저가 요청을 완료함
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/user_snapshots`;
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data: s }) => {
+        const token = s.session?.access_token;
+        if (!token) return;
+        fetch(url, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${token}`,
+            'Prefer': 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({ user_id: uid, data, updated_at: new Date().toISOString() }),
+        });
+      });
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushPending();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', flushPending);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', flushPending);
+    };
+  }, []);
+
+  // Supabase에 push (debounced 1초)
   const push = useCallback((next: SnapshotData) => {
     if (!userId) return;
+    pendingRef.current = next; // flush용 최신 데이터 보관
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
-      const supabase = createClient();
-      await supabase
-        .from('user_snapshots')
-        .upsert({ user_id: userId, data: next, updated_at: new Date().toISOString() });
-    }, 2000);
+      pendingRef.current = null;
+      await saveToSupabase(userId, next);
+    }, 1000);
   }, [userId]);
 
   // ── 업무일정 CRUD ──────────────────────────────────────────────────────────
@@ -64,7 +117,8 @@ export function useWebStore(userId: string | undefined) {
     setEvents(prev => {
       const newEvent: ScheduleEvent = { ...e, id: uuid(), sortOrder: prev.length };
       const next = [...prev, newEvent];
-      push({ ...dataRef.current, events: next });
+      const snapshot = { ...dataRef.current, events: next };
+      push(snapshot);
       return next;
     });
   }, [push]);
