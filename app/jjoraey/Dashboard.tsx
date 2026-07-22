@@ -8,10 +8,15 @@ interface PersonalUser {
 interface SharedUser {
   id: string; email: string; orgName: string; userId: string; createdAt: string;
 }
+interface PhotoItem {
+  id: string; filePath: string; fileName: string; fileSize: number;
+  expiresAt: string; createdAt: string; thumbUrl: string;
+  uploaderEmail: string; uploaderName: string;
+}
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number;
-  personal: PersonalUser[]; shared: SharedUser[];
+  personal: PersonalUser[]; shared: SharedUser[]; photos: PhotoItem[];
 }
 
 function fmt(d: string) {
@@ -120,6 +125,42 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* 사진 갤러리 */}
+        <div style={{ ...card, marginBottom: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
+            전송된 사진 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}장</span>
+          </h2>
+          {data.photos.length === 0 ? (
+            <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>사진 없음</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+              {data.photos.map(p => (
+                <div key={p.id} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #F3F4F6', position: 'relative' }}>
+                  {p.thumbUrl ? (
+                    <img src={p.thumbUrl} alt={p.fileName}
+                      style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '100%', aspectRatio: '1', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 24 }}>🖼️</span>
+                    </div>
+                  )}
+                  <div style={{ padding: '6px 8px', background: '#fff' }}>
+                    <div style={{ fontSize: 11, color: '#374151', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {p.fileName}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
+                      {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                      {fmt(p.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 공용폰 */}

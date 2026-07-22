@@ -4,6 +4,7 @@ import AdminLoginPage from './LoginPage';
 import AdminDashboard from './Dashboard';
 
 const SESSION_COOKIE = 'an_admin_auth';
+const BUCKET = 'photo-transfers';
 
 async function getAdminData() {
   const adminSupabase = createClient(
@@ -13,11 +14,17 @@ async function getAdminData() {
 
   const { data: { users } } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
   const { data: profiles } = await adminSupabase.from('profiles').select('*');
-  const { count: photoCount } = await adminSupabase
-    .from('photo_transfers').select('*', { count: 'exact', head: true });
+  const { data: photoRows } = await adminSupabase
+    .from('photo_transfers')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
 
   const profileMap: Record<string, any> = {};
   (profiles ?? []).forEach(p => { profileMap[p.id] = p; });
+
+  const userMap: Record<string, any> = {};
+  (users ?? []).forEach(u => { userMap[u.id] = u; });
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const allUsers = users ?? [];
@@ -42,14 +49,46 @@ async function getAdminData() {
       createdAt: u.created_at,
     }));
 
+  // 사진 목록 + 썸네일 signed URL
+  const validPhotos = (photoRows ?? []).filter(p => new Date(p.expires_at) > new Date());
+  let photos: any[] = [];
+  if (validPhotos.length > 0) {
+    const thumbResults = await Promise.all(
+      validPhotos.map(p =>
+        adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600, {
+          transform: { width: 300, height: 300, resize: 'cover', quality: 70 },
+        }).then(({ data }) => ({ path: p.file_path, thumbUrl: data?.signedUrl ?? '' }))
+      )
+    );
+    const thumbMap: Record<string, string> = {};
+    thumbResults.forEach(r => { thumbMap[r.path] = r.thumbUrl; });
+
+    photos = validPhotos.map(p => {
+      const u = userMap[p.user_id];
+      const prof = profileMap[p.user_id];
+      return {
+        id: p.id,
+        filePath: p.file_path,
+        fileName: p.file_name,
+        fileSize: p.file_size,
+        expiresAt: p.expires_at,
+        createdAt: p.created_at,
+        thumbUrl: thumbMap[p.file_path] ?? '',
+        uploaderEmail: u?.email ?? '-',
+        uploaderName: prof?.nickname ?? prof?.org_name ?? '-',
+      };
+    });
+  }
+
   return {
     total: allUsers.length,
     personalCount: personal.length,
     sharedCount: shared.length,
     todayUsers: allUsers.filter(u => new Date(u.created_at) >= todayStart).length,
-    photoCount: photoCount ?? 0,
+    photoCount: validPhotos.length,
     personal,
     shared,
+    photos,
   };
 }
 
