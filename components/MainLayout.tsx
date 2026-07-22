@@ -8,6 +8,7 @@ import { useWebStore } from '@/lib/useWebStore';
 import ScheduleView from './ScheduleView';
 import TodoView from './TodoView';
 import BudgetView from './BudgetView';
+import PhotoTransferView from './PhotoTransferView';
 
 const TABS = [
   { key: 'schedule', label: '업무일정', disabled: false },
@@ -131,7 +132,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                 onUpdateSpent={store.updateSpent}
               />
             )}
-            {activeTab === 'photo' && <ComingSoon label="사진전송" desc="업무 사진을 PC로 전송합니다." />}
+            {activeTab === 'photo' && <PhotoTransferView userId={user.id} />}
           </>
         )}
         </div>
