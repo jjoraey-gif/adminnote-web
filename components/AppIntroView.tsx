@@ -146,7 +146,7 @@ export default function AppIntroView() {
       </div>
 
       {/* CTA */}
-      <div style={{ borderTop: '1px solid #E5E7EB', textAlign: 'center', padding: '64px 40px' }}>
+      <div style={{ borderTop: '1px solid #E5E7EB', textAlign: 'center', padding: '64px 40px 40px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 16 }}>
           지금 무료로 시작하세요
         </h2>
@@ -173,6 +173,12 @@ export default function AppIntroView() {
             Google Play
           </a>
         </div>
+      </div>
+
+      {/* 푸터 링크 */}
+      <div style={{ borderTop: '1px solid #E5E7EB', padding: '24px 40px', display: 'flex', justifyContent: 'center', gap: 28 }}>
+        <a href="/terms" target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#9CA3AF', textDecoration: 'none' }}>서비스 이용약관</a>
+        <a href="/privacy" target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#9CA3AF', textDecoration: 'none' }}>개인정보 처리방침</a>
       </div>
     </div>
   );

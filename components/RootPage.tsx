@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import MainLayout from './MainLayout';
@@ -136,6 +136,14 @@ function AuthPage() {
 }
 
 // ─── 로그인 폼 ────────────────────────────────────────────────────────────────
+const AN_KEYS = {
+  auto: 'an_auto_login',
+  email: 'an_saved_email',
+  org: 'an_saved_org',
+  uid: 'an_saved_uid',
+  pw: 'an_saved_pw',
+};
+
 function LoginForm({ accountType }: { accountType: AccountType }) {
   const [email, setEmail] = useState('');
   const [orgName, setOrgName] = useState('');
@@ -143,22 +151,47 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [autoLogin, setAutoLogin] = useState(false);
+  const didAutoSubmit = useRef(false);
 
   const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 저장된 자격증명 복원 + 자동로그인 실행
+  useEffect(() => {
+    const isAuto = localStorage.getItem(AN_KEYS.auto) === 'true';
+    const savedEmail = localStorage.getItem(AN_KEYS.email) ?? '';
+    const savedOrg = localStorage.getItem(AN_KEYS.org) ?? '';
+    const savedUid = localStorage.getItem(AN_KEYS.uid) ?? '';
+    const savedPw = localStorage.getItem(AN_KEYS.pw) ?? '';
+
+    setAutoLogin(isAuto);
+    setEmail(savedEmail);
+    setOrgName(savedOrg);
+    setUserId(savedUid);
+    setPassword(savedPw);
+
+    if (isAuto && !didAutoSubmit.current && savedPw) {
+      const canAuto = accountType === 'personal' ? !!savedEmail : (!!savedOrg && !!savedUid);
+      if (canAuto) {
+        didAutoSubmit.current = true;
+        setTimeout(() => doLogin(savedEmail, savedOrg, savedUid, savedPw, true), 300);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const doLogin = async (
+    loginEmail: string, loginOrg: string, loginUid: string, loginPw: string, saveFlag: boolean,
+  ) => {
     setLoading(true);
     setError('');
-
-    let loginEmail = email;
+    let finalEmail = loginEmail;
 
     if (accountType === 'shared') {
-      // 서버 API로 기관이름+아이디 → 이메일 조회
       const res = await fetch('/api/auth/shared-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgName, userId, password }),
+        body: JSON.stringify({ orgName: loginOrg, userId: loginUid, password: loginPw }),
       });
       const data = await res.json();
       if (!res.ok || !data.email) {
@@ -166,31 +199,58 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
         setLoading(false);
         return;
       }
-      loginEmail = data.email;
+      finalEmail = data.email;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
+    const { error: loginErr } = await supabase.auth.signInWithPassword({ email: finalEmail, password: loginPw });
+    if (loginErr) {
+      if (loginErr.message.includes('Email not confirmed')) {
         setError('이메일 인증이 필요합니다. 받은 편지함을 확인해주세요. (스팸 폴더도 확인해주세요)');
       } else {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       }
       setLoading(false);
+    } else {
+      if (saveFlag) {
+        localStorage.setItem(AN_KEYS.auto, 'true');
+        localStorage.setItem(AN_KEYS.email, loginEmail);
+        localStorage.setItem(AN_KEYS.org, loginOrg);
+        localStorage.setItem(AN_KEYS.uid, loginUid);
+        localStorage.setItem(AN_KEYS.pw, loginPw);
+      } else {
+        localStorage.removeItem(AN_KEYS.auto);
+        localStorage.removeItem(AN_KEYS.pw);
+      }
     }
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    doLogin(email, orgName, userId, password, autoLogin);
   };
 
   return (
     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {accountType === 'personal' ? (
-        <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" />
+        <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" autoComplete="email" />
       ) : (
         <>
-          <Input label="기관이름" type="text" value={orgName} onChange={setOrgName} placeholder="기관이름을 입력하세요" />
-          <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="아이디를 입력하세요" />
+          <Input label="기관이름" type="text" value={orgName} onChange={setOrgName} placeholder="기관이름을 입력하세요" autoComplete="organization" />
+          <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="아이디를 입력하세요" autoComplete="username" />
         </>
       )}
-      <Input label="비밀번호" type="password" value={password} onChange={setPassword} placeholder="비밀번호를 입력하세요" />
+      <Input label="비밀번호" type="password" value={password} onChange={setPassword} placeholder="비밀번호를 입력하세요" autoComplete="current-password" />
+
+      {/* 자동로그인 */}
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: -2 }}>
+        <input
+          type="checkbox"
+          checked={autoLogin}
+          onChange={e => setAutoLogin(e.target.checked)}
+          style={{ width: 15, height: 15, accentColor: '#2563EB', cursor: 'pointer' }}
+        />
+        <span style={{ fontSize: 13, color: '#6B7280' }}>자동로그인</span>
+      </label>
 
       {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
 
@@ -479,15 +539,15 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-function Input({ label, type, value, onChange, placeholder, required = true }: {
+function Input({ label, type, value, onChange, placeholder, required = true, autoComplete }: {
   label: string; type: string; value: string;
-  onChange: (v: string) => void; placeholder: string; required?: boolean;
+  onChange: (v: string) => void; placeholder: string; required?: boolean; autoComplete?: string;
 }) {
   return (
     <div>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 5 }}>{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} required={required} style={inputStyle} />
+        placeholder={placeholder} required={required} autoComplete={autoComplete} style={inputStyle} />
     </div>
   );
 }
