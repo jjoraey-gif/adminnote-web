@@ -30,19 +30,42 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 }
 
+async function getFreshSignedUrl(filePath: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(filePath, 120);
+  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'URL 생성 실패');
+  return data.signedUrl;
+}
+
+async function fetchBlob(url: string): Promise<Blob> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('파일 다운로드 실패');
+  return res.blob();
+}
+
+// File System Access API 타입
+declare global {
+  interface Window {
+    showSaveFilePicker?: (options?: object) => Promise<FileSystemFileHandle>;
+    showDirectoryPicker?: (options?: object) => Promise<FileSystemDirectoryHandle>;
+  }
+}
+
 export default function PhotoTransferView({ userId }: { userId: string }) {
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState('');
+  const [preview, setPreview] = useState<PhotoMeta | null>(null);
 
   const fetchPhotos = useCallback(async () => {
     setLoading(true);
     setError(null);
     const supabase = createClient();
 
-    // 1. DB에서 사진 메타데이터 조회
     const { data, error: dbErr } = await supabase
       .from('photo_transfers')
       .select('*')
@@ -50,7 +73,6 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
       .order('created_at', { ascending: false });
 
     if (dbErr) {
-      console.error('[PhotoTransfer] DB 조회 실패:', dbErr);
       setError(`데이터 조회 실패: ${dbErr.message}`);
       setLoading(false);
       return;
@@ -63,59 +85,92 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
-    // 2. 서명 URL 일괄 생성
-    const { data: urls, error: urlErr } = await supabase.storage
+    const { data: urls } = await supabase.storage
       .from(BUCKET)
       .createSignedUrls(valid.map(p => p.file_path), 7200);
 
-    if (urlErr) {
-      console.error('[PhotoTransfer] 서명 URL 생성 실패:', urlErr);
-      // 서명 URL 없이도 카드는 표시 (다운로드 시 재시도)
-      setPhotos(valid);
-    } else {
-      const urlMap: Record<string, string> = {};
-      (urls ?? []).forEach(u => {
-        if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl;
-      });
-      console.log('[PhotoTransfer] urlMap keys:', Object.keys(urlMap));
-      console.log('[PhotoTransfer] file_paths:', valid.map(p => p.file_path));
-      setPhotos(valid.map(p => ({ ...p, signedUrl: urlMap[p.file_path] })));
-    }
-
+    const urlMap: Record<string, string> = {};
+    (urls ?? []).forEach(u => { if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl; });
+    setPhotos(valid.map(p => ({ ...p, signedUrl: urlMap[p.file_path] })));
     setLoading(false);
   }, [userId]);
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
-  // 다운로드: 매번 fresh 서명 URL 생성
+  // 개별 다운로드 — 저장 위치 지정
   const downloadPhoto = async (photo: PhotoMeta) => {
     setDownloading(photo.id);
     try {
-      const supabase = createClient();
-      const { data, error: signErr } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(photo.file_path, 60);
+      const url = await getFreshSignedUrl(photo.file_path);
+      const blob = await fetchBlob(url);
+      const ext = photo.file_name.split('.').pop() ?? 'jpg';
+      const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
-      if (signErr || !data?.signedUrl) throw new Error(signErr?.message ?? 'URL 생성 실패');
-
-      const a = document.createElement('a');
-      a.href = data.signedUrl;
-      a.download = photo.file_name;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      if (window.showSaveFilePicker) {
+        // File System Access API — 저장 위치 직접 지정
+        const handle = await window.showSaveFilePicker({
+          suggestedName: photo.file_name,
+          types: [{ description: '이미지', accept: { [mimeType]: [`.${ext}`] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        // 폴백: 브라우저 기본 다운로드 폴더
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl; a.download = photo.file_name;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objUrl);
+      }
     } catch (e: any) {
-      alert(`다운로드 실패: ${e.message}`);
+      if (e?.name !== 'AbortError') alert(`다운로드 실패: ${e.message}`);
     } finally {
       setDownloading(null);
     }
   };
 
+  // 전체 다운로드 — 폴더 지정 후 일괄 저장
   const downloadAll = async () => {
-    for (const photo of photos) {
-      await downloadPhoto(photo);
-      await new Promise(r => setTimeout(r, 400));
+    if (photos.length === 0) return;
+    setDownloadingAll(true);
+    setDownloadProgress('');
+    try {
+      if (window.showDirectoryPicker) {
+        // File System Access API — 폴더 선택
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' } as object);
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          setDownloadProgress(`저장 중... (${i + 1}/${photos.length})`);
+          try {
+            const url = await getFreshSignedUrl(photo.file_path);
+            const blob = await fetchBlob(url);
+            const fileHandle = await dirHandle.getFileHandle(photo.file_name, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+          } catch {
+            // 개별 실패는 스킵
+          }
+        }
+        setDownloadProgress(`완료! ${photos.length}장 저장됨`);
+        setTimeout(() => setDownloadProgress(''), 3000);
+      } else {
+        // 폴백: 순차 브라우저 다운로드
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          setDownloadProgress(`다운로드 중... (${i + 1}/${photos.length})`);
+          await downloadPhoto(photo);
+          await new Promise(r => setTimeout(r, 400));
+        }
+        setDownloadProgress('');
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') alert(`전체 다운로드 실패: ${e.message}`);
+      setDownloadProgress('');
+    } finally {
+      setDownloadingAll(false);
     }
   };
 
@@ -125,14 +180,11 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     await supabase.storage.from(BUCKET).remove([photo.file_path]);
     await supabase.from('photo_transfers').delete().eq('id', photo.id);
     setPhotos(prev => prev.filter(p => p.id !== photo.id));
+    if (preview?.id === photo.id) setPreview(null);
   };
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF' }}>
-        불러오는 중...
-      </div>
-    );
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF' }}>불러오는 중...</div>;
   }
 
   if (error) {
@@ -140,15 +192,60 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
       <div style={{ textAlign: 'center', padding: '60px 0' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
         <div style={{ fontSize: 14, color: '#EF4444', marginBottom: 16 }}>{error}</div>
-        <button onClick={fetchPhotos} style={{ padding: '8px 20px', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>
-          다시 시도
-        </button>
+        <button onClick={fetchPhotos} style={{ padding: '8px 20px', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>다시 시도</button>
       </div>
     );
   }
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
+
+      {/* 미리보기 모달 */}
+      {preview && (
+        <div
+          onClick={() => setPreview(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={preview.signedUrl}
+            alt={preview.file_name}
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '90vw', maxHeight: '82vh',
+              objectFit: 'contain', borderRadius: 8,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+              cursor: 'default',
+            }}
+          />
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: '#D1D5DB', fontSize: 13 }}>{preview.file_name} · {formatSize(preview.file_size)}</span>
+            <button
+              onClick={e => { e.stopPropagation(); downloadPhoto(preview); }}
+              style={{ padding: '8px 20px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            >
+              ⬇ 다운로드
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); deletePhoto(preview); }}
+              style={{ padding: '8px 16px', background: 'transparent', color: '#EF4444', border: '1px solid #EF4444', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+            >
+              🗑 삭제
+            </button>
+            <button
+              onClick={() => setPreview(null)}
+              style={{ padding: '8px 16px', background: 'transparent', color: '#9CA3AF', border: '1px solid #4B5563', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 안내 배너 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -165,11 +262,18 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {downloadProgress && (
+            <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{downloadProgress}</span>
+          )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
           {photos.length > 0 && (
-            <button onClick={downloadAll} style={btnStyle('#2563EB', '#2563EB', '#fff')}>
-              전체 다운로드 ({photos.length}장)
+            <button
+              onClick={downloadAll}
+              disabled={downloadingAll}
+              style={{ ...btnStyle('#1C1C1E', '#1C1C1E', '#fff'), opacity: downloadingAll ? 0.6 : 1 }}
+            >
+              {downloadingAll ? downloadProgress || '저장 중...' : `⬇ 전체 다운로드 (${photos.length}장)`}
             </button>
           )}
         </div>
@@ -184,12 +288,13 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
           {photos.map(photo => (
-            <div key={photo.id} style={{
-              border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden',
-              background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}>
-              {/* 썸네일 */}
-              <div style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6' }}>
+            <div key={photo.id} style={{ border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+
+              {/* 썸네일 — 클릭하면 미리보기 */}
+              <div
+                onClick={() => photo.signedUrl && setPreview(photo)}
+                style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: photo.signedUrl ? 'zoom-in' : 'default' }}
+              >
                 {photo.signedUrl ? (
                   <img
                     src={photo.signedUrl}
@@ -198,11 +303,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 36, color: '#D1D5DB',
-                  }}>🖼️</div>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: '#D1D5DB' }}>🖼️</div>
                 )}
               </div>
 
@@ -218,14 +319,9 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
                   <button
                     onClick={() => downloadPhoto(photo)}
                     disabled={downloading === photo.id}
-                    style={{
-                      flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600,
-                      background: '#2563EB', color: '#fff',
-                      border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer',
-                      opacity: downloading === photo.id ? 0.6 : 1,
-                    }}
+                    style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
                   >
-                    {downloading === photo.id ? '다운로드 중...' : '⬇ 다운로드'}
+                    {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
                   </button>
                   <button
                     onClick={() => deletePhoto(photo)}
