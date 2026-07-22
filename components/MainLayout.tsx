@@ -4,7 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
-import CalendarView from './CalendarView';
+import { useSnapshot } from '@/lib/useSnapshot';
+import ScheduleView from './ScheduleView';
+import TodoView from './TodoView';
+import BudgetView from './BudgetView';
 
 const TABS = [
   { key: 'schedule', label: '업무일정' },
@@ -24,6 +27,7 @@ interface Props {
 export default function MainLayout({ user, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('schedule');
   const supabase = createClient();
+  const { data: snapshot, loading: snapLoading } = useSnapshot(user.id);
 
   const displayName =
     user.user_metadata?.full_name ??
@@ -113,13 +117,21 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 콘텐츠 */}
       <main style={{ flex: 1, padding: '32px' }}>
-        {activeTab === 'schedule' && <CalendarView user={user} />}
-        {activeTab === 'todo' && <ComingSoon label="오늘 할 일" desc="앱에서 등록한 오늘의 업무를 확인할 수 있습니다." />}
-        {activeTab === 'budget' && <ComingSoon label="예산관리" desc="부서 예산 및 지출 내역을 관리합니다." />}
-        {activeTab === 'history' && <ComingSoon label="이력관리" desc="업무 처리 이력을 조회하고 기록합니다." />}
-        {activeTab === 'promotion' && <ComingSoon label="승진순위 관리" desc="승진 대상자 및 순위를 관리합니다." />}
-        {activeTab === 'org' && <ComingSoon label="부서조직도" desc="부서 구성 및 조직도를 확인합니다." />}
-        {activeTab === 'contacts' && <ComingSoon label="외부연락처" desc="외부 기관 및 업체 연락처를 관리합니다." />}
+        {snapLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
+            데이터 불러오는 중...
+          </div>
+        ) : (
+          <>
+            {activeTab === 'schedule' && <ScheduleView events={snapshot?.events ?? []} />}
+            {activeTab === 'todo' && <TodoView todos={snapshot?.todos ?? []} />}
+            {activeTab === 'budget' && <BudgetView subProjects={snapshot?.subProjects ?? []} />}
+            {activeTab === 'history' && <ComingSoon label="이력관리" desc="업무 처리 이력을 조회하고 기록합니다." />}
+            {activeTab === 'promotion' && <ComingSoon label="승진순위 관리" desc="승진 대상자 및 순위를 관리합니다." />}
+            {activeTab === 'org' && <ComingSoon label="부서조직도" desc="부서 구성 및 조직도를 확인합니다." />}
+            {activeTab === 'contacts' && <ComingSoon label="외부연락처" desc="외부 기관 및 업체 연락처를 관리합니다." />}
+          </>
+        )}
       </main>
 
       {/* 푸터 */}
