@@ -202,12 +202,35 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
 }
 
 // ─── 회원가입 폼 ──────────────────────────────────────────────────────────────
+type CheckState = 'idle' | 'checking' | 'ok' | 'taken';
+
+async function checkDuplicate(type: 'email' | 'nickname', value: string): Promise<CheckState> {
+  if (!value.trim()) return 'idle';
+  const res = await fetch('/api/auth/check-duplicate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, value }),
+  });
+  const data = await res.json();
+  return data.available ? 'ok' : 'taken';
+}
+
+function CheckBadge({ state }: { state: CheckState }) {
+  if (state === 'idle') return null;
+  if (state === 'checking') return <span style={{ fontSize: 12, color: '#9CA3AF' }}>확인 중...</span>;
+  if (state === 'ok') return <span style={{ fontSize: 12, color: '#16A34A' }}>✓ 사용 가능</span>;
+  return <span style={{ fontSize: 12, color: '#EF4444' }}>✗ 이미 사용 중</span>;
+}
+
 function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSuccess: () => void }) {
   const [nickname, setNickname] = useState('');
+  const [nicknameCheck, setNicknameCheck] = useState<CheckState>('idle');
   const [email, setEmail] = useState('');
+  const [emailCheck, setEmailCheck] = useState<CheckState>('idle');
   const [orgName, setOrgName] = useState('');
   const [userId, setUserId] = useState('');
-  const [verifyEmail, setVerifyEmail] = useState(''); // 공용폰 인증용 이메일
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [verifyEmailCheck, setVerifyEmailCheck] = useState<CheckState>('idle');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -218,12 +241,38 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
 
   const supabase = createClient();
 
+  const handleNicknameBlur = async () => {
+    if (!nickname.trim()) return;
+    setNicknameCheck('checking');
+    setNicknameCheck(await checkDuplicate('nickname', nickname));
+  };
+
+  const handleEmailBlur = async () => {
+    if (!email.trim()) return;
+    setEmailCheck('checking');
+    setEmailCheck(await checkDuplicate('email', email));
+  };
+
+  const handleVerifyEmailBlur = async () => {
+    if (!verifyEmail.trim()) return;
+    setVerifyEmailCheck('checking');
+    setVerifyEmailCheck(await checkDuplicate('email', verifyEmail));
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!agreeTerms || !agreePrivacy) {
       setError('이용약관 및 개인정보처리방침에 동의해주세요.');
+      return;
+    }
+    if (emailCheck === 'taken' || verifyEmailCheck === 'taken') {
+      setError('이미 사용 중인 이메일입니다.');
+      return;
+    }
+    if (nicknameCheck === 'taken') {
+      setError('이미 사용 중인 닉네임입니다.');
       return;
     }
     if (password !== passwordConfirm) {
@@ -311,14 +360,39 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {accountType === 'personal' ? (
         <>
-          <Input label="닉네임 (선택)" type="text" value={nickname} onChange={setNickname} placeholder="닉네임을 입력하세요" required={false} />
-          <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" />
+          <InputWithCheck
+            label="닉네임 (선택)"
+            type="text"
+            value={nickname}
+            onChange={v => { setNickname(v); setNicknameCheck('idle'); }}
+            onBlur={handleNicknameBlur}
+            placeholder="닉네임을 입력하세요"
+            required={false}
+            checkState={nickname ? nicknameCheck : 'idle'}
+          />
+          <InputWithCheck
+            label="이메일"
+            type="email"
+            value={email}
+            onChange={v => { setEmail(v); setEmailCheck('idle'); }}
+            onBlur={handleEmailBlur}
+            placeholder="이메일을 입력하세요"
+            checkState={emailCheck}
+          />
         </>
       ) : (
         <>
           <Input label="기관이름" type="text" value={orgName} onChange={setOrgName} placeholder="기관이름을 입력하세요" />
           <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="로그인에 사용할 아이디" />
-          <Input label="이메일 (인증용)" type="email" value={verifyEmail} onChange={setVerifyEmail} placeholder="인증 메일 받을 이메일" />
+          <InputWithCheck
+            label="이메일 (인증용)"
+            type="email"
+            value={verifyEmail}
+            onChange={v => { setVerifyEmail(v); setVerifyEmailCheck('idle'); }}
+            onBlur={handleVerifyEmailBlur}
+            placeholder="인증 메일 받을 이메일"
+            checkState={verifyEmailCheck}
+          />
         </>
       )}
       <Input label="비밀번호" type="password" value={password} onChange={setPassword} placeholder="6자 이상" />
@@ -393,6 +467,18 @@ function SocialLogin() {
 }
 
 // ─── 공통 컴포넌트 ────────────────────────────────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '11px 14px',
+  border: '1px solid #E5E7EB',
+  borderRadius: 10,
+  fontSize: 14,
+  outline: 'none',
+  background: '#fff',
+  color: '#1C1C1E',
+  boxSizing: 'border-box',
+};
+
 function Input({ label, type, value, onChange, placeholder, required = true }: {
   label: string; type: string; value: string;
   onChange: (v: string) => void; placeholder: string; required?: boolean;
@@ -400,24 +486,27 @@ function Input({ label, type, value, onChange, placeholder, required = true }: {
   return (
     <div>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 5 }}>{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        style={{
-          width: '100%',
-          padding: '11px 14px',
-          border: '1px solid #E5E7EB',
-          borderRadius: 10,
-          fontSize: 14,
-          outline: 'none',
-          background: '#fff',
-          color: '#1C1C1E',
-          boxSizing: 'border-box',
-        }}
-      />
+      <input type={type} value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} required={required} style={inputStyle} />
+    </div>
+  );
+}
+
+function InputWithCheck({ label, type, value, onChange, onBlur, placeholder, required = true, checkState }: {
+  label: string; type: string; value: string;
+  onChange: (v: string) => void; onBlur: () => void;
+  placeholder: string; required?: boolean; checkState: CheckState;
+}) {
+  const borderColor = checkState === 'ok' ? '#16A34A' : checkState === 'taken' ? '#EF4444' : '#E5E7EB';
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</label>
+        <CheckBadge state={checkState} />
+      </div>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur}
+        placeholder={placeholder} required={required}
+        style={{ ...inputStyle, border: `1px solid ${borderColor}` }} />
     </div>
   );
 }
