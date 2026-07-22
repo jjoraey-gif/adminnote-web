@@ -238,53 +238,36 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     setLoading(true);
 
     const signupEmail = accountType === 'personal' ? email : verifyEmail;
-    const displayName = accountType === 'personal'
-      ? (nickname || email.split('@')[0])
-      : `${orgName} (공용)`;
 
-    const { data, error: signupError } = await supabase.auth.signUp({
-      email: signupEmail,
-      password,
-      options: {
-        data: {
-          full_name: displayName,
-          account_type: accountType,
-          nickname: nickname || null,
-          ...(accountType === 'shared' && { org_name: orgName, shared_user_id: userId }),
-        },
-      },
+    // 서버 API로 회원가입 (email_confirm: true → 이메일 인증 없이 즉시 가입)
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: signupEmail,
+        password,
+        accountType,
+        nickname: nickname || null,
+        orgName: accountType === 'shared' ? orgName : null,
+        userId: accountType === 'shared' ? userId : null,
+      }),
     });
+    const result = await res.json();
 
-    if (signupError) {
-      if (signupError.message.includes('already registered')) {
-        setError('이미 가입된 이메일입니다.');
-      } else {
-        setError('가입 중 오류가 발생했습니다.');
-      }
+    if (!res.ok) {
+      setError(result.error ?? '가입 중 오류가 발생했습니다.');
       setLoading(false);
       return;
     }
 
-    // profiles 테이블에 저장
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        account_type: accountType,
-        nickname: nickname || null,
-        org_name: accountType === 'shared' ? orgName : null,
-        user_id: accountType === 'shared' ? userId : null,
-      });
-    }
-
-    // 이메일 인증 없이 바로 로그인 시도
-    const loginEmail = accountType === 'personal' ? email : verifyEmail;
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+    // 가입 즉시 로그인 (이메일 인증 없이 확인됨)
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email: signupEmail, password });
     if (!loginError) {
       // 자동 로그인 성공 → onAuthStateChange가 처리
       return;
     }
 
-    setDone(true);
+    setError('가입은 완료됐지만 로그인에 실패했습니다. 다시 로그인해주세요.');
     setLoading(false);
   };
 
