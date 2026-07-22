@@ -75,7 +75,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     } else {
       const urlMap: Record<string, string> = {};
       (urls ?? []).forEach(u => {
-        if (u.signedUrl) urlMap[u.path] = u.signedUrl;
+        if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl;
       });
       console.log('[PhotoTransfer] urlMap keys:', Object.keys(urlMap));
       console.log('[PhotoTransfer] file_paths:', valid.map(p => p.file_path));
