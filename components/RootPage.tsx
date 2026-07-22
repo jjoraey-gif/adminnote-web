@@ -276,6 +276,14 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
       });
     }
 
+    // 이메일 인증 없이 바로 로그인 시도
+    const loginEmail = accountType === 'personal' ? email : verifyEmail;
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+    if (!loginError) {
+      // 자동 로그인 성공 → onAuthStateChange가 처리
+      return;
+    }
+
     setDone(true);
     setLoading(false);
   };
