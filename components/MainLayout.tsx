@@ -15,6 +15,7 @@ const TABS = [
   { key: 'todo', label: '오늘 할 일', disabled: false },
   { key: 'budget', label: '예산관리', disabled: false },
   { key: 'photo', label: '사진전송', disabled: false },
+  { key: 'about', label: '앱 소개', disabled: false },
   { key: 'more', label: '더보기', disabled: true },
 ];
 
@@ -79,15 +80,15 @@ export default function MainLayout({ user, onLogout }: Props) {
         display: 'flex', justifyContent: 'center', background: '#fff',
         position: 'sticky', top: 100, zIndex: 40,
       }}>
-        <div style={{ width: '100%', maxWidth: 1064, padding: '0 32px', display: 'flex', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => !tab.disabled && setActiveTab(tab.key)}
               style={{
-                padding: '16px 24px', fontSize: 17,
+                padding: '16px 36px', fontSize: 17,
                 fontWeight: activeTab === tab.key ? 700 : 500,
-                color: tab.disabled ? '#D1D5DB' : activeTab === tab.key ? '#1C1C1E' : '#1C1C1E',
+                color: tab.disabled ? '#D1D5DB' : '#1C1C1E',
                 background: 'none', border: 'none',
                 borderBottom: activeTab === tab.key ? '3px solid #1C1C1E' : '3px solid transparent',
                 cursor: tab.disabled ? 'default' : 'pointer',
@@ -101,42 +102,50 @@ export default function MainLayout({ user, onLogout }: Props) {
       </div>
 
       {/* 콘텐츠 */}
-      <main style={{ flex: 1, padding: '32px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 1000 }}>
-        {store.loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
-            데이터 불러오는 중...
+      {activeTab === 'about' ? (
+        <iframe
+          src="/app-intro.html"
+          style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
+          title="앱 소개"
+        />
+      ) : (
+        <main style={{ flex: 1, padding: '32px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 1000 }}>
+          {store.loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
+              데이터 불러오는 중...
+            </div>
+          ) : (
+            <>
+              {activeTab === 'schedule' && (
+                <ScheduleView
+                  events={store.events}
+                  onAdd={store.addEvent}
+                  onUpdate={store.updateEvent}
+                  onDelete={store.deleteEvent}
+                  onToggle={store.toggleEvent}
+                />
+              )}
+              {activeTab === 'todo' && (
+                <TodoView
+                  todos={store.todos}
+                  onAdd={store.addTodo}
+                  onToggle={store.toggleTodo}
+                  onDelete={store.deleteTodo}
+                />
+              )}
+              {activeTab === 'budget' && (
+                <BudgetView
+                  subProjects={store.subProjects}
+                  onUpdateSpent={store.updateSpent}
+                />
+              )}
+              {activeTab === 'photo' && <PhotoTransferView userId={user.id} />}
+            </>
+          )}
           </div>
-        ) : (
-          <>
-            {activeTab === 'schedule' && (
-              <ScheduleView
-                events={store.events}
-                onAdd={store.addEvent}
-                onUpdate={store.updateEvent}
-                onDelete={store.deleteEvent}
-                onToggle={store.toggleEvent}
-              />
-            )}
-            {activeTab === 'todo' && (
-              <TodoView
-                todos={store.todos}
-                onAdd={store.addTodo}
-                onToggle={store.toggleTodo}
-                onDelete={store.deleteTodo}
-              />
-            )}
-            {activeTab === 'budget' && (
-              <BudgetView
-                subProjects={store.subProjects}
-                onUpdateSpent={store.updateSpent}
-              />
-            )}
-            {activeTab === 'photo' && <PhotoTransferView userId={user.id} />}
-          </>
-        )}
-        </div>
-      </main>
+        </main>
+      )}
 
       {/* 푸터 */}
       <footer style={{ borderTop: '1px solid #E5E7EB', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
