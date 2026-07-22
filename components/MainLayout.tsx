@@ -12,10 +12,10 @@ import PhotoTransferView from './PhotoTransferView';
 import AppIntroView from './AppIntroView';
 
 const TABS = [
+  { key: 'photo', label: '사진전송', disabled: false },
   { key: 'schedule', label: '업무일정', disabled: false },
   { key: 'todo', label: '오늘 할 일', disabled: false },
   { key: 'budget', label: '예산관리', disabled: false },
-  { key: 'photo', label: '사진전송', disabled: false },
   { key: 'about', label: '앱 소개', disabled: false },
   { key: 'more', label: '더보기', disabled: true },
 ];
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export default function MainLayout({ user, onLogout }: Props) {
-  const [activeTab, setActiveTab] = useState('schedule');
+  const [activeTab, setActiveTab] = useState('photo');
   const supabase = createClient();
   const store = useWebStore(user.id);
 

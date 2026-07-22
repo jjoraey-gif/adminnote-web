@@ -13,7 +13,8 @@ interface PhotoMeta {
   file_size: number;
   expires_at: string;
   created_at: string;
-  signedUrl?: string;
+  signedUrl?: string;      // 다운로드용 풀사이즈
+  thumbUrl?: string;       // 그리드 표시용 썸네일
 }
 
 function daysLeft(expiresAt: string): string {
@@ -85,13 +86,30 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
+    // 풀사이즈 URL (다운로드용) — 배치로 한번에
     const { data: urls } = await supabase.storage
       .from(BUCKET)
       .createSignedUrls(valid.map(p => p.file_path), 7200);
 
     const urlMap: Record<string, string> = {};
     (urls ?? []).forEach(u => { if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl; });
-    setPhotos(valid.map(p => ({ ...p, signedUrl: urlMap[p.file_path] })));
+
+    // 썸네일 URL (그리드 표시용) — 400px로 리사이즈해서 로딩 속도 향상
+    const thumbResults = await Promise.all(
+      valid.map(p =>
+        supabase.storage.from(BUCKET).createSignedUrl(p.file_path, 7200, {
+          transform: { width: 400, height: 400, resize: 'cover', quality: 70 },
+        }).then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
+      )
+    );
+    const thumbMap: Record<string, string> = {};
+    thumbResults.forEach(t => { if (t.url) thumbMap[t.path] = t.url; });
+
+    setPhotos(valid.map(p => ({
+      ...p,
+      signedUrl: urlMap[p.file_path],
+      thumbUrl: thumbMap[p.file_path] || urlMap[p.file_path],
+    })));
     setLoading(false);
   }, [userId]);
 
@@ -295,10 +313,12 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
                 onClick={() => photo.signedUrl && setPreview(photo)}
                 style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: photo.signedUrl ? 'zoom-in' : 'default' }}
               >
-                {photo.signedUrl ? (
+                {photo.thumbUrl ? (
                   <img
-                    src={photo.signedUrl}
+                    src={photo.thumbUrl}
                     alt={photo.file_name}
+                    loading="lazy"
+                    decoding="async"
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
