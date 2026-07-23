@@ -83,10 +83,23 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     setError(null);
     const supabase = createClient();
 
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+    // 쿼리 1: 오늘 업로드 총량 (삭제 포함)
+    const { data: todayData } = await supabase
+      .from('photo_transfers')
+      .select('file_size')
+      .eq('user_id', userId)
+      .gte('created_at', todayStart.toISOString());
+    const todayBytes = (todayData ?? []).reduce((sum, p) => sum + (p.file_size ?? 0), 0);
+    setTodaySizeMB(todayBytes / 1024 / 1024);
+
+    // 쿼리 2: 화면 표시용 (삭제 안됐고 만료 안된 것만)
     const { data, error: dbErr } = await supabase
       .from('photo_transfers')
       .select('*')
       .eq('user_id', userId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (dbErr) {
@@ -96,15 +109,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     }
 
     const rows = data ?? [];
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    // 삭제 포함 오늘 업로드 총량 (소프트 삭제 기반)
-    const todayBytes = rows
-      .filter(p => new Date(p.created_at) >= todayStart)
-      .reduce((sum, p) => sum + (p.file_size ?? 0), 0);
-    setTodaySizeMB(todayBytes / 1024 / 1024);
-
-    // 화면 표시: 삭제 안됐고 만료 안된 것만
-    const valid = rows.filter(p => !p.deleted_at && new Date(p.expires_at) > new Date());
+    const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
     // 풀사이즈 URL (다운로드용) — 배치로 한번에
