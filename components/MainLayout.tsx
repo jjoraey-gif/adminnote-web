@@ -58,7 +58,10 @@ export default function MainLayout({ user, onLogout }: Props) {
         }}>
           {/* 좌측 균형용 빈 영역 — 우측과 동일 너비 */}
           <div style={{ flex: '0 0 200px' }} />
-          <span style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1, flexShrink: 0 }}>
+          <span
+            onClick={() => setActiveTab('photo')}
+            style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1, flexShrink: 0, cursor: 'pointer' }}
+          >
             <span style={{ color: '#2563EB' }}>Admin</span>
             <span style={{ color: '#1C1C1E' }}>Note</span>
           </span>

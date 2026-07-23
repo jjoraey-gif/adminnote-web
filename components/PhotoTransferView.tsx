@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 const BUCKET = 'photo-transfers';
-const DAILY_LIMIT = 20;
+const DAILY_SIZE_LIMIT_MB = 20;
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
 
 function isImage(fileName: string): boolean {
@@ -72,7 +72,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [todayCount, setTodayCount] = useState(0);
+  const [todaySizeMB, setTodaySizeMB] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState('');
@@ -97,7 +97,10 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
     const rows = data ?? [];
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    setTodayCount(rows.filter(p => new Date(p.created_at) >= todayStart).length);
+    const todayBytes = rows
+      .filter(p => new Date(p.created_at) >= todayStart)
+      .reduce((sum, p) => sum + (p.file_size ?? 0), 0);
+    setTodaySizeMB(todayBytes / 1024 / 1024);
 
     const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
@@ -292,7 +295,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#1D4ED8' }}>앱에서 전송한 파일</div>
             <div style={{ fontSize: 12, color: '#3B82F6' }}>
-              오늘 {todayCount}/{DAILY_LIMIT}개 · 업로드 후 3일 보관 후 자동삭제
+              오늘 {todaySizeMB.toFixed(1)}/{DAILY_SIZE_LIMIT_MB}MB · 업로드 후 3일 보관 후 자동삭제
             </div>
           </div>
         </div>
