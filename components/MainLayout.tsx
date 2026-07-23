@@ -10,14 +10,15 @@ import TodoView from './TodoView';
 import BudgetView from './BudgetView';
 import PhotoTransferView from './PhotoTransferView';
 import AppIntroView from './AppIntroView';
+import ExternalContactView from './ExternalContactView';
 
 const TABS = [
   { key: 'photo', label: '파일전송', disabled: false },
   { key: 'schedule', label: '업무일정', disabled: false },
   { key: 'todo', label: '오늘 할 일', disabled: false },
   { key: 'budget', label: '예산관리', disabled: false },
+  { key: 'contacts', label: '외부연락처', disabled: false },
   { key: 'about', label: '앱 소개', disabled: false },
-  { key: 'more', label: '더보기', disabled: true },
 ];
 
 interface Props {
@@ -147,6 +148,12 @@ export default function MainLayout({ user, onLogout }: Props) {
                 />
               )}
               {activeTab === 'photo' && <PhotoTransferView userId={user.id} />}
+              {activeTab === 'contacts' && (
+                <ExternalContactView
+                  contacts={store.externalContacts}
+                  groups={store.contactGroups}
+                />
+              )}
             </>
           )}
           </div>

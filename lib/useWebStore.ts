@@ -4,6 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import { ScheduleEvent, TodoItem, SubProject, SnapshotData } from './useSnapshot';
 
+export interface ExternalContact {
+  id: string; companyName: string; personName: string; department: string;
+  position: string; phone: string; email: string; relatedWork: string; groupId: string | null;
+}
+export interface ContactGroup { id: string; name: string; }
+
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -24,6 +30,8 @@ export function useWebStore(userId: string | undefined) {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [subProjects, setSubProjects] = useState<SubProject[]>([]);
+  const [externalContacts, setExternalContacts] = useState<ExternalContact[]>([]);
+  const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,6 +64,8 @@ export function useWebStore(userId: string | undefined) {
           setEvents(ev);
           setTodos(td);
           setSubProjects(sp);
+          setExternalContacts((d.externalContacts as ExternalContact[]) ?? []);
+          setContactGroups((d.contactGroups as ContactGroup[]) ?? []);
           dataRef.current = { events: ev, todos: td, subProjects: sp };
         }
         setLoading(false);
@@ -139,6 +149,8 @@ export function useWebStore(userId: string | undefined) {
           setEvents(ev);
           setTodos(td);
           setSubProjects(sp);
+          setExternalContacts((d.externalContacts as ExternalContact[]) ?? []);
+          setContactGroups((d.contactGroups as ContactGroup[]) ?? []);
           dataRef.current = { events: ev, todos: td, subProjects: sp };
         },
       )
@@ -229,7 +241,7 @@ export function useWebStore(userId: string | undefined) {
   }, [push]);
 
   return {
-    events, todos, subProjects, loading,
+    events, todos, subProjects, externalContacts, contactGroups, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, toggleTodo, deleteTodo,
     updateSpent,
