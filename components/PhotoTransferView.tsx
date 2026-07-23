@@ -357,10 +357,10 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
       {/* 안내 배너 */}
       <div style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px', marginBottom: 24,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', margin: '0 auto 24px',
         background: '#EFF6FF', borderRadius: 12, border: '1px solid #BFDBFE',
-        flexWrap: 'wrap', gap: 8, maxWidth: '70%',
+        flexWrap: 'wrap', gap: 8, maxWidth: '90%',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 20 }}>📱⇄💻</span>
@@ -406,7 +406,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
       {photos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📂</div>
+          <div style={{ fontSize: 40, marginBottom: 12, letterSpacing: 4 }}>🖼️📄</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: '#374151' }}>업로드 된 사진이나 파일이 없습니다</div>
         </div>
       ) : (
