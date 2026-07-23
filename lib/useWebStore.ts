@@ -12,11 +12,11 @@ function uuid(): string {
   });
 }
 
-async function saveToSupabase(userId: string, data: SnapshotData) {
+async function saveToSupabase(userId: string, data: SnapshotData, updatedAt: string) {
   const supabase = createClient();
   const { error } = await supabase
     .from('user_snapshots')
-    .upsert({ user_id: userId, data, updated_at: new Date().toISOString() });
+    .upsert({ user_id: userId, data, updated_at: updatedAt });
   if (error) console.error('[useWebStore] upsert 실패:', error);
 }
 
@@ -30,6 +30,8 @@ export function useWebStore(userId: string | undefined) {
   const dataRef = useRef<SnapshotData>({ events: [], todos: [], subProjects: [] });
   // 아직 저장 안 된 데이터 (flush용)
   const pendingRef = useRef<SnapshotData | null>(null);
+  // 내가 마지막으로 저장한 updated_at (에코 방지용)
+  const lastSavedAtRef = useRef<string | null>(null);
   const userIdRef = useRef(userId);
   useEffect(() => { userIdRef.current = userId; }, [userId]);
 
@@ -108,8 +110,40 @@ export function useWebStore(userId: string | undefined) {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       pendingRef.current = null;
-      await saveToSupabase(userId, next);
+      const ts = new Date().toISOString();
+      lastSavedAtRef.current = ts; // 에코 방지용 타임스탬프 기록
+      await saveToSupabase(userId, next, ts);
     }, 1000);
+  }, [userId]);
+
+  // Supabase Realtime 구독 — 앱/다른 기기에서 변경 시 자동 반영
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`web_snapshot_sync_${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'user_snapshots', filter: `user_id=eq.${userId}` },
+        (payload: { new: Record<string, unknown> }) => {
+          const remoteTs = payload.new.updated_at as string;
+          // 로컬 변경 중(pending push)이면 무시
+          if (timerRef.current) return;
+          // 내가 방금 저장한 데이터이면 무시 (에코 방지)
+          if (lastSavedAtRef.current === remoteTs) return;
+          // 원격 데이터 적용
+          const d = payload.new.data as Record<string, unknown>;
+          const ev = (d.events as ScheduleEvent[]) ?? [];
+          const td = (d.todos as TodoItem[]) ?? [];
+          const sp = (d.subProjects as SubProject[]) ?? [];
+          setEvents(ev);
+          setTodos(td);
+          setSubProjects(sp);
+          dataRef.current = { events: ev, todos: td, subProjects: sp };
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   // ── 업무일정 CRUD ──────────────────────────────────────────────────────────
