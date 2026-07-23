@@ -3,6 +3,10 @@ import { cookies } from 'next/headers';
 import AdminLoginPage from './LoginPage';
 import AdminDashboard from './Dashboard';
 
+// 캐시 완전 비활성화 — 항상 최신 데이터
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const SESSION_COOKIE = 'an_admin_auth';
 const BUCKET = 'photo-transfers';
 
@@ -18,16 +22,10 @@ async function getAdminData() {
 
   // ── 1. auth.admin.listUsers (서비스 롤 키 필요) ──
   const { data: listData, error: listError } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
-  if (listError) {
-    console.error('[Admin] listUsers 오류:', listError.message);
-  }
   const authUsers = listData?.users ?? [];
 
   // ── 2. profiles 테이블 ──
   const { data: profiles, error: profilesError } = await adminSupabase.from('profiles').select('*');
-  if (profilesError) {
-    console.error('[Admin] profiles 오류:', profilesError.message);
-  }
 
   const profileMap: Record<string, any> = {};
   (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
@@ -162,6 +160,9 @@ async function getAdminData() {
     photos,
     usingFallback,
     listError: listError?.message ?? null,
+    profilesError: profilesError?.message ?? null,
+    profilesCount: (profiles ?? []).length,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
   };
 }
 
