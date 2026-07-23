@@ -14,15 +14,15 @@ export default function AccountDeletePage() {
 
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">계정 삭제 안내</h1>
-        <p className="text-sm text-gray-400 mb-2">AdminNote (공무원 업무수첩) — 개발자: 김창현</p>
+        <p className="text-sm text-gray-400 mb-2">공무원 업무수첩 (AdminNote) — 개발자: 김창현</p>
         <p className="text-sm text-gray-500 mb-10">
-          AdminNote 앱의 계정 및 관련 데이터를 삭제하는 방법을 안내합니다.
+          공무원 업무수첩 앱의 계정 및 관련 데이터를 삭제하는 방법을 안내합니다.
         </p>
 
         <div className="space-y-8 text-gray-700 leading-relaxed">
 
           <section className="bg-blue-50 rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">AdminNote 앱에서 계정 삭제하기</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">공무원 업무수첩 앱에서 계정 삭제하기</h2>
             <ol className="list-decimal list-inside space-y-2 text-sm">
               <li>AdminNote 앱을 실행합니다.</li>
               <li>하단 탭에서 <strong>더보기</strong>를 탭합니다.</li>
