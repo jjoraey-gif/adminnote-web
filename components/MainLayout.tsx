@@ -38,6 +38,9 @@ export default function MainLayout({ user, onLogout }: Props) {
     '사용자';
 
   const handleLogout = async () => {
+    // 자동로그인 완전 초기화 — 로그아웃 후 재자동로그인 방지
+    localStorage.removeItem('an_auto_login');
+    localStorage.removeItem('an_saved_pw');
     sessionStorage.setItem('an_skip_auto', 'true');
     await supabase.auth.signOut();
     onLogout();

@@ -8,6 +8,8 @@ import MainLayout from './MainLayout';
 export default function RootPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // 명시적 로그아웃 후 토큰 갱신 등 부수 이벤트로 재로그인되는 것을 막는 플래그
+  const loggedOutRef = useRef(false);
 
   const supabase = createClient();
 
@@ -17,8 +19,19 @@ export default function RootPage() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        // 명시적 로그아웃
+        loggedOutRef.current = true;
+        setUser(null);
+      } else if (event === 'SIGNED_IN') {
+        // 사용자가 직접 로그인한 경우 → 플래그 해제 후 인증
+        loggedOutRef.current = false;
+        setUser(session?.user ?? null);
+      } else if (!loggedOutRef.current) {
+        // TOKEN_REFRESHED 등 — 로그아웃 전이면 반영, 이후면 무시
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -33,7 +46,7 @@ export default function RootPage() {
   }
 
   if (!user) return <AuthPage />;
-  return <MainLayout user={user} onLogout={() => setUser(null)} />;
+  return <MainLayout user={user} onLogout={() => { loggedOutRef.current = true; setUser(null); }} />;
 }
 
 // ─── 인증 페이지 ──────────────────────────────────────────────────────────────
@@ -326,6 +339,17 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     e.preventDefault();
     setError('');
 
+    if (accountType === 'personal') {
+      if (!nickname.trim()) { setError('닉네임을 입력해주세요.'); return; }
+      if (!email.trim()) { setError('이메일을 입력해주세요.'); return; }
+    } else {
+      if (!orgName.trim()) { setError('기관이름을 입력해주세요.'); return; }
+      if (!userId.trim()) { setError('아이디를 입력해주세요.'); return; }
+      if (!verifyEmail.trim()) { setError('이메일을 입력해주세요.'); return; }
+    }
+    if (!password) { setError('비밀번호를 입력해주세요.'); return; }
+    if (password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return; }
+    if (password !== passwordConfirm) { setError('비밀번호가 일치하지 않습니다.'); return; }
     if (!agreeTerms || !agreePrivacy) {
       setError('이용약관 및 개인정보처리방침에 동의해주세요.');
       return;
@@ -336,14 +360,6 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     }
     if (nicknameCheck === 'taken') {
       setError('이미 사용 중인 닉네임입니다.');
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('비밀번호는 6자 이상이어야 합니다.');
       return;
     }
 
@@ -359,7 +375,7 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
         email: signupEmail,
         password,
         accountType,
-        nickname: nickname || null,
+        nickname: nickname.trim() || null,
         orgName: accountType === 'shared' ? orgName : null,
         userId: accountType === 'shared' ? userId : null,
       }),
@@ -424,13 +440,12 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
       {accountType === 'personal' ? (
         <>
           <InputWithCheck
-            label="닉네임 (선택)"
+            label="닉네임"
             type="text"
             value={nickname}
             onChange={v => { setNickname(v); setNicknameCheck('idle'); }}
             onBlur={handleNicknameBlur}
             placeholder="닉네임을 입력하세요"
-            required={false}
             checkState={nickname ? nicknameCheck : 'idle'}
           />
           <InputWithCheck

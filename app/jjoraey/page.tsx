@@ -49,19 +49,32 @@ async function getAdminData() {
       createdAt: u.created_at,
     }));
 
-  // 사진 목록 + 썸네일 signed URL
+  // 사진 목록 + 썸네일/풀사이즈 signed URL (만료 안된 것 전체 — 삭제된 것 포함)
   const validPhotos = (photoRows ?? []).filter(p => new Date(p.expires_at) > new Date());
   let photos: any[] = [];
   if (validPhotos.length > 0) {
-    const thumbResults = await Promise.all(
-      validPhotos.map(p =>
-        adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600, {
-          transform: { width: 300, height: 300, resize: 'cover', quality: 70 },
-        }).then(({ data }) => ({ path: p.file_path, thumbUrl: data?.signedUrl ?? '' }))
-      )
-    );
+    // 삭제 안 된 파일만 signed URL 생성 (삭제된 파일은 Storage에 없음)
+    const activePhotos = validPhotos.filter(p => !p.deleted_at);
+    const [thumbResults, fullResults] = await Promise.all([
+      Promise.all(
+        activePhotos.map(p =>
+          adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600, {
+            transform: { width: 300, height: 300, resize: 'cover', quality: 70 },
+          }).then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
+        )
+      ),
+      Promise.all(
+        activePhotos.map(p =>
+          adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600)
+            .then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
+        )
+      ),
+    ]);
+
     const thumbMap: Record<string, string> = {};
-    thumbResults.forEach(r => { thumbMap[r.path] = r.thumbUrl; });
+    thumbResults.forEach(r => { thumbMap[r.path] = r.url; });
+    const fullMap: Record<string, string> = {};
+    fullResults.forEach(r => { fullMap[r.path] = r.url; });
 
     photos = validPhotos.map(p => {
       const u = userMap[p.user_id];
@@ -73,7 +86,9 @@ async function getAdminData() {
         fileSize: p.file_size,
         expiresAt: p.expires_at,
         createdAt: p.created_at,
+        deletedAt: p.deleted_at ?? null,
         thumbUrl: thumbMap[p.file_path] ?? '',
+        fullUrl: fullMap[p.file_path] ?? '',
         uploaderEmail: u?.email ?? '-',
         uploaderName: prof?.nickname ?? prof?.org_name ?? '-',
       };

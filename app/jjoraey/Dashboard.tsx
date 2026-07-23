@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 interface PersonalUser {
   id: string; email: string; nickname: string; provider: string; createdAt: string;
@@ -10,7 +11,8 @@ interface SharedUser {
 }
 interface PhotoItem {
   id: string; filePath: string; fileName: string; fileSize: number;
-  expiresAt: string; createdAt: string; thumbUrl: string;
+  expiresAt: string; createdAt: string; deletedAt: string | null;
+  thumbUrl: string; fullUrl: string;
   uploaderEmail: string; uploaderName: string;
 }
 interface AdminData {
@@ -40,6 +42,7 @@ function ProviderBadge({ provider }: { provider: string }) {
 
 export default function AdminDashboard({ data }: { data: AdminData }) {
   const router = useRouter();
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
 
   const handleLogout = async () => {
     await fetch('/api/admin-login', { method: 'DELETE' });
@@ -130,38 +133,110 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
         {/* 사진 갤러리 */}
         <div style={{ ...card, marginBottom: 24 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-            전송된 사진 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}장</span>
+            전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
           </h2>
           {data.photos.length === 0 ? (
-            <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>사진 없음</p>
+            <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>파일 없음</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {data.photos.map(p => (
-                <div key={p.id} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #F3F4F6', position: 'relative' }}>
-                  {p.thumbUrl ? (
-                    <img src={p.thumbUrl} alt={p.fileName}
-                      style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
-                  ) : (
-                    <div style={{ width: '100%', aspectRatio: '1', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: 24 }}>🖼️</span>
-                    </div>
-                  )}
-                  <div style={{ padding: '6px 8px', background: '#fff' }}>
-                    <div style={{ fontSize: 11, color: '#374151', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {p.fileName}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
-                      {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#9CA3AF' }}>
-                      {fmt(p.createdAt)}
+              {data.photos.map(p => {
+                const isDeleted = !!p.deletedAt;
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => !isDeleted && p.fullUrl && setSelectedPhoto(p)}
+                    style={{
+                      borderRadius: 10, overflow: 'hidden',
+                      border: `1px solid ${isDeleted ? '#FCA5A5' : '#F3F4F6'}`,
+                      position: 'relative',
+                      cursor: isDeleted ? 'default' : 'pointer',
+                      opacity: isDeleted ? 0.7 : 1,
+                      transition: 'transform 0.15s, box-shadow 0.15s',
+                    }}
+                    onMouseEnter={e => { if (!isDeleted) { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; } }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+                  >
+                    {/* 이미지 or 파일 아이콘 */}
+                    {p.thumbUrl ? (
+                      <img src={p.thumbUrl} alt={p.fileName}
+                        style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', filter: isDeleted ? 'grayscale(60%)' : 'none' }} />
+                    ) : (
+                      <div style={{ width: '100%', aspectRatio: '1', background: isDeleted ? '#FEE2E2' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 32 }}>📄</span>
+                      </div>
+                    )}
+
+                    {/* 삭제됨 배지 */}
+                    {isDeleted && (
+                      <div style={{
+                        position: 'absolute', top: 6, right: 6,
+                        background: '#EF4444', color: '#fff',
+                        fontSize: 10, fontWeight: 700,
+                        padding: '2px 7px', borderRadius: 99,
+                      }}>
+                        삭제됨
+                      </div>
+                    )}
+
+                    <div style={{ padding: '6px 8px', background: isDeleted ? '#FFF5F5' : '#fff' }}>
+                      <div style={{ fontSize: 11, color: isDeleted ? '#9CA3AF' : '#374151', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.fileName}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
+                        {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                        {fmt(p.createdAt)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
+
+        {/* 사진 전체보기 모달 */}
+        {selectedPhoto && (
+          <div
+            onClick={() => setSelectedPhoto(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.82)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 24,
+            }}
+          >
+            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+              <img
+                src={selectedPhoto.fullUrl}
+                alt={selectedPhoto.fileName}
+                style={{ maxWidth: '85vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 12, display: 'block' }}
+              />
+              <div style={{
+                position: 'absolute', bottom: -48, left: 0, right: 0,
+                textAlign: 'center', color: '#fff', fontSize: 13,
+              }}>
+                <span style={{ fontWeight: 600 }}>{selectedPhoto.fileName}</span>
+                <span style={{ color: '#9CA3AF', marginLeft: 12 }}>
+                  {selectedPhoto.uploaderName !== '-' ? selectedPhoto.uploaderName : selectedPhoto.uploaderEmail.split('@')[0]}
+                </span>
+                <span style={{ color: '#6B7280', marginLeft: 8 }}>{fmt(selectedPhoto.createdAt)}</span>
+              </div>
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                style={{
+                  position: 'absolute', top: -16, right: -16,
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: '#fff', border: 'none', cursor: 'pointer',
+                  fontSize: 16, fontWeight: 700, color: '#374151',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                }}
+              >✕</button>
+            </div>
+          </div>
+        )}
 
         {/* 공용폰 */}
         <div style={card}>
