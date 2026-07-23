@@ -144,6 +144,11 @@ export default function MainLayout({ user, onLogout }: Props) {
               {activeTab === 'budget' && (
                 <BudgetView
                   subProjects={store.subProjects}
+                  onAddSubProject={store.addSubProject}
+                  onUpdateSubProject={store.updateSubProject}
+                  onDeleteSubProject={store.deleteSubProject}
+                  onReorderSubProjects={store.reorderSubProjects}
+                  onAddSpent={store.addSpent}
                   onUpdateSpent={store.updateSpent}
                 />
               )}

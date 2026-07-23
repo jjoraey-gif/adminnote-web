@@ -272,7 +272,40 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
-  // ── 예산 (지출 수정) ───────────────────────────────────────────────────────
+  // ── 예산 CRUD ──────────────────────────────────────────────────────────────
+  const addSubProject = useCallback((sp: SubProject) => {
+    setSubProjects(prev => {
+      const next = [...prev, { ...sp, sortOrder: prev.length }];
+      push({ ...dataRef.current, subProjects: next });
+      return next;
+    });
+  }, [push]);
+
+  const updateSubProject = useCallback((sp: SubProject) => {
+    setSubProjects(prev => {
+      const next = prev.map(x => x.id === sp.id ? sp : x);
+      push({ ...dataRef.current, subProjects: next });
+      return next;
+    });
+  }, [push]);
+
+  const deleteSubProject = useCallback((id: string) => {
+    setSubProjects(prev => {
+      const next = prev.filter(x => x.id !== id).map((x, i) => ({ ...x, sortOrder: i }));
+      push({ ...dataRef.current, subProjects: next });
+      return next;
+    });
+  }, [push]);
+
+  const reorderSubProjects = useCallback((ids: string[]) => {
+    setSubProjects(prev => {
+      const map = Object.fromEntries(prev.map(sp => [sp.id, sp]));
+      const next = ids.map((id, i) => ({ ...map[id], sortOrder: i }));
+      push({ ...dataRef.current, subProjects: next });
+      return next;
+    });
+  }, [push]);
+
   const updateSpent = useCallback((spId: string, pmId: string, smId: string, spent: number) => {
     setSubProjects(prev => {
       const next = prev.map(sp => sp.id !== spId ? sp : {
@@ -287,11 +320,25 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  const addSpent = useCallback((spId: string, pmId: string, smId: string, delta: number) => {
+    setSubProjects(prev => {
+      const next = prev.map(sp => sp.id !== spId ? sp : {
+        ...sp,
+        pyeonsongmoks: sp.pyeonsongmoks.map(pm => pm.id !== pmId ? pm : {
+          ...pm,
+          seomoks: pm.seomoks.map(sm => sm.id === smId ? { ...sm, spentAmount: sm.spentAmount + delta } : sm),
+        }),
+      });
+      push({ ...dataRef.current, subProjects: next });
+      return next;
+    });
+  }, [push]);
+
   return {
     events, todos, subProjects, externalContacts, contactGroups, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, toggleTodo, deleteTodo,
-    updateSpent,
+    addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
     addContact, updateContact, deleteContact,
     addContactGroup, deleteContactGroup,
   };

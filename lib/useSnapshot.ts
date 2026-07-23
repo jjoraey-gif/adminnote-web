@@ -33,6 +33,11 @@ export interface Seomok {
   name: string;
   budgetAmount: number;
   spentAmount: number;
+  nationalRatio: number;
+  provincialRatio: number;
+  cityRatio: number;
+  districtRatio: number;
+  countyRatio: number;
 }
 
 export interface Pyeonsongmok {
