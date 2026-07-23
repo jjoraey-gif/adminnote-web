@@ -5,6 +5,22 @@ import { createClient } from '@/lib/supabase';
 
 const BUCKET = 'photo-transfers';
 const DAILY_LIMIT = 20;
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
+
+function isImage(fileName: string): boolean {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTS.includes(ext);
+}
+
+function fileEmoji(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf') return '📄';
+  if (['doc', 'docx', 'hwp', 'hwpx'].includes(ext)) return '📝';
+  if (['xls', 'xlsx'].includes(ext)) return '📊';
+  if (['ppt', 'pptx'].includes(ext)) return '📑';
+  if (['zip', 'rar', '7z'].includes(ext)) return '🗜️';
+  return '📎';
+}
 
 interface PhotoMeta {
   id: string;
@@ -122,7 +138,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
       const url = await getFreshSignedUrl(photo.file_path);
       const blob = await fetchBlob(url);
       const ext = photo.file_name.split('.').pop() ?? 'jpg';
-      const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+      const mimeType = blob.type || (ext === 'png' ? 'image/png' : 'application/octet-stream');
 
       if (window.showSaveFilePicker) {
         // File System Access API — 저장 위치 직접 지정
@@ -274,9 +290,9 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 24 }}>📱→💻</span>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1D4ED8' }}>앱에서 전송한 사진</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#1D4ED8' }}>앱에서 전송한 파일</div>
             <div style={{ fontSize: 12, color: '#3B82F6' }}>
-              오늘 {todayCount}/{DAILY_LIMIT}장 · 업로드 후 3일 보관 후 자동삭제
+              오늘 {todayCount}/{DAILY_LIMIT}개 · 업로드 후 3일 보관 후 자동삭제
             </div>
           </div>
         </div>
@@ -291,7 +307,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
               disabled={downloadingAll}
               style={{ ...btnStyle('#1C1C1E', '#1C1C1E', '#fff'), opacity: downloadingAll ? 0.6 : 1 }}
             >
-              {downloadingAll ? downloadProgress || '저장 중...' : `⬇ 전체 다운로드 (${photos.length}장)`}
+              {downloadingAll ? downloadProgress || '저장 중...' : `⬇ 전체 다운로드 (${photos.length}개)`}
             </button>
           )}
         </div>
@@ -299,60 +315,68 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
       {photos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📷</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>전송된 사진이 없습니다</div>
-          <div style={{ fontSize: 14 }}>앱 더보기 → 사진전송에서 업로드하세요</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📂</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>전송된 파일이 없습니다</div>
+          <div style={{ fontSize: 14 }}>앱 파일전송에서 업로드하세요</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-          {photos.map(photo => (
-            <div key={photo.id} style={{ border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          {photos.map(photo => {
+            const img = isImage(photo.file_name);
+            return (
+              <div key={photo.id} style={{ border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
-              {/* 썸네일 — 클릭하면 미리보기 */}
-              <div
-                onClick={() => photo.signedUrl && setPreview(photo)}
-                style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: photo.signedUrl ? 'zoom-in' : 'default' }}
-              >
-                {photo.thumbUrl ? (
-                  <img
-                    src={photo.thumbUrl}
-                    alt={photo.file_name}
-                    loading="lazy"
-                    decoding="async"
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                ) : (
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: '#D1D5DB' }}>🖼️</div>
-                )}
-              </div>
+                {/* 썸네일 or 파일 아이콘 */}
+                <div
+                  onClick={() => img && photo.signedUrl && setPreview(photo)}
+                  style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: img && photo.signedUrl ? 'zoom-in' : 'default' }}
+                >
+                  {img && photo.thumbUrl ? (
+                    <img
+                      src={photo.thumbUrl}
+                      alt={photo.file_name}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 48 }}>{fileEmoji(photo.file_name)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', letterSpacing: 1 }}>
+                        {photo.file_name.split('.').pop()?.toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-              {/* 정보 */}
-              <div style={{ padding: '10px 12px' }}>
-                <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {photo.file_name}
-                </div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>
-                  {formatSize(photo.file_size)} · <span style={{ color: '#EF4444' }}>{daysLeft(photo.expires_at)}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => downloadPhoto(photo)}
-                    disabled={downloading === photo.id}
-                    style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
-                  >
-                    {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
-                  </button>
-                  <button
-                    onClick={() => deletePhoto(photo)}
-                    style={{ padding: '7px 10px', fontSize: 12, background: '#fff', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: 7, cursor: 'pointer' }}
-                  >
-                    🗑
-                  </button>
+                {/* 정보 */}
+                <div style={{ padding: '10px 12px' }}>
+                  <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {photo.file_name}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>
+                    {formatSize(photo.file_size)} · <span style={{ color: '#EF4444' }}>{daysLeft(photo.expires_at)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => downloadPhoto(photo)}
+                      disabled={downloading === photo.id}
+                      style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
+                    >
+                      {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
+                    </button>
+                    <button
+                      onClick={() => deletePhoto(photo)}
+                      style={{ padding: '7px 10px', fontSize: 12, background: '#fff', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: 7, cursor: 'pointer' }}
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

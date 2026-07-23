@@ -12,7 +12,7 @@ import PhotoTransferView from './PhotoTransferView';
 import AppIntroView from './AppIntroView';
 
 const TABS = [
-  { key: 'photo', label: '사진전송', disabled: false },
+  { key: 'photo', label: '파일전송', disabled: false },
   { key: 'schedule', label: '업무일정', disabled: false },
   { key: 'todo', label: '오늘 할 일', disabled: false },
   { key: 'budget', label: '예산관리', disabled: false },
