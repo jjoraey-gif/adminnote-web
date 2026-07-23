@@ -193,11 +193,11 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
               </div>
 
               {/* 수정 */}
-              <button onClick={() => setEditing(todo)} style={{
-                background: 'none', border: '1px solid #E5E7EB', cursor: 'pointer',
-                fontSize: 12, color: '#6B7280', padding: '4px 10px', borderRadius: 6,
-                fontWeight: 500, flexShrink: 0,
-              }}>수정</button>
+              <button onClick={() => setEditing(todo)} title="수정" style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 16, color: '#9CA3AF', padding: '4px',
+                lineHeight: 1, flexShrink: 0,
+              }}>✏️</button>
 
               {/* 삭제 */}
               <button onClick={() => onDelete(todo.id)} style={{
