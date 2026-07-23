@@ -97,7 +97,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 10, letterSpacing: 1 }}>미분류</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {ungrouped.map(c => (
-                  <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} />
+                  <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />
                 ))}
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
                 {gc.length === 0
                   ? <div style={{ fontSize: 13, color: '#C7C7CC', paddingLeft: 4 }}>비어 있음</div>
                   : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {gc.map(c => <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} />)}
+                      {gc.map(c => <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />)}
                     </div>
                 }
               </div>
@@ -215,7 +215,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
   );
 }
 
-function ContactRow({ c, onMenu }: { c: ExternalContact; onMenu: () => void }) {
+function ContactRow({ c, onMenu, onEdit }: { c: ExternalContact; onMenu: () => void; onEdit: () => void }) {
   const col = rowColor(c.id);
   const initial = c.personName?.[0] ?? c.companyName?.[0] ?? '?';
   return (
@@ -241,6 +241,9 @@ function ContactRow({ c, onMenu }: { c: ExternalContact; onMenu: () => void }) {
               📞
             </a>
           )}
+          <button onClick={onEdit} title="수정" style={{ width: 32, height: 32, borderRadius: '50%', background: '#EFF6FF', border: 'none', cursor: 'pointer', fontSize: 15, color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            ✏️
+          </button>
           <button onClick={onMenu} style={{ width: 32, height: 32, borderRadius: '50%', background: '#F3F4F6', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ⋯
           </button>
@@ -265,8 +268,10 @@ function ContactModal({ contact, groups, onClose, onSave }: {
   const [work, setWork] = useState(contact?.relatedWork ?? '');
   const [groupId, setGroupId] = useState<string | null>(contact?.groupId ?? null);
 
+  const canSave = !!person.trim() && !!phone.trim();
+
   const handleSave = () => {
-    if (!company.trim()) return;
+    if (!canSave) return;
     onSave({
       id: contact?.id ?? uuid(),
       companyName: company.trim(),
@@ -288,11 +293,11 @@ function ContactModal({ contact, groups, onClose, onSave }: {
           <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Field label="업체명 *" value={company} onChange={setCompany} />
-          <Field label="이름" value={person} onChange={setPerson} />
+          <Field label="업체명" value={company} onChange={setCompany} />
+          <Field label="이름 *" value={person} onChange={setPerson} />
           <Field label="부서" value={dept} onChange={setDept} />
           <Field label="직위" value={position} onChange={setPosition} />
-          <Field label="전화" value={phone} onChange={setPhone} type="tel" />
+          <Field label="연락처 *" value={phone} onChange={setPhone} type="tel" />
           <Field label="이메일" value={email} onChange={setEmail} type="email" />
           <Field label="관련업무" value={work} onChange={setWork} />
           <div>
@@ -306,8 +311,8 @@ function ContactModal({ contact, groups, onClose, onSave }: {
         <div style={{ padding: '12px 20px', borderTop: '1px solid #E5E7EB', background: '#fff' }}>
           <button
             onClick={handleSave}
-            disabled={!company.trim()}
-            style={{ width: '100%', padding: '14px', fontSize: 16, fontWeight: 600, border: 'none', borderRadius: 12, background: company.trim() ? '#2563EB' : '#D1D5DB', color: '#fff', cursor: company.trim() ? 'pointer' : 'default' }}
+            disabled={!canSave}
+            style={{ width: '100%', padding: '14px', fontSize: 16, fontWeight: 600, border: 'none', borderRadius: 12, background: canSave ? '#2563EB' : '#D1D5DB', color: '#fff', cursor: canSave ? 'pointer' : 'default' }}
           >저장</button>
         </div>
       </div>
