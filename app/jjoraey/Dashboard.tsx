@@ -19,6 +19,8 @@ interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number;
   personal: PersonalUser[]; shared: SharedUser[]; photos: PhotoItem[];
+  usingFallback?: boolean;
+  listError?: string | null;
 }
 
 function fmt(d: string) {
@@ -65,6 +67,18 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB', padding: '40px 32px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+        {/* 서비스 롤 키 오류 경고 */}
+        {data.listError && (
+          <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 12, padding: '12px 20px', marginBottom: 20, fontSize: 13, color: '#92400E' }}>
+            ⚠️ <strong>auth.admin.listUsers 실패:</strong> {data.listError}
+            <br />
+            <span style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+              Vercel 대시보드 → Settings → Environment Variables → <code>SUPABASE_SERVICE_ROLE_KEY</code> 값을 확인하세요.
+              {data.usingFallback && ' (현재 profiles 테이블 기반으로 표시 중)'}
+            </span>
+          </div>
+        )}
 
         {/* 헤더 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
