@@ -358,16 +358,18 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
       {/* 안내 배너 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 20px', marginBottom: 24,
-        background: '#EFF6FF', borderRadius: 14, border: '1px solid #BFDBFE',
-        flexWrap: 'wrap', gap: 10,
+        padding: '10px 16px', marginBottom: 24,
+        background: '#EFF6FF', borderRadius: 12, border: '1px solid #BFDBFE',
+        flexWrap: 'wrap', gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 24 }}>📱→💻</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>📱⇄💻</span>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1D4ED8' }}>앱에서 전송한 파일</div>
-            <div style={{ fontSize: 12, color: '#3B82F6' }}>
-              오늘 {todaySizeMB.toFixed(1)}/{DAILY_SIZE_LIMIT_MB}MB · 업로드 후 3일 보관 후 자동삭제
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
+              오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{DAILY_SIZE_LIMIT_MB}MB
+            </div>
+            <div style={{ fontSize: 11, color: '#3B82F6' }}>
+              파일 추가 후 3일 보관 · 자동삭제
             </div>
           </div>
         </div>
