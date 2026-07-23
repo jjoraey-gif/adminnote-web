@@ -225,6 +225,53 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  // ── 외부연락처 CRUD ────────────────────────────────────────────────────────
+  const addContact = useCallback((c: ExternalContact) => {
+    setExternalContacts(prev => {
+      const next = [...prev, c];
+      push({ ...dataRef.current, externalContacts: next } as any);
+      return next;
+    });
+  }, [push]);
+
+  const updateContact = useCallback((c: ExternalContact) => {
+    setExternalContacts(prev => {
+      const next = prev.map(x => x.id === c.id ? c : x);
+      push({ ...dataRef.current, externalContacts: next } as any);
+      return next;
+    });
+  }, [push]);
+
+  const deleteContact = useCallback((id: string) => {
+    setExternalContacts(prev => {
+      const next = prev.filter(x => x.id !== id);
+      push({ ...dataRef.current, externalContacts: next } as any);
+      return next;
+    });
+  }, [push]);
+
+  const addContactGroup = useCallback((g: ContactGroup) => {
+    setContactGroups(prev => {
+      const next = [...prev, g];
+      push({ ...dataRef.current, contactGroups: next } as any);
+      return next;
+    });
+  }, [push]);
+
+  const deleteContactGroup = useCallback((id: string) => {
+    setContactGroups(prev => {
+      const next = prev.filter(g => g.id !== id);
+      push({ ...dataRef.current, contactGroups: next } as any);
+      return next;
+    });
+    // 해당 그룹 연락처 → 미분류
+    setExternalContacts(prev => {
+      const next = prev.map(c => c.groupId === id ? { ...c, groupId: null } : c);
+      push({ ...dataRef.current, externalContacts: next } as any);
+      return next;
+    });
+  }, [push]);
+
   // ── 예산 (지출 수정) ───────────────────────────────────────────────────────
   const updateSpent = useCallback((spId: string, pmId: string, smId: string, spent: number) => {
     setSubProjects(prev => {
@@ -245,5 +292,7 @@ export function useWebStore(userId: string | undefined) {
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, toggleTodo, deleteTodo,
     updateSpent,
+    addContact, updateContact, deleteContact,
+    addContactGroup, deleteContactGroup,
   };
 }

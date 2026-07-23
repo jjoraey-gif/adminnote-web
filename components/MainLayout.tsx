@@ -152,6 +152,11 @@ export default function MainLayout({ user, onLogout }: Props) {
                 <ExternalContactView
                   contacts={store.externalContacts}
                   groups={store.contactGroups}
+                  onAdd={store.addContact}
+                  onUpdate={store.updateContact}
+                  onDelete={store.deleteContact}
+                  onAddGroup={store.addContactGroup}
+                  onDeleteGroup={store.deleteContactGroup}
                 />
               )}
             </>
