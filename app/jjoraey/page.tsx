@@ -12,8 +12,16 @@ async function getAdminData() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const { data: { users } } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
-  const { data: profiles } = await adminSupabase.from('profiles').select('*');
+  const { data: listData, error: listError } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
+  if (listError) {
+    console.error('[Admin] listUsers 오류:', listError.message, listError.status);
+  }
+  const users = listData?.users ?? [];
+
+  const { data: profiles, error: profilesError } = await adminSupabase.from('profiles').select('*');
+  if (profilesError) {
+    console.error('[Admin] profiles 쿼리 오류:', profilesError.message);
+  }
   const { data: photoRows } = await adminSupabase
     .from('photo_transfers')
     .select('*')
