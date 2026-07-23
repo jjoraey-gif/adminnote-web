@@ -18,7 +18,7 @@ function uuid(): string {
   });
 }
 
-async function saveToSupabase(userId: string, data: SnapshotData, updatedAt: string) {
+async function saveToSupabase(userId: string, data: Record<string, unknown>, updatedAt: string) {
   const supabase = createClient();
   const { error } = await supabase
     .from('user_snapshots')
@@ -35,16 +35,22 @@ export function useWebStore(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef<SnapshotData>({ events: [], todos: [], subProjects: [] });
+  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [] });
   // 아직 저장 안 된 데이터 (flush용)
-  const pendingRef = useRef<SnapshotData | null>(null);
+  const pendingRef = useRef<Record<string, unknown> | null>(null);
   // 내가 마지막으로 저장한 updated_at (에코 방지용)
   const lastSavedAtRef = useRef<string | null>(null);
   const userIdRef = useRef(userId);
   useEffect(() => { userIdRef.current = userId; }, [userId]);
 
-  // 최신 state를 ref에 동기화
-  useEffect(() => { dataRef.current = { events, todos, subProjects }; }, [events, todos, subProjects]);
+  // 최신 state를 ref에 동기화 (모든 필드 포함 — 누락 시 push 때 해당 필드가 DB에서 삭제됨)
+  useEffect(() => {
+    dataRef.current = { ...dataRef.current, events, todos, subProjects };
+  }, [events, todos, subProjects]);
+
+  useEffect(() => {
+    dataRef.current = { ...dataRef.current, externalContacts, contactGroups };
+  }, [externalContacts, contactGroups]);
 
   // 초기 로드
   useEffect(() => {
@@ -114,7 +120,7 @@ export function useWebStore(userId: string | undefined) {
   }, []);
 
   // Supabase에 push (debounced 1초)
-  const push = useCallback((next: SnapshotData) => {
+  const push = useCallback((next: Record<string, unknown>) => {
     if (!userId) return;
     pendingRef.current = next; // flush용 최신 데이터 보관
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -237,7 +243,7 @@ export function useWebStore(userId: string | undefined) {
   const addContact = useCallback((c: ExternalContact) => {
     setExternalContacts(prev => {
       const next = [...prev, c];
-      push({ ...dataRef.current, externalContacts: next } as any);
+      push({ ...dataRef.current, externalContacts: next });
       return next;
     });
   }, [push]);
@@ -245,7 +251,7 @@ export function useWebStore(userId: string | undefined) {
   const updateContact = useCallback((c: ExternalContact) => {
     setExternalContacts(prev => {
       const next = prev.map(x => x.id === c.id ? c : x);
-      push({ ...dataRef.current, externalContacts: next } as any);
+      push({ ...dataRef.current, externalContacts: next });
       return next;
     });
   }, [push]);
@@ -253,7 +259,7 @@ export function useWebStore(userId: string | undefined) {
   const deleteContact = useCallback((id: string) => {
     setExternalContacts(prev => {
       const next = prev.filter(x => x.id !== id);
-      push({ ...dataRef.current, externalContacts: next } as any);
+      push({ ...dataRef.current, externalContacts: next });
       return next;
     });
   }, [push]);
@@ -261,7 +267,7 @@ export function useWebStore(userId: string | undefined) {
   const addContactGroup = useCallback((g: ContactGroup) => {
     setContactGroups(prev => {
       const next = [...prev, g];
-      push({ ...dataRef.current, contactGroups: next } as any);
+      push({ ...dataRef.current, contactGroups: next });
       return next;
     });
   }, [push]);
@@ -269,13 +275,13 @@ export function useWebStore(userId: string | undefined) {
   const deleteContactGroup = useCallback((id: string) => {
     setContactGroups(prev => {
       const next = prev.filter(g => g.id !== id);
-      push({ ...dataRef.current, contactGroups: next } as any);
+      push({ ...dataRef.current, contactGroups: next });
       return next;
     });
     // 해당 그룹 연락처 → 미분류
     setExternalContacts(prev => {
       const next = prev.map(c => c.groupId === id ? { ...c, groupId: null } : c);
-      push({ ...dataRef.current, externalContacts: next } as any);
+      push({ ...dataRef.current, externalContacts: next });
       return next;
     });
   }, [push]);
