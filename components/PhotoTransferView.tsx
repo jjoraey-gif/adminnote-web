@@ -97,12 +97,14 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
     const rows = data ?? [];
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    // 삭제 포함 오늘 업로드 총량 (소프트 삭제 기반)
     const todayBytes = rows
       .filter(p => new Date(p.created_at) >= todayStart)
       .reduce((sum, p) => sum + (p.file_size ?? 0), 0);
     setTodaySizeMB(todayBytes / 1024 / 1024);
 
-    const valid = rows.filter(p => new Date(p.expires_at) > new Date());
+    // 화면 표시: 삭제 안됐고 만료 안된 것만
+    const valid = rows.filter(p => !p.deleted_at && new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
     // 풀사이즈 URL (다운로드용) — 배치로 한번에
@@ -214,8 +216,10 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
   const deletePhoto = async (photo: PhotoMeta) => {
     if (!confirm(`"${photo.file_name}" 을 삭제하시겠습니까?`)) return;
     const supabase = createClient();
+    // 스토리지 실제 삭제 (공간 확보)
     await supabase.storage.from(BUCKET).remove([photo.file_path]);
-    await supabase.from('photo_transfers').delete().eq('id', photo.id);
+    // DB 소프트 삭제 (오늘 업로드 용량 추적 유지)
+    await supabase.from('photo_transfers').update({ deleted_at: new Date().toISOString() }).eq('id', photo.id);
     setPhotos(prev => prev.filter(p => p.id !== photo.id));
     if (preview?.id === photo.id) setPreview(null);
   };
