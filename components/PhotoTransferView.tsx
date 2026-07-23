@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 const BUCKET = 'photo-transfers';
@@ -68,6 +68,9 @@ declare global {
   }
 }
 
+const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB per file
+const DAILY_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB per day
+
 export default function PhotoTransferView({ userId }: { userId: string }) {
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +80,9 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState('');
   const [preview, setPreview] = useState<PhotoMeta | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPhotos = useCallback(async () => {
     setLoading(true);
@@ -140,6 +146,63 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
   }, [userId]);
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
+
+  // 웹 파일 업로드
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    const todayUsedBytes = todaySizeMB * 1024 * 1024;
+    const supabase = createClient();
+    setUploading(true);
+    let successCount = 0;
+    const errors: string[] = [];
+    let runningSize = todayUsedBytes;
+
+    for (const file of files) {
+      if (file.size > FILE_SIZE_LIMIT) {
+        errors.push(`"${file.name}" 파일이 10MB를 초과합니다. (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+        continue;
+      }
+      if (runningSize + file.size > DAILY_SIZE_LIMIT) {
+        errors.push(`오늘 용량 한도(20MB) 초과 — "${file.name}" 건너뜀`);
+        continue;
+      }
+
+      setUploadProgress(`업로드 중... ${file.name}`);
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+      const filePath = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const uploadMime = IMAGE_EXTS.includes(ext) ? file.type : 'application/octet-stream';
+      const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+      try {
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(filePath, file, { contentType: uploadMime, upsert: false });
+        if (upErr) throw upErr;
+
+        const { error: dbErr } = await supabase.from('photo_transfers').insert({
+          user_id: userId,
+          file_path: filePath,
+          file_name: file.name,
+          file_size: file.size,
+          expires_at: expiresAt,
+        });
+        if (dbErr) throw dbErr;
+
+        successCount++;
+        runningSize += file.size;
+      } catch (err: any) {
+        errors.push(`"${file.name}": ${err.message}`);
+      }
+    }
+
+    setUploading(false);
+    setUploadProgress('');
+    if (errors.length > 0) alert(`일부 실패:\n${errors.join('\n')}`);
+    if (successCount > 0) await fetchPhotos();
+  };
 
   // 개별 다운로드 — 저장 위치 지정
   const downloadPhoto = async (photo: PhotoMeta) => {
@@ -309,10 +372,17 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {downloadProgress && (
-            <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{downloadProgress}</span>
+          {(downloadProgress || uploadProgress) && (
+            <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{uploadProgress || downloadProgress}</span>
           )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{ ...btnStyle('#2563EB', '#2563EB', '#fff'), opacity: uploading ? 0.6 : 1 }}
+          >
+            {uploading ? '업로드 중...' : '+ 파일 추가'}
+          </button>
           {photos.length > 0 && (
             <button
               onClick={downloadAll}
@@ -323,6 +393,13 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
             </button>
           )}
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleFileUpload}
+        />
       </div>
 
       {photos.length === 0 ? (
