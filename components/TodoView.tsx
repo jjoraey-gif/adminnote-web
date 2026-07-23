@@ -6,15 +6,70 @@ import { TodoItem } from '@/lib/useSnapshot';
 interface Props {
   todos: TodoItem[];
   onAdd: (title: string, date?: string) => void;
+  onUpdate: (id: string, title: string, date: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
 type Filter = 'today' | 'all' | 'completed';
 
-export default function TodoView({ todos, onAdd, onToggle, onDelete }: Props) {
+function EditModal({ todo, onClose, onSave }: { todo: TodoItem; onClose: () => void; onSave: (title: string, date: string) => void }) {
+  const [title, setTitle] = useState(todo.title);
+  const [date, setDate] = useState(todo.date);
+  const canSave = !!title.trim();
+
+  return (
+    <div
+      onMouseDown={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onMouseDown={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 16, width: 400, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>할 일 수정</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>내용 *</div>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && canSave && (onSave(title.trim(), date), onClose())}
+            autoFocus
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+          />
+          <div style={{ fontSize: 13, color: '#6B7280', margin: '12px 0 6px' }}>날짜</div>
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div style={{ padding: '0 20px 20px' }}>
+          <button
+            onClick={() => { if (canSave) { onSave(title.trim(), date); onClose(); } }}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 12, border: 'none',
+              background: canSave ? '#2563EB' : '#E5E7EB',
+              color: canSave ? '#fff' : '#9CA3AF',
+              fontSize: 15, fontWeight: 600, cursor: canSave ? 'pointer' : 'default',
+            }}
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }: Props) {
   const [filter, setFilter] = useState<Filter>('today');
   const [input, setInput] = useState('');
+  const [editing, setEditing] = useState<TodoItem | null>(null);
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -137,15 +192,30 @@ export default function TodoView({ todos, onAdd, onToggle, onDelete }: Props) {
                 {todo.date && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{todo.date}</div>}
               </div>
 
+              {/* 수정 */}
+              <button onClick={() => setEditing(todo)} style={{
+                background: 'none', border: '1px solid #E5E7EB', cursor: 'pointer',
+                fontSize: 12, color: '#6B7280', padding: '4px 10px', borderRadius: 6,
+                fontWeight: 500, flexShrink: 0,
+              }}>수정</button>
+
               {/* 삭제 */}
               <button onClick={() => onDelete(todo.id)} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 16, color: '#D1D5DB', padding: '4px',
-                lineHeight: 1,
+                lineHeight: 1, flexShrink: 0,
               }}>✕</button>
             </div>
           ))}
         </div>
+      )}
+
+      {editing && (
+        <EditModal
+          todo={editing}
+          onClose={() => setEditing(null)}
+          onSave={(title, date) => onUpdate(editing.id, title, date)}
+        />
       )}
     </div>
   );

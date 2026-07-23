@@ -217,6 +217,14 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  const updateTodo = useCallback((id: string, title: string, date: string) => {
+    setTodos(prev => {
+      const next = prev.map(t => t.id === id ? { ...t, title, date } : t);
+      push({ ...dataRef.current, todos: next });
+      return next;
+    });
+  }, [push]);
+
   const deleteTodo = useCallback((id: string) => {
     setTodos(prev => {
       const next = prev.filter(t => t.id !== id);
@@ -337,7 +345,7 @@ export function useWebStore(userId: string | undefined) {
   return {
     events, todos, subProjects, externalContacts, contactGroups, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
-    addTodo, toggleTodo, deleteTodo,
+    addTodo, updateTodo, toggleTodo, deleteTodo,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
     addContact, updateContact, deleteContact,
     addContactGroup, deleteContactGroup,

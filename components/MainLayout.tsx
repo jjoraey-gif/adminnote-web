@@ -137,6 +137,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                 <TodoView
                   todos={store.todos}
                   onAdd={store.addTodo}
+                  onUpdate={store.updateTodo}
                   onToggle={store.toggleTodo}
                   onDelete={store.deleteTodo}
                 />
