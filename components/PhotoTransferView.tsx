@@ -453,8 +453,8 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
 
       {photos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-          <div style={{ fontSize: 40, marginBottom: 12, letterSpacing: 4 }}>🖼️📄</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>업로드 된 사진이나 파일이 없습니다</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🖼️</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{isAdmin || grade === 'vip' || grade === 'vvip' ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}</div>
           <div style={{ fontSize: 13, color: '#9CA3AF' }}>{isAdmin || grade === 'vip' || grade === 'vvip' ? '파일을' : '사진을'} 추가하면 앱에서 다운받을 수 있습니다</div>
         </div>
       ) : (
