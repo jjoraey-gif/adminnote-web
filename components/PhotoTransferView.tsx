@@ -285,6 +285,18 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     }
   };
 
+  const deleteAll = async () => {
+    if (photos.length === 0) return;
+    if (!confirm(`파일 ${photos.length}개를 모두 삭제하시겠습니까?`)) return;
+    const supabase = createClient();
+    await supabase.storage.from(BUCKET).remove(photos.map(p => p.file_path));
+    await supabase.from('photo_transfers')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', photos.map(p => p.id));
+    setPhotos([]);
+    setPreview(null);
+  };
+
   const deletePhoto = async (photo: PhotoMeta) => {
     if (!confirm(`"${photo.file_name}" 을 삭제하시겠습니까?`)) return;
     const supabase = createClient();
@@ -382,6 +394,9 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
             <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{uploadProgress || downloadProgress}</span>
           )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
+          {photos.length > 0 && (
+            <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>
+          )}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
