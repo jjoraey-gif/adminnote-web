@@ -125,26 +125,9 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
           const paged = data.personal.slice((personalPage - 1) * PAGE_SIZE, personalPage * PAGE_SIZE);
           return (
             <div style={{ ...card, marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-                  개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.personalCount}명</span>
-                </h2>
-                {totalPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button
-                      onClick={() => setPersonalPage(p => Math.max(1, p - 1))}
-                      disabled={personalPage === 1}
-                      style={{ padding: '4px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === 1 ? 'default' : 'pointer', opacity: personalPage === 1 ? 0.4 : 1 }}
-                    >‹</button>
-                    <span style={{ fontSize: 13, color: '#6B7280' }}>{personalPage} / {totalPages}</span>
-                    <button
-                      onClick={() => setPersonalPage(p => Math.min(totalPages, p + 1))}
-                      disabled={personalPage === totalPages}
-                      style={{ padding: '4px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === totalPages ? 'default' : 'pointer', opacity: personalPage === totalPages ? 0.4 : 1 }}
-                    >›</button>
-                  </div>
-                )}
-              </div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
+                개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.personalCount}명</span>
+              </h2>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead><tr style={{ background: '#F9FAFB' }}>
@@ -170,6 +153,33 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                   </tbody>
                 </table>
               </div>
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 16 }}>
+                  <button
+                    onClick={() => setPersonalPage(p => Math.max(1, p - 1))}
+                    disabled={personalPage === 1}
+                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === 1 ? 'default' : 'pointer', opacity: personalPage === 1 ? 0.4 : 1 }}
+                  >‹</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setPersonalPage(page)}
+                      style={{
+                        padding: '5px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer',
+                        border: page === personalPage ? '1px solid #2563EB' : '1px solid #E5E7EB',
+                        background: page === personalPage ? '#2563EB' : '#fff',
+                        color: page === personalPage ? '#fff' : '#374151',
+                        fontWeight: page === personalPage ? 700 : 400,
+                      }}
+                    >{page}</button>
+                  ))}
+                  <button
+                    onClick={() => setPersonalPage(p => Math.min(totalPages, p + 1))}
+                    disabled={personalPage === totalPages}
+                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === totalPages ? 'default' : 'pointer', opacity: personalPage === totalPages ? 0.4 : 1 }}
+                  >›</button>
+                </div>
+              )}
             </div>
           );
         })()}
