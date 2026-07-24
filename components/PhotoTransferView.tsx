@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 const BUCKET = 'photo-transfers';
-const DAILY_SIZE_LIMIT_MB = 20;
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
 
 function isImage(fileName: string): boolean {
@@ -68,12 +67,27 @@ declare global {
   }
 }
 
-const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB per file
-const DAILY_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB per day
 const ADMIN_EMAIL = 'jjoraey@naver.com';
+
+const GRADE_LIMITS: Record<string, { fileMB: number | null; dayMB: number | null }> = {
+  normal: { fileMB: 10,   dayMB: 20   },
+  vip:    { fileMB: 20,   dayMB: 40   },
+  vvip:   { fileMB: null, dayMB: null },
+};
 
 export default function PhotoTransferView({ userId, userEmail }: { userId: string; userEmail: string }) {
   const isAdmin = userEmail === ADMIN_EMAIL;
+  const [grade, setGrade] = useState<string>('normal');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from('profiles').select('grade').eq('id', userId).single()
+      .then(({ data }) => { if (data?.grade) setGrade(data.grade); });
+  }, [userId]);
+
+  const limits = isAdmin ? { fileMB: null, dayMB: null } : (GRADE_LIMITS[grade] ?? GRADE_LIMITS.normal);
+  const fileSizeLimit = limits.fileMB ? limits.fileMB * 1024 * 1024 : null;
+  const dailySizeLimit = limits.dayMB ? limits.dayMB * 1024 * 1024 : null;
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,12 +177,12 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     let runningSize = todayUsedBytes;
 
     for (const file of files) {
-      if (!isAdmin && file.size > FILE_SIZE_LIMIT) {
-        errors.push(`"${file.name}" 파일이 10MB를 초과합니다. (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      if (fileSizeLimit && file.size > fileSizeLimit) {
+        errors.push(`"${file.name}" 파일이 ${limits.fileMB}MB를 초과합니다. (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
         continue;
       }
-      if (!isAdmin && runningSize + file.size > DAILY_SIZE_LIMIT) {
-        errors.push(`오늘 용량 한도(20MB) 초과 — "${file.name}" 건너뜀`);
+      if (dailySizeLimit && runningSize + file.size > dailySizeLimit) {
+        errors.push(`오늘 용량 한도(${limits.dayMB}MB) 초과 — "${file.name}" 건너뜀`);
         continue;
       }
 
@@ -384,9 +398,9 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           <span style={{ fontSize: 20 }}>📱⇄💻</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
-              {isAdmin
+              {limits.dayMB === null
                 ? <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>MB <span style={{ fontSize: 11, color: '#7C3AED' }}>무제한</span></>
-                : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{DAILY_SIZE_LIMIT_MB}MB</>
+                : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{limits.dayMB}MB</>
               }
             </div>
             <div style={{ fontSize: 11, color: '#3B82F6' }}>

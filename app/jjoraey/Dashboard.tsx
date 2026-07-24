@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface PersonalUser {
-  id: string; email: string; nickname: string; provider: string; createdAt: string;
+  id: string; email: string; nickname: string; provider: string; createdAt: string; grade: string;
 }
 interface SharedUser {
   id: string; email: string; orgName: string; userId: string; createdAt: string;
@@ -44,10 +44,40 @@ function ProviderBadge({ provider }: { provider: string }) {
 
 const PAGE_SIZE = 20;
 
+const GRADE_OPTIONS = [
+  { value: 'normal', label: '일반', bg: '#F3F4F6', color: '#6B7280' },
+  { value: 'vip',    label: 'VIP',  bg: '#FEF3C7', color: '#D97706' },
+  { value: 'vvip',   label: 'VVIP', bg: '#EDE9FE', color: '#7C3AED' },
+];
+
+function GradeBadge({ grade }: { grade: string }) {
+  const g = GRADE_OPTIONS.find(o => o.value === grade) ?? GRADE_OPTIONS[0];
+  return (
+    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: g.bg, color: g.color }}>
+      {g.label}
+    </span>
+  );
+}
+
 export default function AdminDashboard({ data }: { data: AdminData }) {
   const router = useRouter();
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [personalPage, setPersonalPage] = useState(1);
+  const [grades, setGrades] = useState<Record<string, string>>(
+    Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
+  );
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const updateGrade = async (userId: string, grade: string) => {
+    setSavingId(userId);
+    setGrades(prev => ({ ...prev, [userId]: grade }));
+    await fetch('/api/admin-grade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, grade }),
+    });
+    setSavingId(null);
+  };
 
   const handleLogout = async () => {
     await fetch('/api/admin-login', { method: 'DELETE' });
@@ -132,13 +162,14 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead><tr style={{ background: '#F9FAFB' }}>
                     <th style={th}>#</th><th style={th}>이메일</th><th style={th}>닉네임</th>
-                    <th style={th}>로그인 방식</th><th style={th}>가입일</th>
+                    <th style={th}>로그인 방식</th><th style={th}>가입일</th><th style={th}>등급</th>
                   </tr></thead>
                   <tbody>
                     {paged.length === 0
-                      ? <tr><td colSpan={5} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
+                      ? <tr><td colSpan={6} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
                       : paged.map((u, i) => {
                           const globalIdx = (personalPage - 1) * PAGE_SIZE + i + 1;
+                          const currentGrade = grades[u.id] ?? 'normal';
                           return (
                             <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
                               <td style={{ ...td, color: '#9CA3AF' }}>{globalIdx}</td>
@@ -146,6 +177,24 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                               <td style={td}>{u.nickname}</td>
                               <td style={td}><ProviderBadge provider={u.provider} /></td>
                               <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
+                              <td style={td}>
+                                <select
+                                  value={currentGrade}
+                                  disabled={savingId === u.id}
+                                  onChange={e => updateGrade(u.id, e.target.value)}
+                                  style={{
+                                    fontSize: 12, fontWeight: 600, padding: '3px 6px',
+                                    borderRadius: 6, border: '1px solid #E5E7EB',
+                                    background: GRADE_OPTIONS.find(o => o.value === currentGrade)?.bg ?? '#F3F4F6',
+                                    color: GRADE_OPTIONS.find(o => o.value === currentGrade)?.color ?? '#6B7280',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {GRADE_OPTIONS.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                  ))}
+                                </select>
+                              </td>
                             </tr>
                           );
                         })

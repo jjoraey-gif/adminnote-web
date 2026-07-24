@@ -90,6 +90,7 @@ async function getAdminData() {
       nickname: profileMap[u.id]?.nickname ?? '-',
       provider: u.app_metadata?.provider ?? 'email',
       createdAt: u.created_at,
+      grade: profileMap[u.id]?.grade ?? 'normal',
     }));
 
   const shared = users
