@@ -11,6 +11,7 @@ import BudgetView from './BudgetView';
 import PhotoTransferView from './PhotoTransferView';
 import AppIntroView from './AppIntroView';
 import ExternalContactView from './ExternalContactView';
+import MyPageView from './MyPageView';
 
 const TABS = [
   { key: 'photo', label: '사진전송', disabled: false },
@@ -28,6 +29,7 @@ interface Props {
 
 export default function MainLayout({ user, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('photo');
+  const [myPageOpen, setMyPageOpen] = useState(false);
   const supabase = createClient();
   const store = useWebStore(user.id);
 
@@ -49,6 +51,13 @@ export default function MainLayout({ user, onLogout }: Props) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      {myPageOpen && (
+        <MyPageView
+          user={user}
+          onClose={() => setMyPageOpen(false)}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* 헤더 */}
       <header style={{
@@ -73,12 +82,15 @@ export default function MainLayout({ user, onLogout }: Props) {
             flex: '0 0 200px', display: 'flex', alignItems: 'center',
             gap: 10, justifyContent: 'flex-end', whiteSpace: 'nowrap',
           }}>
-            <span style={{ fontSize: 14, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{displayName}</span>
-            <button onClick={handleLogout} style={{
-              fontSize: 13, fontWeight: 500, color: '#6B7280', flexShrink: 0,
-              padding: '6px 14px', borderRadius: 20, border: '1px solid #E5E7EB',
-              background: '#fff', cursor: 'pointer',
-            }}>로그아웃</button>
+            <span style={{ fontSize: 14, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{displayName}</span>
+            <button
+              onClick={() => setMyPageOpen(true)}
+              title="마이페이지"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 22, padding: '2px 4px', color: '#6B7280', flexShrink: 0,
+              }}
+            >⚙️</button>
           </div>
         </div>
       </header>
