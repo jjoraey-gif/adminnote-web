@@ -397,10 +397,20 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 20 }}>📱⇄💻</span>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
-              {limits.dayMB === null
-                ? <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>MB <span style={{ fontSize: 11, color: '#7C3AED' }}>무제한</span></>
-                : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{limits.dayMB}MB</>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
+                {limits.dayMB === null
+                  ? <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>MB</>
+                  : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{limits.dayMB}MB</>
+                }
+              </div>
+              {isAdmin
+                ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#EDE9FE', color: '#7C3AED' }}>VVIP</span>
+                : grade === 'vvip'
+                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#EDE9FE', color: '#7C3AED' }}>VVIP</span>
+                  : grade === 'vip'
+                    ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#FEF3C7', color: '#D97706' }}>VIP</span>
+                    : <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280' }}>일반</span>
               }
             </div>
             <div style={{ fontSize: 11, color: '#3B82F6' }}>
