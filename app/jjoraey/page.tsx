@@ -102,7 +102,13 @@ async function getAdminData() {
       createdAt: u.created_at,
     }));
 
-  // ── 4. 사진 목록 ──
+  // ── 4. 오늘 사진전송 건수 ──
+  const { count: todayPhotoCount } = await adminSupabase
+    .from('photo_transfers')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', todayStart.toISOString());
+
+  // ── 5. 사진 목록 ──
   const { data: photoRows } = await adminSupabase
     .from('photo_transfers')
     .select('*')
@@ -160,6 +166,7 @@ async function getAdminData() {
     sharedCount: shared.length,
     todayUsers: users.filter(u => new Date(u.created_at) >= todayStart).length,
     photoCount: validPhotos.length,
+    todayPhotoCount: todayPhotoCount ?? 0,
     personal,
     shared,
     photos,

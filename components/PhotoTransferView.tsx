@@ -394,9 +394,7 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
             <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{uploadProgress || downloadProgress}</span>
           )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
-          {photos.length > 0 && (
-            <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>
-          )}
+          <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}

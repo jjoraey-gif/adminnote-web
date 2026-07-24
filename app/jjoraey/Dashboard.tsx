@@ -17,7 +17,7 @@ interface PhotoItem {
 }
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
-  todayUsers: number; photoCount: number;
+  todayUsers: number; photoCount: number; todayPhotoCount: number;
   personal: PersonalUser[]; shared: SharedUser[]; photos: PhotoItem[];
   usingFallback?: boolean;
   listError?: string | null;
@@ -42,9 +42,12 @@ function ProviderBadge({ provider }: { provider: string }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export default function AdminDashboard({ data }: { data: AdminData }) {
   const router = useRouter();
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
+  const [personalPage, setPersonalPage] = useState(1);
 
   const handleLogout = async () => {
     await fetch('/api/admin-login', { method: 'DELETE' });
@@ -100,13 +103,14 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
         </div>
 
         {/* 요약 카드 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16, marginBottom: 32 }}>
           {[
-            { label: '총 회원수',     value: data.total,         color: '#2563EB' },
-            { label: '개인회원',      value: data.personalCount, color: '#16A34A' },
-            { label: '공용폰',        value: data.sharedCount,   color: '#9333EA' },
-            { label: '오늘 가입',     value: data.todayUsers,    color: '#F59E0B' },
-            { label: '사진전송 건수', value: data.photoCount,    color: '#EF4444' },
+            { label: '총 회원수',      value: data.total,            color: '#2563EB' },
+            { label: '개인회원',       value: data.personalCount,    color: '#16A34A' },
+            { label: '공용폰',         value: data.sharedCount,      color: '#9333EA' },
+            { label: '오늘 가입',      value: data.todayUsers,       color: '#F59E0B' },
+            { label: '파일전송 건수',  value: data.photoCount,       color: '#EF4444' },
+            { label: '오늘 파일전송',  value: data.todayPhotoCount,  color: '#0891B2' },
           ].map(({ label, value, color }) => (
             <div key={label} style={card}>
               <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500, marginBottom: 8 }}>{label}</div>
@@ -116,33 +120,59 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
         </div>
 
         {/* 개인회원 */}
-        <div style={{ ...card, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-            개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.personalCount}명</span>
-          </h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr style={{ background: '#F9FAFB' }}>
-                <th style={th}>#</th><th style={th}>이메일</th><th style={th}>닉네임</th>
-                <th style={th}>로그인 방식</th><th style={th}>가입일</th>
-              </tr></thead>
-              <tbody>
-                {data.personal.length === 0
-                  ? <tr><td colSpan={5} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
-                  : data.personal.map((u, i) => (
-                    <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
-                      <td style={{ ...td, color: '#9CA3AF' }}>{i + 1}</td>
-                      <td style={td}>{u.email}</td>
-                      <td style={td}>{u.nickname}</td>
-                      <td style={td}><ProviderBadge provider={u.provider} /></td>
-                      <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {(() => {
+          const totalPages = Math.ceil(data.personal.length / PAGE_SIZE);
+          const paged = data.personal.slice((personalPage - 1) * PAGE_SIZE, personalPage * PAGE_SIZE);
+          return (
+            <div style={{ ...card, marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                  개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.personalCount}명</span>
+                </h2>
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      onClick={() => setPersonalPage(p => Math.max(1, p - 1))}
+                      disabled={personalPage === 1}
+                      style={{ padding: '4px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === 1 ? 'default' : 'pointer', opacity: personalPage === 1 ? 0.4 : 1 }}
+                    >‹</button>
+                    <span style={{ fontSize: 13, color: '#6B7280' }}>{personalPage} / {totalPages}</span>
+                    <button
+                      onClick={() => setPersonalPage(p => Math.min(totalPages, p + 1))}
+                      disabled={personalPage === totalPages}
+                      style={{ padding: '4px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === totalPages ? 'default' : 'pointer', opacity: personalPage === totalPages ? 0.4 : 1 }}
+                    >›</button>
+                  </div>
+                )}
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr style={{ background: '#F9FAFB' }}>
+                    <th style={th}>#</th><th style={th}>이메일</th><th style={th}>닉네임</th>
+                    <th style={th}>로그인 방식</th><th style={th}>가입일</th>
+                  </tr></thead>
+                  <tbody>
+                    {paged.length === 0
+                      ? <tr><td colSpan={5} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
+                      : paged.map((u, i) => {
+                          const globalIdx = (personalPage - 1) * PAGE_SIZE + i + 1;
+                          return (
+                            <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                              <td style={{ ...td, color: '#9CA3AF' }}>{globalIdx}</td>
+                              <td style={td}>{u.email}</td>
+                              <td style={td}>{u.nickname}</td>
+                              <td style={td}><ProviderBadge provider={u.provider} /></td>
+                              <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
+                            </tr>
+                          );
+                        })
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 사진 갤러리 */}
         <div style={{ ...card, marginBottom: 24 }}>
