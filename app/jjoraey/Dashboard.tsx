@@ -24,7 +24,7 @@ interface AdminData {
 }
 
 function fmt(d: string) {
-  return new Date(d).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  return new Date(d).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' });
 }
 
 function ProviderBadge({ provider }: { provider: string }) {

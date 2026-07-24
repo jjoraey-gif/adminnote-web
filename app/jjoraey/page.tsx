@@ -75,7 +75,12 @@ async function getAdminData() {
   const userMap: Record<string, any> = {};
   users.forEach(u => { userMap[u.id] = u; });
 
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  // KST(UTC+9) 기준 오늘 자정 → UTC로 변환
+  const now = new Date();
+  const kstOffset = 9 * 60 * 60 * 1000;
+  const kstNow = new Date(now.getTime() + kstOffset);
+  const kstMidnight = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
+  const todayStart = new Date(kstMidnight.getTime() - kstOffset);
 
   const personal = users
     .filter(u => (profileMap[u.id]?.account_type === 'personal') || (!profileMap[u.id] && !usingFallback))
