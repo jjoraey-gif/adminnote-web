@@ -153,7 +153,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onUpdateSpent={store.updateSpent}
                 />
               )}
-              {activeTab === 'photo' && <PhotoTransferView userId={user.id} />}
+              {activeTab === 'photo' && <PhotoTransferView userId={user.id} userEmail={user.email ?? ''} />}
               {activeTab === 'contacts' && (
                 <ExternalContactView
                   contacts={store.externalContacts}

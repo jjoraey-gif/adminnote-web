@@ -70,8 +70,10 @@ declare global {
 
 const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB per file
 const DAILY_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB per day
+const ADMIN_EMAIL = 'jjoraey@naver.com';
 
-export default function PhotoTransferView({ userId }: { userId: string }) {
+export default function PhotoTransferView({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const isAdmin = userEmail === ADMIN_EMAIL;
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,11 +163,11 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
     let runningSize = todayUsedBytes;
 
     for (const file of files) {
-      if (file.size > FILE_SIZE_LIMIT) {
+      if (!isAdmin && file.size > FILE_SIZE_LIMIT) {
         errors.push(`"${file.name}" 파일이 10MB를 초과합니다. (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
         continue;
       }
-      if (runningSize + file.size > DAILY_SIZE_LIMIT) {
+      if (!isAdmin && runningSize + file.size > DAILY_SIZE_LIMIT) {
         errors.push(`오늘 용량 한도(20MB) 초과 — "${file.name}" 건너뜀`);
         continue;
       }
@@ -382,7 +384,10 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
           <span style={{ fontSize: 20 }}>📱⇄💻</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
-              오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{DAILY_SIZE_LIMIT_MB}MB
+              {isAdmin
+                ? <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>MB <span style={{ fontSize: 11, color: '#7C3AED' }}>무제한</span></>
+                : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{DAILY_SIZE_LIMIT_MB}MB</>
+              }
             </div>
             <div style={{ fontSize: 11, color: '#3B82F6' }}>
               파일 추가 후 3일 보관 · 자동삭제
