@@ -172,7 +172,11 @@ export default function PhotoTransferView({ userId }: { userId: string }) {
 
       setUploadProgress(`업로드 중... ${file.name}`);
       const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
-      const filePath = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const now = new Date();
+      const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      const randPart = Math.random().toString(36).slice(2, 6);
+      const filePath = `${userId}/${datePart}_${timePart}_${randPart}.${ext}`;
       const uploadMime = IMAGE_EXTS.includes(ext) ? file.type : 'application/octet-stream';
       const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
