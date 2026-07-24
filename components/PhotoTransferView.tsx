@@ -429,7 +429,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             disabled={uploading}
             style={{ ...btnStyle('#2563EB', '#2563EB', '#fff'), opacity: uploading ? 0.6 : 1 }}
           >
-            {uploading ? '업로드 중...' : '+ 파일 추가'}
+            {uploading ? '업로드 중...' : (isAdmin || grade === 'vip' || grade === 'vvip' ? '+ 파일 추가' : '+ 사진 추가')}
           </button>
           {photos.length > 0 && (
             <button
@@ -445,6 +445,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           ref={fileInputRef}
           type="file"
           multiple
+          accept={isAdmin || grade === 'vip' || grade === 'vvip' ? '*/*' : 'image/*'}
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
@@ -454,7 +455,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
           <div style={{ fontSize: 40, marginBottom: 12, letterSpacing: 4 }}>🖼️📄</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>업로드 된 사진이나 파일이 없습니다</div>
-          <div style={{ fontSize: 13, color: '#9CA3AF' }}>파일을 추가하면 앱에서 다운받을 수 있습니다</div>
+          <div style={{ fontSize: 13, color: '#9CA3AF' }}>{isAdmin || grade === 'vip' || grade === 'vvip' ? '파일을' : '사진을'} 추가하면 앱에서 다운받을 수 있습니다</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
