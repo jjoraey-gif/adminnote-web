@@ -8,7 +8,7 @@ export interface ExternalContact {
   id: string; companyName: string; personName: string; department: string;
   position: string; phone: string; email: string; relatedWork: string; groupId: string | null;
 }
-export interface ContactGroup { id: string; name: string; }
+export interface ContactGroup { id: string; name: string; color?: string; }
 
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -272,6 +272,14 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  const updateContactGroup = useCallback((g: ContactGroup) => {
+    setContactGroups(prev => {
+      const next = prev.map(x => x.id === g.id ? g : x);
+      push({ ...dataRef.current, contactGroups: next });
+      return next;
+    });
+  }, [push]);
+
   const deleteContactGroup = useCallback((id: string) => {
     setContactGroups(prev => {
       const next = prev.filter(g => g.id !== id);
@@ -354,6 +362,6 @@ export function useWebStore(userId: string | undefined) {
     addTodo, updateTodo, toggleTodo, deleteTodo,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
     addContact, updateContact, deleteContact,
-    addContactGroup, deleteContactGroup,
+    addContactGroup, updateContactGroup, deleteContactGroup,
   };
 }

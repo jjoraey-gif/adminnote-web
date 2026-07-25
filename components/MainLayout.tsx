@@ -174,6 +174,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onUpdate={store.updateContact}
                   onDelete={store.deleteContact}
                   onAddGroup={store.addContactGroup}
+                  onUpdateGroup={store.updateContactGroup}
                   onDeleteGroup={store.deleteContactGroup}
                 />
               )}

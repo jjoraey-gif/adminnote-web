@@ -10,6 +10,12 @@ function uuid() {
   });
 }
 
+const GROUP_COLOR_PALETTE = [
+  '#185FA5', '#2563EB', '#0891B2', '#059669',
+  '#16A34A', '#D97706', '#DC2626', '#B45309',
+  '#7C3AED', '#9333EA', '#EC4899', '#64748B',
+];
+
 const ROW_COLORS = [
   { bar: '#185FA5', avatarBg: '#E6F1FB', avatarFg: '#185FA5' },
   { bar: '#059669', avatarBg: '#EAF3DE', avatarFg: '#3B6D11' },
@@ -25,8 +31,21 @@ function hashColor(id: string) {
   return ROW_COLORS[h % ROW_COLORS.length];
 }
 
-function contactColor(c: ExternalContact) {
-  return hashColor(c.groupId ?? c.id);
+function colorFromHex(hex: string) {
+  return ROW_COLORS.find(r => r.bar === hex) ?? { bar: hex, avatarBg: hex + '22', avatarFg: hex };
+}
+
+function contactColor(c: ExternalContact, groups: ContactGroup[]) {
+  if (c.groupId) {
+    const g = groups.find(x => x.id === c.groupId);
+    if (g?.color) return colorFromHex(g.color);
+    return hashColor(c.groupId);
+  }
+  return hashColor(c.id);
+}
+
+function groupHeaderColor(g: ContactGroup) {
+  return g.color ?? hashColor(g.id).bar;
 }
 
 interface Props {
@@ -36,10 +55,11 @@ interface Props {
   onUpdate: (c: ExternalContact) => void;
   onDelete: (id: string) => void;
   onAddGroup: (g: ContactGroup) => void;
+  onUpdateGroup: (g: ContactGroup) => void;
   onDeleteGroup: (id: string) => void;
 }
 
-export default function ExternalContactView({ contacts, groups, onAdd, onUpdate, onDelete, onAddGroup, onDeleteGroup }: Props) {
+export default function ExternalContactView({ contacts, groups, onAdd, onUpdate, onDelete, onAddGroup, onUpdateGroup, onDeleteGroup }: Props) {
   const [search, setSearch] = useState('');
   const [editingContact, setEditingContact] = useState<ExternalContact | null>(null);
   const [showAddContact, setShowAddContact] = useState(false);
@@ -47,6 +67,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
   const [groupName, setGroupName] = useState('');
   const [menuContact, setMenuContact] = useState<ExternalContact | null>(null);
   const [menuGroup, setMenuGroup] = useState<ContactGroup | null>(null);
+  const [colorPickerGroup, setColorPickerGroup] = useState<ContactGroup | null>(null);
   const [movingContact, setMovingContact] = useState<ExternalContact | null>(null);
 
   const filtered = useMemo(() => {
@@ -101,7 +122,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 10, letterSpacing: 1 }}>미분류</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {ungrouped.map(c => (
-                  <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />
+                  <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />
                 ))}
               </div>
             </div>
@@ -110,23 +131,54 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
           {/* 그룹별 */}
           {groups.map(g => {
             const gc = forGroup(g.id);
+            const hColor = groupHeaderColor(g);
             return (
               <div key={g.id} style={{ marginBottom: 28 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>📁</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#2563EB' }}>{g.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 2, background: hColor, flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: hColor }}>{g.name}</span>
                     <span style={{ fontSize: 12, color: '#9CA3AF' }}>({gc.length})</span>
                   </div>
-                  <button
-                    onClick={() => setMenuGroup(g)}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 18, padding: '0 4px' }}
-                  >⋯</button>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setMenuGroup(menuGroup?.id === g.id ? null : g)}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 18, padding: '0 4px' }}
+                    >⋯</button>
+                    {/* 그룹 드롭다운 메뉴 */}
+                    {menuGroup?.id === g.id && (
+                      <div style={{ position: 'absolute', right: 0, top: 28, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 200, padding: 8 }}>
+                        {/* 색상 선택 */}
+                        <div style={{ padding: '8px 12px 4px', fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>그룹 색상</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '4px 12px 12px' }}>
+                          {GROUP_COLOR_PALETTE.map(color => (
+                            <button
+                              key={color}
+                              onClick={() => { onUpdateGroup({ ...g, color }); setMenuGroup(null); }}
+                              style={{
+                                width: 28, height: 28, borderRadius: '50%', background: color, border: hColor === color ? '3px solid #fff' : 'none',
+                                cursor: 'pointer', boxShadow: hColor === color ? `0 0 0 2px ${color}` : 'none',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                            >
+                              {hColor === color && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ height: 1, background: '#F3F4F6', margin: '0 4px 4px' }} />
+                        {/* 삭제 */}
+                        <button
+                          onClick={() => { if (confirm(`'${g.name}' 그룹을 삭제할까요? 연락처는 미분류로 이동합니다.`)) { onDeleteGroup(g.id); setMenuGroup(null); } }}
+                          style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'none', fontSize: 14, color: '#EF4444', cursor: 'pointer', borderRadius: 8 }}
+                        >🗑 그룹 삭제</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {gc.length === 0
                   ? <div style={{ fontSize: 13, color: '#C7C7CC', paddingLeft: 4 }}>비어 있음</div>
                   : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {gc.map(c => <ContactRow key={c.id} c={c} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />)}
+                      {gc.map(c => <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />)}
                     </div>
                 }
               </div>
@@ -192,15 +244,12 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
         </Overlay>
       )}
 
-      {/* 그룹 삭제 메뉴 */}
+      {/* 드롭다운 닫기용 배경 */}
       {menuGroup && (
-        <Overlay onClose={() => setMenuGroup(null)}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 8, width: 280, maxWidth: '90vw' }}>
-            <div style={{ padding: '10px 16px', fontSize: 13, color: '#9CA3AF', borderBottom: '1px solid #F3F4F6' }}>{menuGroup.name}</div>
-            <MenuBtn label="그룹 삭제 (연락처는 미분류로 이동)" danger onClick={() => { onDeleteGroup(menuGroup.id); setMenuGroup(null); }} />
-            <MenuBtn label="취소" onClick={() => setMenuGroup(null)} />
-          </div>
-        </Overlay>
+        <div
+          onClick={() => setMenuGroup(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+        />
       )}
 
       {/* 그룹 이동 */}
@@ -219,8 +268,8 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
   );
 }
 
-function ContactRow({ c, onMenu, onEdit }: { c: ExternalContact; onMenu: () => void; onEdit: () => void }) {
-  const col = contactColor(c);
+function ContactRow({ c, groups, onMenu, onEdit }: { c: ExternalContact; groups: ContactGroup[]; onMenu: () => void; onEdit: () => void }) {
+  const col = contactColor(c, groups);
   const initial = c.personName?.[0] ?? c.companyName?.[0] ?? '?';
   return (
     <div style={{ display: 'flex', borderRadius: 0, overflow: 'hidden', border: '1px solid #E5E7EB', background: '#fff' }}>
