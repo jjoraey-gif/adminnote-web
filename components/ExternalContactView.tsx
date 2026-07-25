@@ -19,10 +19,14 @@ const ROW_COLORS = [
   { bar: '#0891B2', avatarBg: '#E1F5EE', avatarFg: '#0F6E56' },
   { bar: '#B45309', avatarBg: '#FEF3C7', avatarFg: '#B45309' },
 ];
-function rowColor(id: string) {
+function hashColor(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return ROW_COLORS[h % ROW_COLORS.length];
+}
+
+function contactColor(c: ExternalContact) {
+  return hashColor(c.groupId ?? c.id);
 }
 
 interface Props {
@@ -216,13 +220,13 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
 }
 
 function ContactRow({ c, onMenu, onEdit }: { c: ExternalContact; onMenu: () => void; onEdit: () => void }) {
-  const col = rowColor(c.id);
+  const col = contactColor(c);
   const initial = c.personName?.[0] ?? c.companyName?.[0] ?? '?';
   return (
-    <div style={{ display: 'flex', borderRadius: 12, overflow: 'hidden', border: '1px solid #E5E7EB', background: '#fff' }}>
-      <div style={{ width: 4, background: col.bar, flexShrink: 0 }} />
+    <div style={{ display: 'flex', borderRadius: 0, overflow: 'hidden', border: '1px solid #E5E7EB', background: '#fff' }}>
+      <div style={{ width: 5, background: col.bar, flexShrink: 0 }} />
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: col.avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: col.avatarFg, flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 6, background: col.avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: col.avatarFg, flexShrink: 0 }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
