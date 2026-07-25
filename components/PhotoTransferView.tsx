@@ -85,6 +85,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
       .then(({ data }) => { if (data?.grade) setGrade(data.grade); });
   }, [userId]);
 
+  const canUpload = isAdmin || grade === 'vip' || grade === 'vvip';
   const limits = isAdmin ? { fileMB: null, dayMB: null } : (GRADE_LIMITS[grade] ?? GRADE_LIMITS.normal);
   const fileSizeLimit = limits.fileMB ? limits.fileMB * 1024 * 1024 : null;
   const dailySizeLimit = limits.dayMB ? limits.dayMB * 1024 * 1024 : null;
@@ -424,13 +425,15 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
           <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            style={{ ...btnStyle('#2563EB', '#2563EB', '#fff'), opacity: uploading ? 0.6 : 1 }}
-          >
-            {uploading ? '업로드 중...' : (isAdmin || grade === 'vip' || grade === 'vvip' ? '+ 파일 추가' : '+ 사진 추가')}
-          </button>
+          {canUpload && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{ ...btnStyle('#2563EB', '#2563EB', '#fff'), opacity: uploading ? 0.6 : 1 }}
+            >
+              {uploading ? '업로드 중...' : (grade === 'vip' ? '+ 사진 추가' : '+ 파일 추가')}
+            </button>
+          )}
           {photos.length > 0 && (
             <button
               onClick={downloadAll}
@@ -445,7 +448,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           ref={fileInputRef}
           type="file"
           multiple
-          accept={isAdmin || grade === 'vip' || grade === 'vvip' ? '*/*' : 'image/*'}
+          accept={canUpload && grade !== 'vip' ? '*/*' : 'image/*'}
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
@@ -454,8 +457,12 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
       {photos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🖼️</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{isAdmin || grade === 'vip' || grade === 'vvip' ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}</div>
-          <div style={{ fontSize: 13, color: '#9CA3AF' }}>{isAdmin || grade === 'vip' || grade === 'vvip' ? '파일을' : '사진을'} 추가하면 앱에서 다운받을 수 있습니다</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            {canUpload ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}
+          </div>
+          {canUpload && (
+            <div style={{ fontSize: 13, color: '#9CA3AF' }}>파일을 추가하면 앱에서 다운받을 수 있습니다</div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
