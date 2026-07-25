@@ -71,10 +71,25 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
   const [input, setInput] = useState('');
   const [editing, setEditing] = useState<TodoItem | null>(null);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const isTodayItem = (t: TodoItem) => {
+    if (t.date === todayStr || t.date === '') return true;
+    if (t.date < todayStr) {
+      if (!t.isCompleted) return true;
+      // 오늘 완료한 기한 지난 항목도 표시
+      if (t.completedDate != null) {
+        const cd = new Date(t.completedDate);
+        const cdStr = `${cd.getFullYear()}-${String(cd.getMonth() + 1).padStart(2, '0')}-${String(cd.getDate()).padStart(2, '0')}`;
+        if (cdStr === todayStr) return true;
+      }
+    }
+    return false;
+  };
 
   const filtered = todos.filter(t => {
-    if (filter === 'today') return t.date === todayStr;
+    if (filter === 'today') return isTodayItem(t);
     if (filter === 'completed') return t.isCompleted;
     return true;
   }).sort((a, b) => {
@@ -82,8 +97,8 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
     return a.sortOrder - b.sortOrder;
   });
 
-  const todayCount = todos.filter(t => t.date === todayStr).length;
-  const todayDone = todos.filter(t => t.date === todayStr && t.isCompleted).length;
+  const todayCount = todos.filter(isTodayItem).length;
+  const todayDone = todos.filter(t => isTodayItem(t) && t.isCompleted).length;
 
   const handleAdd = () => {
     const title = input.trim();
