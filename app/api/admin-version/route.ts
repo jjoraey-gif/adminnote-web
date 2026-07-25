@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const { error } = await adminSupabase
     .from('app_versions')
     .upsert(
-      { platform, min_version, force_update, message, updated_at: new Date().toISOString() },
+      { platform, version: min_version, min_version, force_update, message, updated_at: new Date().toISOString() },
       { onConflict: 'platform' },
     );
 
