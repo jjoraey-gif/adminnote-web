@@ -109,7 +109,19 @@ async function getAdminData() {
     .select('*', { count: 'exact', head: true })
     .gte('created_at', todayStart.toISOString());
 
-  // ── 5. 사진 목록 ──
+  // ── 5. 앱 버전 설정 ──
+  const { data: versionRows } = await adminSupabase
+    .from('app_versions')
+    .select('platform, min_version, force_update, message, store_url, updated_at');
+
+  const versionMap: Record<string, any> = {};
+  (versionRows ?? []).forEach((r: any) => { versionMap[r.platform] = r; });
+  const appVersions = {
+    ios: versionMap['ios'] ?? { platform: 'ios', min_version: '1.0.0', force_update: false, message: '' },
+    android: versionMap['android'] ?? { platform: 'android', min_version: '1.0.0', force_update: false, message: '' },
+  };
+
+  // ── 6. 사진 목록 ──
   const { data: photoRows } = await adminSupabase
     .from('photo_transfers')
     .select('*')
@@ -176,6 +188,7 @@ async function getAdminData() {
     profilesError: profilesError?.message ?? null,
     profilesCount: (profiles ?? []).length,
     hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    appVersions,
   };
 }
 

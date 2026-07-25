@@ -15,12 +15,16 @@ interface PhotoItem {
   thumbUrl: string; fullUrl: string;
   uploaderEmail: string; uploaderName: string;
 }
+interface AppVersionRow {
+  platform: string; min_version: string; force_update: boolean; message: string; store_url?: string;
+}
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number; todayPhotoCount: number;
   personal: PersonalUser[]; shared: SharedUser[]; photos: PhotoItem[];
   usingFallback?: boolean;
   listError?: string | null;
+  appVersions?: { ios: AppVersionRow; android: AppVersionRow };
 }
 
 function fmt(d: string) {
@@ -67,6 +71,25 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
   );
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // 버전 관리 상태
+  const initVer = (p: 'ios' | 'android') => data.appVersions?.[p] ?? { platform: p, min_version: '1.0.0', force_update: false, message: '' };
+  const [iosVer, setIosVer] = useState(initVer('ios'));
+  const [andVer, setAndVer] = useState(initVer('android'));
+  const [savingVer, setSavingVer] = useState<string | null>(null);
+  const [verSaved, setVerSaved] = useState<string | null>(null);
+
+  const saveVersion = async (row: AppVersionRow) => {
+    setSavingVer(row.platform);
+    const res = await fetch('/api/admin-version', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(row),
+    });
+    setSavingVer(null);
+    if (res.ok) { setVerSaved(row.platform); setTimeout(() => setVerSaved(null), 2000); }
+    else alert('저장 실패');
+  };
 
   const updateGrade = async (userId: string, grade: string) => {
     setSavingId(userId);
@@ -340,6 +363,62 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
             </div>
           </div>
         )}
+
+        {/* 앱 버전 관리 */}
+        <div style={card}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 20px' }}>앱 버전 관리</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {([['ios', iosVer, setIosVer], ['android', andVer, setAndVer]] as const).map(([platform, ver, setVer]) => (
+              <div key={platform} style={{ border: '1px solid #E5E7EB', borderRadius: 12, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <span style={{ fontSize: 20 }}>{platform === 'ios' ? '🍎' : '🤖'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{platform === 'ios' ? 'iOS' : 'Android'}</span>
+                </div>
+
+                <label style={{ fontSize: 12, color: '#6B7280', display: 'block', marginBottom: 4 }}>최소 버전 (이하 강제 업데이트)</label>
+                <input
+                  type="text"
+                  value={ver.min_version}
+                  onChange={e => setVer((v: AppVersionRow) => ({ ...v, min_version: e.target.value }))}
+                  placeholder="예: 2.15.0"
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+                />
+
+                <label style={{ fontSize: 12, color: '#6B7280', display: 'block', marginBottom: 4 }}>업데이트 안내 메시지</label>
+                <textarea
+                  value={ver.message}
+                  onChange={e => setVer((v: AppVersionRow) => ({ ...v, message: e.target.value }))}
+                  rows={2}
+                  placeholder="새 버전이 출시되었습니다."
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }}
+                />
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={ver.force_update}
+                    onChange={e => setVer((v: AppVersionRow) => ({ ...v, force_update: e.target.checked }))}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  <span style={{ fontSize: 13, color: '#374151' }}>강제 업데이트 (닫기 불가)</span>
+                </label>
+
+                <button
+                  onClick={() => saveVersion(ver)}
+                  disabled={savingVer === platform}
+                  style={{
+                    width: '100%', padding: '9px 0', background: verSaved === platform ? '#10B981' : '#2563EB',
+                    color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    cursor: savingVer === platform ? 'default' : 'pointer', opacity: savingVer === platform ? 0.7 : 1,
+                    transition: 'background 0.3s',
+                  }}
+                >
+                  {savingVer === platform ? '저장 중...' : verSaved === platform ? '✓ 저장됨' : '저장'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* 공용폰 */}
         <div style={card}>
