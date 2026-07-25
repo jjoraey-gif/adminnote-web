@@ -72,6 +72,8 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
   const authHeader = { 'Content-Type': 'application/json', 'X-Admin-Token': sessionToken };
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [personalPage, setPersonalPage] = useState(1);
+  const [photoPage, setPhotoPage] = useState(1);
+  const PHOTO_PAGE_SIZE = 35; // 7열 × 5행
   const [grades, setGrades] = useState<Record<string, string>>(
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
   );
@@ -311,70 +313,116 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
         })()}
 
         {/* 사진 갤러리 */}
-        <div style={{ ...card, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-            전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
-          </h2>
-          {data.photos.length === 0 ? (
-            <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>파일 없음</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {data.photos.map(p => {
-                const isDeleted = !!p.deletedAt;
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => !isDeleted && p.fullUrl && setSelectedPhoto(p)}
-                    style={{
-                      borderRadius: 10, overflow: 'hidden',
-                      border: `1px solid ${isDeleted ? '#FCA5A5' : '#F3F4F6'}`,
-                      position: 'relative',
-                      cursor: isDeleted ? 'default' : 'pointer',
-                      opacity: isDeleted ? 0.7 : 1,
-                      transition: 'transform 0.15s, box-shadow 0.15s',
-                    }}
-                    onMouseEnter={e => { if (!isDeleted) { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; } }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
-                  >
-                    {/* 이미지 or 파일 아이콘 */}
-                    {p.thumbUrl ? (
-                      <img src={p.thumbUrl} alt={p.fileName}
-                        style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', filter: isDeleted ? 'grayscale(60%)' : 'none' }} />
-                    ) : (
-                      <div style={{ width: '100%', aspectRatio: '1', background: isDeleted ? '#FEE2E2' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 32 }}>📄</span>
-                      </div>
-                    )}
-
-                    {/* 삭제됨 배지 */}
-                    {isDeleted && (
-                      <div style={{
-                        position: 'absolute', top: 6, right: 6,
-                        background: '#EF4444', color: '#fff',
-                        fontSize: 10, fontWeight: 700,
-                        padding: '2px 7px', borderRadius: 99,
-                      }}>
-                        삭제됨
-                      </div>
-                    )}
-
-                    <div style={{ padding: '6px 8px', background: isDeleted ? '#FFF5F5' : '#fff' }}>
-                      <div style={{ fontSize: 11, color: isDeleted ? '#9CA3AF' : '#374151', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {p.fileName}
-                      </div>
-                      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
-                        {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
-                      </div>
-                      <div style={{ fontSize: 10, color: '#9CA3AF' }}>
-                        {fmt(p.createdAt)}
-                      </div>
-                    </div>
+        {(() => {
+          const totalPhotoPages = Math.ceil(data.photos.length / PHOTO_PAGE_SIZE);
+          const pagedPhotos = data.photos.slice((photoPage - 1) * PHOTO_PAGE_SIZE, photoPage * PHOTO_PAGE_SIZE);
+          const photoPageNums: number[] = [];
+          if (totalPhotoPages <= 7) {
+            for (let i = 1; i <= totalPhotoPages; i++) photoPageNums.push(i);
+          } else {
+            photoPageNums.push(1);
+            if (photoPage > 3) photoPageNums.push(-1);
+            for (let i = Math.max(2, photoPage - 1); i <= Math.min(totalPhotoPages - 1, photoPage + 1); i++) photoPageNums.push(i);
+            if (photoPage < totalPhotoPages - 2) photoPageNums.push(-2);
+            photoPageNums.push(totalPhotoPages);
+          }
+          return (
+            <div style={{ ...card, marginBottom: 24 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
+                전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
+              </h2>
+              {data.photos.length === 0 ? (
+                <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>파일 없음</p>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+                    {pagedPhotos.map(p => {
+                      const isDeleted = !!p.deletedAt;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => !isDeleted && p.fullUrl && setSelectedPhoto(p)}
+                          style={{
+                            borderRadius: 10, overflow: 'hidden',
+                            border: `1px solid ${isDeleted ? '#FCA5A5' : '#F3F4F6'}`,
+                            position: 'relative',
+                            cursor: isDeleted ? 'default' : 'pointer',
+                            opacity: isDeleted ? 0.7 : 1,
+                            transition: 'transform 0.15s, box-shadow 0.15s',
+                          }}
+                          onMouseEnter={e => { if (!isDeleted) { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; } }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+                        >
+                          {p.thumbUrl ? (
+                            <img src={p.thumbUrl} alt={p.fileName}
+                              style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', filter: isDeleted ? 'grayscale(60%)' : 'none' }} />
+                          ) : (
+                            <div style={{ width: '100%', aspectRatio: '1', background: isDeleted ? '#FEE2E2' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 32 }}>📄</span>
+                            </div>
+                          )}
+                          {isDeleted && (
+                            <div style={{
+                              position: 'absolute', top: 6, right: 6,
+                              background: '#EF4444', color: '#fff',
+                              fontSize: 10, fontWeight: 700,
+                              padding: '2px 7px', borderRadius: 99,
+                            }}>
+                              삭제됨
+                            </div>
+                          )}
+                          <div style={{ padding: '6px 8px', background: isDeleted ? '#FFF5F5' : '#fff' }}>
+                            <div style={{ fontSize: 11, color: isDeleted ? '#9CA3AF' : '#374151', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.fileName}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
+                              {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                              {fmt(p.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                  {/* 페이지네이션 */}
+                  {totalPhotoPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 16 }}>
+                      <button
+                        onClick={() => setPhotoPage(p => Math.max(1, p - 1))}
+                        disabled={photoPage === 1}
+                        style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: photoPage === 1 ? 'default' : 'pointer', opacity: photoPage === 1 ? 0.4 : 1 }}
+                      >‹</button>
+                      {photoPageNums.map((n, i) =>
+                        n < 0 ? (
+                          <span key={n} style={{ padding: '5px 4px', fontSize: 13, color: '#9CA3AF' }}>…</span>
+                        ) : (
+                          <button
+                            key={n}
+                            onClick={() => setPhotoPage(n)}
+                            style={{
+                              padding: '5px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer',
+                              border: photoPage === n ? '1.5px solid #6366F1' : '1px solid #E5E7EB',
+                              background: photoPage === n ? '#6366F1' : '#fff',
+                              color: photoPage === n ? '#fff' : '#374151',
+                              fontWeight: photoPage === n ? 700 : 400,
+                            }}
+                          >{n}</button>
+                        )
+                      )}
+                      <button
+                        onClick={() => setPhotoPage(p => Math.min(totalPhotoPages, p + 1))}
+                        disabled={photoPage === totalPhotoPages}
+                        style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: photoPage === totalPhotoPages ? 'default' : 'pointer', opacity: photoPage === totalPhotoPages ? 0.4 : 1 }}
+                      >›</button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* 사진 전체보기 모달 */}
         {selectedPhoto && (
