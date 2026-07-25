@@ -116,6 +116,14 @@ async function getAdminData() {
     .order('created_at', { ascending: false });
   const notices = noticeRows ?? [];
 
+  // ── 5b. 건의사항 ──
+  const { data: suggestionRows } = await adminSupabase
+    .from('suggestions')
+    .select('id, user_email, user_nickname, content, is_read, created_at')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  const suggestions = suggestionRows ?? [];
+
   // ── 6. 앱 버전 설정 ──
   const { data: versionRows } = await adminSupabase
     .from('app_versions')
@@ -197,6 +205,7 @@ async function getAdminData() {
     hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     appVersions,
     notices,
+    suggestions,
   };
 }
 

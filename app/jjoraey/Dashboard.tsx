@@ -21,6 +21,9 @@ interface AppVersionRow {
 interface NoticeRow {
   id: string; title: string; content: string; category: string; is_published: boolean; created_at: string;
 }
+interface SuggestionRow {
+  id: string; user_email: string; user_nickname: string; content: string; is_read: boolean; created_at: string;
+}
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number; todayPhotoCount: number;
@@ -29,6 +32,7 @@ interface AdminData {
   listError?: string | null;
   appVersions?: { ios: AppVersionRow; android: AppVersionRow };
   notices?: NoticeRow[];
+  suggestions?: SuggestionRow[];
 }
 
 function fmt(d: string) {
@@ -419,6 +423,53 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* 건의사항 */}
+        {(() => {
+          const suggestions = data.suggestions ?? [];
+          const unread = suggestions.filter(s => !s.is_read).length;
+          return (
+            <div style={{ ...card, marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>건의사항</h2>
+                <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{suggestions.length}건</span>
+                {unread > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 700, background: '#EF4444', color: '#fff', borderRadius: 99, padding: '2px 8px' }}>
+                    미확인 {unread}
+                  </span>
+                )}
+              </div>
+              {suggestions.length === 0 ? (
+                <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>접수된 건의사항이 없습니다</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {suggestions.map(s => (
+                    <div key={s.id} style={{
+                      border: `1px solid ${s.is_read ? '#F3F4F6' : '#BFDBFE'}`,
+                      borderRadius: 10,
+                      padding: '14px 16px',
+                      background: s.is_read ? '#fff' : '#EFF6FF',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
+                            {s.user_nickname || s.user_email?.split('@')[0] || '-'}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#9CA3AF' }}>{s.user_email}</span>
+                          {!s.is_read && (
+                            <span style={{ fontSize: 10, fontWeight: 700, background: '#3B82F6', color: '#fff', borderRadius: 99, padding: '1px 7px' }}>NEW</span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 12, color: '#9CA3AF' }}>{fmt(s.created_at)}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 14, color: '#1F2937', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{s.content}</p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           );
