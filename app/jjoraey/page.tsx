@@ -109,7 +109,14 @@ async function getAdminData() {
     .select('*', { count: 'exact', head: true })
     .gte('created_at', todayStart.toISOString());
 
-  // ── 5. 앱 버전 설정 ──
+  // ── 5. 공지사항 ──
+  const { data: noticeRows } = await adminSupabase
+    .from('notices')
+    .select('id, title, content, category, is_published, created_at')
+    .order('created_at', { ascending: false });
+  const notices = noticeRows ?? [];
+
+  // ── 6. 앱 버전 설정 ──
   const { data: versionRows } = await adminSupabase
     .from('app_versions')
     .select('platform, min_version, force_update, message, store_url, updated_at');
@@ -189,6 +196,7 @@ async function getAdminData() {
     profilesCount: (profiles ?? []).length,
     hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     appVersions,
+    notices,
   };
 }
 

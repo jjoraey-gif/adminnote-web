@@ -18,6 +18,9 @@ interface PhotoItem {
 interface AppVersionRow {
   platform: string; min_version: string; force_update: boolean; message: string; store_url?: string;
 }
+interface NoticeRow {
+  id: string; title: string; content: string; category: string; is_published: boolean; created_at: string;
+}
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number; todayPhotoCount: number;
@@ -25,6 +28,7 @@ interface AdminData {
   usingFallback?: boolean;
   listError?: string | null;
   appVersions?: { ios: AppVersionRow; android: AppVersionRow };
+  notices?: NoticeRow[];
 }
 
 function fmt(d: string) {
@@ -71,6 +75,46 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
   );
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // 공지사항 상태
+  const [notices, setNotices] = useState<NoticeRow[]>(data.notices ?? []);
+  const [noticeForm, setNoticeForm] = useState({ title: '', content: '', category: '이용안내', is_published: true });
+  const [editingNotice, setEditingNotice] = useState<NoticeRow | null>(null);
+  const [savingNotice, setSavingNotice] = useState(false);
+  const [noticeFormOpen, setNoticeFormOpen] = useState(false);
+
+  const saveNotice = async () => {
+    if (!noticeForm.title.trim() || !noticeForm.content.trim()) { alert('제목과 내용을 입력해주세요.'); return; }
+    setSavingNotice(true);
+    if (editingNotice) {
+      const res = await fetch('/api/admin-notice', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingNotice.id, ...noticeForm }) });
+      if (res.ok) {
+        setNotices(prev => prev.map(n => n.id === editingNotice.id ? { ...n, ...noticeForm } : n));
+        setEditingNotice(null);
+      }
+    } else {
+      const res = await fetch('/api/admin-notice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticeForm) });
+      if (res.ok) {
+        const { data: created } = await res.json();
+        if (created) setNotices(prev => [created, ...prev]);
+      }
+    }
+    setNoticeForm({ title: '', content: '', category: '이용안내', is_published: true });
+    setNoticeFormOpen(false);
+    setSavingNotice(false);
+  };
+
+  const deleteNotice = async (id: string) => {
+    if (!confirm('공지사항을 삭제하시겠습니까?')) return;
+    await fetch('/api/admin-notice', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    setNotices(prev => prev.filter(n => n.id !== id));
+  };
+
+  const startEdit = (n: NoticeRow) => {
+    setEditingNotice(n);
+    setNoticeForm({ title: n.title, content: n.content, category: n.category, is_published: n.is_published });
+    setNoticeFormOpen(true);
+  };
 
   // 버전 관리 상태
   const initVer = (p: 'ios' | 'android') => data.appVersions?.[p] ?? { platform: p, min_version: '1.0.0', force_update: false, message: '' };
@@ -363,6 +407,89 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
             </div>
           </div>
         )}
+
+        {/* 공지사항 관리 */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>공지사항 관리</h2>
+            <button
+              onClick={() => { setEditingNotice(null); setNoticeForm({ title: '', content: '', category: '이용안내', is_published: true }); setNoticeFormOpen(v => !v); }}
+              style={{ padding: '7px 16px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {noticeFormOpen && !editingNotice ? '취소' : '+ 새 공지'}
+            </button>
+          </div>
+
+          {/* 작성/수정 폼 */}
+          {noticeFormOpen && (
+            <div style={{ background: '#F9FAFB', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <select
+                  value={noticeForm.category}
+                  onChange={e => setNoticeForm(f => ({ ...f, category: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 13 }}
+                >
+                  <option value="이용안내">이용안내</option>
+                  <option value="업데이트">업데이트</option>
+                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={noticeForm.is_published} onChange={e => setNoticeForm(f => ({ ...f, is_published: e.target.checked }))} />
+                  게시 중
+                </label>
+              </div>
+              <input
+                type="text"
+                placeholder="제목"
+                value={noticeForm.title}
+                onChange={e => setNoticeForm(f => ({ ...f, title: e.target.value }))}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+              />
+              <textarea
+                placeholder="내용"
+                value={noticeForm.content}
+                onChange={e => setNoticeForm(f => ({ ...f, content: e.target.value }))}
+                rows={5}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', marginBottom: 12 }}
+              />
+              <button
+                onClick={saveNotice}
+                disabled={savingNotice}
+                style={{ padding: '9px 24px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: savingNotice ? 0.6 : 1 }}
+              >
+                {savingNotice ? '저장 중...' : editingNotice ? '수정 완료' : '등록'}
+              </button>
+            </div>
+          )}
+
+          {/* 공지 목록 */}
+          {notices.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 14 }}>등록된 공지사항이 없습니다</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {notices.map(n => (
+                <div key={n.id} style={{ border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px', background: n.is_published ? '#fff' : '#F9FAFB' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, flexShrink: 0,
+                        background: n.category === '업데이트' ? '#EFF6FF' : '#F0FDF4',
+                        color: n.category === '업데이트' ? '#2563EB' : '#16A34A',
+                      }}>{n.category}</span>
+                      {!n.is_published && <span style={{ fontSize: 11, color: '#9CA3AF', border: '1px solid #E5E7EB', borderRadius: 99, padding: '1px 7px' }}>비공개</span>}
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => startEdit(n)} style={{ padding: '5px 12px', fontSize: 12, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 7, cursor: 'pointer' }}>수정</button>
+                      <button onClick={() => deleteNotice(n.id)} style={{ padding: '5px 12px', fontSize: 12, background: '#fff', border: '1px solid #FEE2E2', color: '#EF4444', borderRadius: 7, cursor: 'pointer' }}>삭제</button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 6, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{n.content}</div>
+                  <div style={{ fontSize: 11, color: '#D1D5DB', marginTop: 6 }}>{new Date(n.created_at).toLocaleDateString('ko-KR')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* 앱 버전 관리 */}
         <div style={card}>
