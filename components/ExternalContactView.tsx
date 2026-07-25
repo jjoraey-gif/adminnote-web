@@ -136,7 +136,6 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
               <div key={g.id} style={{ marginBottom: 28 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 17, height: 17, borderRadius: 2, background: '#1C1C1E', flexShrink: 0 }} />
                     <span style={{ fontSize: 19, fontWeight: 700, color: '#1C1C1E' }}>{g.name}</span>
                     <span style={{ fontSize: 12, color: '#9CA3AF' }}>({gc.length})</span>
                   </div>
