@@ -83,6 +83,29 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
   );
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // 건의사항 상태
+  const [suggestions, setSuggestions] = useState<SuggestionRow[]>(data.suggestions ?? []);
+
+  const toggleSuggestionRead = async (s: SuggestionRow) => {
+    const next = !s.is_read;
+    setSuggestions(prev => prev.map(x => x.id === s.id ? { ...x, is_read: next } : x));
+    await fetch('/api/admin-suggestion', {
+      method: 'PATCH',
+      headers: authHeader,
+      body: JSON.stringify({ id: s.id, is_read: next }),
+    });
+  };
+
+  const deleteSuggestion = async (id: string) => {
+    if (!confirm('이 건의사항을 삭제하시겠습니까?')) return;
+    setSuggestions(prev => prev.filter(x => x.id !== id));
+    await fetch('/api/admin-suggestion', {
+      method: 'DELETE',
+      headers: authHeader,
+      body: JSON.stringify({ id }),
+    });
+  };
+
   // 공지사항 상태
   const [notices, setNotices] = useState<NoticeRow[]>(data.notices ?? []);
   const [noticeForm, setNoticeForm] = useState({ title: '', content: '', category: '이용안내', is_published: true });
@@ -430,7 +453,6 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
 
         {/* 건의사항 */}
         {(() => {
-          const suggestions = data.suggestions ?? [];
           const unread = suggestions.filter(s => !s.is_read).length;
           return (
             <div style={{ ...card, marginBottom: 24 }}>
@@ -454,8 +476,9 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                       padding: '14px 16px',
                       background: s.is_read ? '#fff' : '#EFF6FF',
                     }}>
+                      {/* 상단: 작성자 + 날짜 + 버튼들 */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
                             {s.user_nickname || s.user_email?.split('@')[0] || '-'}
                           </span>
@@ -464,8 +487,32 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                             <span style={{ fontSize: 10, fontWeight: 700, background: '#3B82F6', color: '#fff', borderRadius: 99, padding: '1px 7px' }}>NEW</span>
                           )}
                         </div>
-                        <span style={{ fontSize: 12, color: '#9CA3AF' }}>{fmt(s.created_at)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontSize: 12, color: '#9CA3AF' }}>{fmt(s.created_at)}</span>
+                          {/* 확인/미확인 토글 버튼 */}
+                          <button
+                            onClick={() => toggleSuggestionRead(s)}
+                            style={{
+                              fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: 'none',
+                              background: s.is_read ? '#F3F4F6' : '#3B82F6',
+                              color: s.is_read ? '#6B7280' : '#fff',
+                            }}
+                          >
+                            {s.is_read ? '미확인' : '확인'}
+                          </button>
+                          {/* 삭제 버튼 */}
+                          <button
+                            onClick={() => deleteSuggestion(s.id)}
+                            style={{
+                              fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: 'none',
+                              background: '#FEE2E2', color: '#EF4444',
+                            }}
+                          >
+                            삭제
+                          </button>
+                        </div>
                       </div>
+                      {/* 내용 */}
                       <p style={{ margin: 0, fontSize: 14, color: '#1F2937', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{s.content}</p>
                     </div>
                   ))}
