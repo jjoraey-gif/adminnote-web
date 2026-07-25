@@ -88,12 +88,12 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     setSavingNotice(true);
     try {
       if (editingNotice) {
-        const res = await fetch('/api/admin-notice', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingNotice.id, ...noticeForm }) });
+        const res = await fetch('/api/admin-notice', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingNotice.id, ...noticeForm }) });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '수정 실패'); }
         setNotices(prev => prev.map(n => n.id === editingNotice.id ? { ...n, ...noticeForm } : n));
         setEditingNotice(null);
       } else {
-        const res = await fetch('/api/admin-notice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticeForm) });
+        const res = await fetch('/api/admin-notice', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticeForm) });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '등록 실패'); }
         const body = await res.json();
         const created = body.data;
@@ -115,7 +115,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
 
   const deleteNotice = async (id: string) => {
     if (!confirm('공지사항을 삭제하시겠습니까?')) return;
-    await fetch('/api/admin-notice', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    await fetch('/api/admin-notice', { method: 'DELETE', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
     setNotices(prev => prev.filter(n => n.id !== id));
   };
 
@@ -136,6 +136,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     setSavingVer(row.platform);
     const res = await fetch('/api/admin-version', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(row),
     });
@@ -149,6 +150,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     setGrades(prev => ({ ...prev, [userId]: grade }));
     await fetch('/api/admin-grade', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, grade }),
     });
