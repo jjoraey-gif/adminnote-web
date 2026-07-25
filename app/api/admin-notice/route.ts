@@ -3,20 +3,25 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 const SESSION_COOKIE = 'an_admin_auth';
+const SECRET = process.env.ADMIN_SESSION_SECRET ?? 'an_admin_ok';
 
 const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-function isAuthed(token: string | undefined) {
-  return token === (process.env.ADMIN_SESSION_SECRET ?? 'an_admin_ok');
+async function checkAuth(request: NextRequest): Promise<boolean> {
+  // 1) 헤더로 확인 (쿠키 path 문제 우회)
+  const headerToken = request.headers.get('X-Admin-Token');
+  if (headerToken === SECRET) return true;
+  // 2) 쿠키로 확인 (fallback)
+  const cookieStore = await cookies();
+  return cookieStore.get(SESSION_COOKIE)?.value === SECRET;
 }
 
 // 생성
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  if (!isAuthed(cookieStore.get(SESSION_COOKIE)?.value))
+  if (!await checkAuth(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { title, content, category, is_published } = await request.json();
@@ -34,8 +39,7 @@ export async function POST(request: NextRequest) {
 
 // 수정
 export async function PUT(request: NextRequest) {
-  const cookieStore = await cookies();
-  if (!isAuthed(cookieStore.get(SESSION_COOKIE)?.value))
+  if (!await checkAuth(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id, title, content, category, is_published } = await request.json();
@@ -52,8 +56,7 @@ export async function PUT(request: NextRequest) {
 
 // 삭제
 export async function DELETE(request: NextRequest) {
-  const cookieStore = await cookies();
-  if (!isAuthed(cookieStore.get(SESSION_COOKIE)?.value))
+  if (!await checkAuth(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await request.json();

@@ -210,5 +210,5 @@ export default async function AdminPage() {
   }
 
   const data = await getAdminData();
-  return <AdminDashboard data={data} />;
+  return <AdminDashboard data={data} sessionToken={token ?? ''} />;
 }

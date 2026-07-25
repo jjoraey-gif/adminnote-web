@@ -22,6 +22,8 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   const res = NextResponse.json({ success: true });
-  res.cookies.delete('an_admin_auth');
+  // path '/' 와 '/jjoraey' 두 경우 모두 삭제
+  res.cookies.set('an_admin_auth', '', { maxAge: 0, path: '/' });
+  res.cookies.set('an_admin_auth', '', { maxAge: 0, path: '/jjoraey' });
   return res;
 }
