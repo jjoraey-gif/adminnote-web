@@ -86,22 +86,31 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   const saveNotice = async () => {
     if (!noticeForm.title.trim() || !noticeForm.content.trim()) { alert('제목과 내용을 입력해주세요.'); return; }
     setSavingNotice(true);
-    if (editingNotice) {
-      const res = await fetch('/api/admin-notice', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingNotice.id, ...noticeForm }) });
-      if (res.ok) {
+    try {
+      if (editingNotice) {
+        const res = await fetch('/api/admin-notice', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingNotice.id, ...noticeForm }) });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '수정 실패'); }
         setNotices(prev => prev.map(n => n.id === editingNotice.id ? { ...n, ...noticeForm } : n));
         setEditingNotice(null);
+      } else {
+        const res = await fetch('/api/admin-notice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticeForm) });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '등록 실패'); }
+        const body = await res.json();
+        const created = body.data;
+        if (created) {
+          setNotices(prev => [created, ...prev]);
+        } else {
+          // fallback: 서버에서 다시 불러오기
+          router.refresh();
+        }
       }
-    } else {
-      const res = await fetch('/api/admin-notice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticeForm) });
-      if (res.ok) {
-        const { data: created } = await res.json();
-        if (created) setNotices(prev => [created, ...prev]);
-      }
+      setNoticeForm({ title: '', content: '', category: '이용안내', is_published: true });
+      setNoticeFormOpen(false);
+    } catch (e: any) {
+      alert(`오류: ${e?.message}`);
+    } finally {
+      setSavingNotice(false);
     }
-    setNoticeForm({ title: '', content: '', category: '이용안내', is_published: true });
-    setNoticeFormOpen(false);
-    setSavingNotice(false);
   };
 
   const deleteNotice = async (id: string) => {
