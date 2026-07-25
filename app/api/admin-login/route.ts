@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     secure: true,
     sameSite: 'lax',
     maxAge: 60 * 60 * 8, // 8시간
-    path: '/jjoraey',
+    path: '/',
   });
   return res;
 }
