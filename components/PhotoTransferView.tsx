@@ -80,9 +80,10 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const [grade, setGrade] = useState<string>('normal');
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.from('profiles').select('grade').eq('id', userId).single()
-      .then(({ data }) => { if (data?.grade) setGrade(data.grade); });
+    fetch(`/api/user-grade?userId=${userId}`)
+      .then(r => r.json())
+      .then(({ grade: g }) => { if (g) setGrade(g); })
+      .catch(() => {});
   }, [userId]);
 
   const canUpload = isAdmin || grade === 'vip' || grade === 'vvip';
