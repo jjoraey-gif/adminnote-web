@@ -6,6 +6,26 @@ import { ScheduleEvent, colorHex } from '@/lib/useSnapshot';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const COLORS = ['blue', 'red', 'green', 'pink', 'yellow', 'purple'];
 
+const KOREAN_HOLIDAYS: Record<string, string> = {
+  '2025-01-01': '신정', '2025-01-28': '설 연휴', '2025-01-29': '설날', '2025-01-30': '설 연휴',
+  '2025-03-01': '3·1절', '2025-05-05': '어린이날', '2025-05-06': '대체공휴일', '2025-06-06': '현충일',
+  '2025-08-15': '광복절', '2025-10-03': '개천절', '2025-10-05': '추석 연휴', '2025-10-06': '추석',
+  '2025-10-07': '추석 연휴', '2025-10-08': '대체공휴일', '2025-10-09': '한글날', '2025-12-25': '성탄절',
+  '2026-01-01': '신정', '2026-02-16': '설 연휴', '2026-02-17': '설날', '2026-02-18': '설 연휴',
+  '2026-02-20': '대체공휴일', '2026-03-01': '3·1절', '2026-03-02': '대체공휴일', '2026-05-01': '노동절',
+  '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-06-06': '현충일', '2026-07-17': '제헌절',
+  '2026-08-15': '광복절', '2026-08-17': '대체휴일',
+  '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴',
+  '2026-10-03': '개천절', '2026-10-05': '대체휴일', '2026-10-09': '한글날', '2026-12-25': '성탄절',
+  '2027-01-01': '신정', '2027-02-06': '설 연휴', '2027-02-07': '설날', '2027-02-08': '설 연휴',
+  '2027-02-09': '대체휴일', '2027-03-01': '3·1절', '2027-05-03': '대체휴일', '2027-05-05': '어린이날',
+  '2027-05-13': '부처님오신날', '2027-06-06': '현충일', '2027-07-19': '대체휴일',
+  '2027-08-15': '광복절', '2027-08-16': '대체휴일',
+  '2027-09-14': '추석 연휴', '2027-09-15': '추석', '2027-09-16': '추석 연휴',
+  '2027-10-03': '개천절', '2027-10-04': '대체휴일', '2027-10-09': '한글날', '2027-10-11': '대체휴일',
+  '2027-12-25': '성탄절', '2027-12-27': '대체휴일',
+};
+
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -127,6 +147,9 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
               const selected = day !== null && day === selectedDay;
               const todayCell = isToday(day);
               const isSun = di === 0, isSat = di === 6;
+              const dateStr = day ? toDateStr(year, month, day) : '';
+              const holiday = dateStr ? KOREAN_HOLIDAYS[dateStr] : undefined;
+              const isRed = isSun || !!holiday;
               return (
                 <div key={di} onClick={() => day && handleDayClick(day)} style={{
                   minHeight: 120, padding: '8px 10px', cursor: day ? 'pointer' : 'default',
@@ -140,9 +163,14 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                         background: todayCell ? '#2563EB' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 13, fontWeight: todayCell ? 700 : 400,
-                        color: todayCell ? '#fff' : isSun ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
-                        marginBottom: 4,
+                        color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                        marginBottom: 2,
                       }}>{day}</div>
+                      {holiday && (
+                        <div style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, marginBottom: 2, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                          {holiday}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {dayEvents.slice(0, 3).map(e => (
                           <div key={e.id} style={{
@@ -168,6 +196,11 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
               {month + 1}월 {selectedDay}일 일정
+              {KOREAN_HOLIDAYS[toDateStr(year, month, selectedDay)] && (
+                <span style={{ fontSize: 13, color: '#EF4444', fontWeight: 600, marginLeft: 8 }}>
+                  · {KOREAN_HOLIDAYS[toDateStr(year, month, selectedDay)]}
+                </span>
+              )}
             </div>
             <button onClick={() => setShowForm(v => !v)} style={{
               padding: '7px 16px', background: '#2563EB', color: '#fff',
