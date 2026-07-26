@@ -264,21 +264,21 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
                     }}>
                       {day && (
-                        <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                           <div style={{
                             width: 30, height: 30, borderRadius: '50%',
                             background: todayCell ? '#2563EB' : 'transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
                             fontSize: 15, fontWeight: 700,
                             color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
-                            marginBottom: 2,
                           }}>{day}</div>
                           {holiday && (
-                            <div style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                            <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, lineHeight: 1.2, wordBreak: 'keep-all' }}>
                               {holiday}
-                            </div>
+                            </span>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   );
@@ -524,15 +524,14 @@ function EventForm({
 }
 
 const navBtn: React.CSSProperties = {
-  background: '#fff',
-  border: '2px solid #1C1C1E',
-  borderRadius: 10,
-  width: 44, height: 44,
+  background: 'none',
+  border: 'none',
+  padding: '0 8px',
   cursor: 'pointer',
-  fontSize: 22, fontWeight: 700,
+  fontSize: 36,
+  fontWeight: 300,
   color: '#1C1C1E',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+  lineHeight: 1,
 };
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, padding: '0 12px', border: '1px solid #E5E7EB',
