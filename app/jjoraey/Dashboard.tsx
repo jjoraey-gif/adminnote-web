@@ -339,6 +339,35 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
           );
         })()}
 
+        {/* 공용폰 */}
+        <div style={{ ...card, marginBottom: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
+            공용폰 회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.sharedCount}명</span>
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr style={{ background: '#F9FAFB' }}>
+                <th style={th}>#</th><th style={th}>기관명</th><th style={th}>아이디</th>
+                <th style={th}>이메일</th><th style={th}>가입일</th>
+              </tr></thead>
+              <tbody>
+                {data.shared.length === 0
+                  ? <tr><td colSpan={5} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
+                  : data.shared.map((u, i) => (
+                    <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                      <td style={{ ...td, color: '#9CA3AF' }}>{i + 1}</td>
+                      <td style={td}>{u.orgName}</td>
+                      <td style={td}>{u.userId}</td>
+                      <td style={td}>{u.email}</td>
+                      <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* 사진 갤러리 */}
         {(() => {
           const totalPhotoPages = Math.ceil(data.photos.length / PHOTO_PAGE_SIZE);
@@ -700,35 +729,6 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                 </button>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* 공용폰 */}
-        <div style={card}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-            공용폰 회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.sharedCount}명</span>
-          </h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr style={{ background: '#F9FAFB' }}>
-                <th style={th}>#</th><th style={th}>기관명</th><th style={th}>아이디</th>
-                <th style={th}>이메일</th><th style={th}>가입일</th>
-              </tr></thead>
-              <tbody>
-                {data.shared.length === 0
-                  ? <tr><td colSpan={5} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
-                  : data.shared.map((u, i) => (
-                    <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
-                      <td style={{ ...td, color: '#9CA3AF' }}>{i + 1}</td>
-                      <td style={td}>{u.orgName}</td>
-                      <td style={td}>{u.userId}</td>
-                      <td style={td}>{u.email}</td>
-                      <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
           </div>
         </div>
 
