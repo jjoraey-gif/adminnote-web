@@ -6,6 +6,34 @@ import { ScheduleEvent, colorHex } from '@/lib/useSnapshot';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const COLORS = ['blue', 'red', 'green', 'pink', 'yellow', 'purple'];
 
+// 파스텔 배경색
+function colorPastel(color: string): string {
+  switch (color) {
+    case 'red':    return '#FFE4E4';
+    case 'blue':   return '#DBEAFE';
+    case 'green':  return '#D1FAE5';
+    case 'pink':   return '#FCE7F3';
+    case 'yellow': return '#FEF3C7';
+    case 'purple': return '#EDE9FE';
+    case 'orange': return '#FFEDD5';
+    default:       return '#DBEAFE';
+  }
+}
+
+// 파스텔 테두리색
+function colorPastelBorder(color: string): string {
+  switch (color) {
+    case 'red':    return '#FECACA';
+    case 'blue':   return '#BFDBFE';
+    case 'green':  return '#A7F3D0';
+    case 'pink':   return '#F9A8D4';
+    case 'yellow': return '#FDE68A';
+    case 'purple': return '#C4B5FD';
+    case 'orange': return '#FED7AA';
+    default:       return '#BFDBFE';
+  }
+}
+
 const KOREAN_HOLIDAYS: Record<string, string> = {
   '2025-01-01': '신정', '2025-01-28': '설 연휴', '2025-01-29': '설날', '2025-01-30': '설 연휴',
   '2025-03-01': '3·1절', '2025-05-05': '어린이날', '2025-05-06': '대체공휴일', '2025-06-06': '현충일',
@@ -59,6 +87,68 @@ const emptyForm = (date: string): FormState => ({
   title: '', date, endDate: '', startTime: '', endTime: '',
   category: '일', color: 'blue', memo: '',
 });
+
+// 주(week) 내 이벤트 레이아웃 계산
+interface WeekEventSlot {
+  event: ScheduleEvent;
+  lane: number;
+  colStart: number;
+  colEnd: number;
+  isStart: boolean; // 이 주에서 시작
+  isEnd: boolean;   // 이 주에서 끝
+}
+
+function layoutWeekEvents(
+  week: (number | null)[],
+  allEvents: ScheduleEvent[],
+  year: number,
+  month: number,
+): WeekEventSlot[] {
+  const weekDateStrs = week.map(d => (d ? toDateStr(year, month, d) : null));
+  const validDates = weekDateStrs.filter(Boolean) as string[];
+  if (!validDates.length) return [];
+  const wStart = validDates[0];
+  const wEnd = validDates[validDates.length - 1];
+
+  const relevant = allEvents
+    .filter(e => {
+      const eEnd = e.endDate || e.date;
+      return e.date <= wEnd && eEnd >= wStart;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.sortOrder - b.sortOrder);
+
+  // greedy lane 배정
+  const laneEndDate: string[] = [];
+  const slots: WeekEventSlot[] = [];
+
+  for (const event of relevant) {
+    const eEnd = event.endDate || event.date;
+
+    let lane = laneEndDate.findIndex(ed => ed < event.date);
+    if (lane === -1) { lane = laneEndDate.length; laneEndDate.push(''); }
+    laneEndDate[lane] = eEnd < wEnd ? eEnd : wEnd;
+
+    let colStart = -1, colEnd = -1;
+    for (let i = 0; i < 7; i++) {
+      const d = weekDateStrs[i];
+      if (!d) continue;
+      if (colStart === -1 && d >= event.date) colStart = i;
+      if (d <= eEnd) colEnd = i;
+    }
+    if (colStart === -1 || colEnd === -1) continue;
+
+    slots.push({
+      event,
+      lane,
+      colStart,
+      colEnd,
+      isStart: event.date >= wStart,
+      isEnd: eEnd <= wEnd,
+    });
+  }
+
+  return slots;
+}
 
 export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle }: Props) {
   const today = new Date();
@@ -126,7 +216,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       {/* 월 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <button onClick={prevMonth} style={navBtn}>‹</button>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
+        <h2 style={{ fontSize: 23, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
           {year}년 {month + 1}월
         </h2>
         <button onClick={nextMonth} style={navBtn}>›</button>
@@ -134,60 +224,125 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
 
       {/* 달력 */}
       <div style={{ border: '2px solid #1C1C1E', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+        {/* 요일 헤더 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '2px solid #1C1C1E' }}>
           {WEEKDAYS.map((d, i) => (
             <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: 700, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#1C1C1E' }}>{d}</div>
           ))}
         </div>
 
-        {weeks.map((week, wi) => (
-          <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: wi < weeks.length - 1 ? '1px solid #1C1C1E' : 'none' }}>
-            {week.map((day, di) => {
-              const dayEvents = eventsOn(day);
-              const selected = day !== null && day === selectedDay;
-              const todayCell = isToday(day);
-              const isSun = di === 0, isSat = di === 6;
-              const dateStr = day ? toDateStr(year, month, day) : '';
-              const holiday = dateStr ? KOREAN_HOLIDAYS[dateStr] : undefined;
-              const isRed = isSun || !!holiday;
-              return (
-                <div key={di} onClick={() => day && handleDayClick(day)} style={{
-                  minHeight: 120, padding: '8px 10px', cursor: day ? 'pointer' : 'default',
-                  background: selected && !todayCell ? '#EFF6FF' : '#fff',
-                  borderRight: di < 6 ? '1px solid #1C1C1E' : 'none',
-                }}>
-                  {day && (
-                    <>
-                      <div style={{
-                        width: 26, height: 26, borderRadius: '50%',
-                        background: todayCell ? '#2563EB' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: todayCell ? 700 : 400,
-                        color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
-                        marginBottom: 2,
-                      }}>{day}</div>
-                      {holiday && (
-                        <div style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, marginBottom: 2, lineHeight: 1.2, wordBreak: 'keep-all' }}>
-                          {holiday}
-                        </div>
+        {/* 주(week) 렌더링 */}
+        {weeks.map((week, wi) => {
+          const slots = layoutWeekEvents(week, events, year, month);
+          const numLanes = slots.reduce((max, s) => Math.max(max, s.lane + 1), 0);
+
+          return (
+            <div key={wi} style={{ borderBottom: wi < weeks.length - 1 ? '1px solid #1C1C1E' : 'none' }}>
+              {/* 날짜 숫자 행 */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                {week.map((day, di) => {
+                  const selected = day !== null && day === selectedDay;
+                  const todayCell = isToday(day);
+                  const isSun = di === 0, isSat = di === 6;
+                  const dateStr = day ? toDateStr(year, month, day) : '';
+                  const holiday = dateStr ? KOREAN_HOLIDAYS[dateStr] : undefined;
+                  const isRed = isSun || !!holiday;
+                  return (
+                    <div key={di} onClick={() => day && handleDayClick(day)} style={{
+                      padding: '6px 8px 4px',
+                      cursor: day ? 'pointer' : 'default',
+                      background: selected && !todayCell ? '#EFF6FF' : '#fff',
+                      borderRight: di < 6 ? '1px solid #1C1C1E' : 'none',
+                      minHeight: 42,
+                    }}>
+                      {day && (
+                        <>
+                          <div style={{
+                            width: 26, height: 26, borderRadius: '50%',
+                            background: todayCell ? '#2563EB' : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, fontWeight: todayCell ? 700 : 400,
+                            color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                          }}>{day}</div>
+                          {holiday && (
+                            <div style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, marginTop: 1, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                              {holiday}
+                            </div>
+                          )}
+                        </>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {dayEvents.slice(0, 3).map(e => (
-                          <div key={e.id} style={{
-                            fontSize: 11, fontWeight: 500, color: '#fff',
-                            background: colorHex(e.color), borderRadius: 3,
-                            padding: '1px 5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>{e.title}</div>
-                        ))}
-                        {dayEvents.length > 3 && <div style={{ fontSize: 10, color: '#9CA3AF' }}>+{dayEvents.length - 3}개</div>}
-                      </div>
-                    </>
-                  )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 이벤트 레인 — 절대 위치로 다일 스패닝 구현 */}
+              <div style={{ position: 'relative', height: numLanes > 0 ? numLanes * 22 + 6 : 8 }}>
+                {/* 배경 컬럼 구분선 + 선택 날짜 하이라이트 */}
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', pointerEvents: 'none' }}>
+                  {week.map((day, di) => (
+                    <div key={di} style={{
+                      borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
+                      background: day !== null && day === selectedDay ? '#EFF6FF' : 'transparent',
+                    }} />
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        ))}
+
+                {/* 이벤트 바 */}
+                {slots.map((slot) => {
+                  const { event, lane, colStart, colEnd, isStart, isEnd } = slot;
+                  const leftPct = (colStart / 7) * 100;
+                  const widthPct = ((colEnd - colStart + 1) / 7) * 100;
+                  const padL = isStart ? 3 : 0;
+                  const padR = isEnd ? 3 : 0;
+                  const br = isStart && isEnd ? '4px'
+                    : isStart ? '4px 0 0 4px'
+                    : isEnd   ? '0 4px 4px 0'
+                    : '0';
+
+                  return (
+                    <div
+                      key={`${event.id}-w${wi}`}
+                      onClick={() => { const d = week[colStart]; if (d) handleDayClick(d); }}
+                      style={{
+                        position: 'absolute',
+                        left: `calc(${leftPct}% + ${padL}px)`,
+                        width: `calc(${widthPct}% - ${padL + padR}px)`,
+                        top: lane * 22 + 3,
+                        height: 18,
+                        background: colorPastel(event.color),
+                        border: `1px solid ${colorPastelBorder(event.color)}`,
+                        borderRadius: br,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        cursor: 'pointer',
+                        overflow: 'hidden',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {isStart && (
+                        <span style={{
+                          fontSize: 11,
+                          color: '#1C1C1E',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          textAlign: 'center',
+                          width: '100%',
+                        }}>
+                          {event.title.slice(0, 10)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 선택 날짜 패널 */}
@@ -318,8 +473,19 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
 }
 
 const navBtn: React.CSSProperties = {
-  background: 'none', border: '1px solid #E5E7EB', borderRadius: 8,
-  width: 36, height: 36, cursor: 'pointer', fontSize: 18, color: '#374151',
+  background: '#fff',
+  border: '2px solid #1C1C1E',
+  borderRadius: 10,
+  width: 44,
+  height: 44,
+  cursor: 'pointer',
+  fontSize: 22,
+  fontWeight: 700,
+  color: '#1C1C1E',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
 };
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, padding: '0 12px', border: '1px solid #E5E7EB',
