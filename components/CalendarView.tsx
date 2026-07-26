@@ -5,6 +5,26 @@ import type { User } from '@supabase/supabase-js';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
+const KOREAN_HOLIDAYS: Record<string, string> = {
+  '2025-01-01': '신정', '2025-01-28': '설 연휴', '2025-01-29': '설날', '2025-01-30': '설 연휴',
+  '2025-03-01': '3·1절', '2025-05-05': '어린이날', '2025-05-06': '대체공휴일', '2025-06-06': '현충일',
+  '2025-08-15': '광복절', '2025-10-03': '개천절', '2025-10-05': '추석 연휴', '2025-10-06': '추석',
+  '2025-10-07': '추석 연휴', '2025-10-08': '대체공휴일', '2025-10-09': '한글날', '2025-12-25': '성탄절',
+  '2026-01-01': '신정', '2026-02-16': '설 연휴', '2026-02-17': '설날', '2026-02-18': '설 연휴',
+  '2026-02-20': '대체공휴일', '2026-03-01': '3·1절', '2026-03-02': '대체공휴일', '2026-05-01': '노동절',
+  '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-06-06': '현충일', '2026-07-17': '제헌절',
+  '2026-08-15': '광복절', '2026-08-17': '대체휴일',
+  '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴',
+  '2026-10-03': '개천절', '2026-10-05': '대체휴일', '2026-10-09': '한글날', '2026-12-25': '성탄절',
+  '2027-01-01': '신정', '2027-02-06': '설 연휴', '2027-02-07': '설날', '2027-02-08': '설 연휴',
+  '2027-02-09': '대체휴일', '2027-03-01': '3·1절', '2027-05-03': '대체휴일', '2027-05-05': '어린이날',
+  '2027-05-13': '부처님오신날', '2027-06-06': '현충일', '2027-07-19': '대체휴일',
+  '2027-08-15': '광복절', '2027-08-16': '대체휴일',
+  '2027-09-14': '추석 연휴', '2027-09-15': '추석', '2027-09-16': '추석 연휴',
+  '2027-10-03': '개천절', '2027-10-04': '대체휴일', '2027-10-09': '한글날', '2027-10-11': '대체휴일',
+  '2027-12-25': '성탄절', '2027-12-27': '대체휴일',
+};
+
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -75,6 +95,11 @@ export default function CalendarView({ user }: Props) {
               const todayCell = isToday(day);
               const isSun = di === 0;
               const isSat = di === 6;
+              const dateStr = day
+                ? `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                : '';
+              const holiday = dateStr ? KOREAN_HOLIDAYS[dateStr] : undefined;
+              const isRed = isSun || !!holiday;
               return (
                 <div
                   key={di}
@@ -89,20 +114,27 @@ export default function CalendarView({ user }: Props) {
                   }}
                 >
                   {day && (
-                    <div style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: todayCell ? '#2563EB' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 14,
-                      fontWeight: todayCell ? 700 : 400,
-                      color: todayCell ? '#fff' : isSun ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
-                    }}>
-                      {day}
-                    </div>
+                    <>
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        background: todayCell ? '#2563EB' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        fontWeight: todayCell ? 700 : 400,
+                        color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                      }}>
+                        {day}
+                      </div>
+                      {holiday && (
+                        <div style={{ fontSize: 10, color: '#EF4444', marginTop: 3, fontWeight: 600, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                          {holiday}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
@@ -112,23 +144,30 @@ export default function CalendarView({ user }: Props) {
       </div>
 
       {/* 선택 날짜 패널 */}
-      {selectedDay && (
-        <div style={{
-          marginTop: 16,
-          padding: '14px 20px',
-          background: '#EFF6FF',
-          borderRadius: 12,
-          border: '1px solid #BFDBFE',
-          fontSize: 14,
-          color: '#1D4ED8',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
-          <span style={{ fontWeight: 600 }}>{month + 1}월 {selectedDay}일</span>
-          <span style={{ color: '#93C5FD' }}>— 앱과 연동 시 해당 날짜 일정이 표시됩니다.</span>
-        </div>
-      )}
+      {selectedDay && (() => {
+        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+        const hName = KOREAN_HOLIDAYS[ds];
+        return (
+          <div style={{
+            marginTop: 16,
+            padding: '14px 20px',
+            background: hName ? '#FFF1F1' : '#EFF6FF',
+            borderRadius: 12,
+            border: `1px solid ${hName ? '#FECACA' : '#BFDBFE'}`,
+            fontSize: 14,
+            color: hName ? '#DC2626' : '#1D4ED8',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <span style={{ fontWeight: 600 }}>{month + 1}월 {selectedDay}일</span>
+            {hName
+              ? <span style={{ fontWeight: 600 }}>— {hName}</span>
+              : <span style={{ color: '#93C5FD' }}>— 앱과 연동 시 해당 날짜 일정이 표시됩니다.</span>
+            }
+          </div>
+        );
+      })()}
     </div>
   );
 }
