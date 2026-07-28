@@ -13,6 +13,7 @@ import AppIntroView from './AppIntroView';
 import ExternalContactView from './ExternalContactView';
 import MyPageView from './MyPageView';
 import HistoryView from './HistoryView';
+import PromotionRankView from './PromotionRankView';
 
 const MAIN_TABS = [
   { key: 'photo',    label: '사진전송' },
@@ -243,7 +244,25 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onUpdateCareerInfo={store.updateCareerInfo}
                 />
               )}
-              {(currentTab === 'promotion' || currentTab === 'org') && (
+              {currentTab === 'promotion' && (
+                <PromotionRankView
+                  performanceRatings={store.performanceRatings}
+                  pastPerformanceRatings={store.pastPerformanceRatings}
+                  sameGradePromotions={store.sameGradePromotions}
+                  onReplacePerformanceRating={store.replacePerformanceRating}
+                  onDeletePerformanceRating={store.deletePerformanceRating}
+                  onAddPastPerformanceRating={store.addPastPerformanceRating}
+                  onUpdatePastPerformanceRating={store.updatePastPerformanceRating}
+                  onDeletePastPerformanceRating={store.deletePastPerformanceRating}
+                  onAddSameGradePromotion={store.addSameGradePromotion}
+                  onUpdateSameGradePromotion={store.updateSameGradePromotion}
+                  onDeleteSameGradePromotion={store.deleteSameGradePromotion}
+                  onClearSameGradePromotions={store.clearSameGradePromotions}
+                  onClearPromotionRankData={store.clearPromotionRankData}
+                  onAddPromotion={store.addPromotion}
+                />
+              )}
+              {currentTab === 'org' && (
                 <ComingSoon
                   label={MORE_TABS.find(t => t.key === currentTab)?.label ?? ''}
                   desc="앱에서 확인하세요"
