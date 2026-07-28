@@ -12,6 +12,7 @@ import PhotoTransferView from './PhotoTransferView';
 import AppIntroView from './AppIntroView';
 import ExternalContactView from './ExternalContactView';
 import MyPageView from './MyPageView';
+import HistoryView from './HistoryView';
 
 const MAIN_TABS = [
   { key: 'photo',    label: '사진전송' },
@@ -224,7 +225,25 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onDeleteGroup={store.deleteContactGroup}
                 />
               )}
-              {(currentTab === 'history' || currentTab === 'promotion' || currentTab === 'org') && (
+              {currentTab === 'history' && (
+                <HistoryView
+                  promotions={store.promotions}
+                  assignments={store.assignments}
+                  awards={store.awards}
+                  careerInfo={store.careerInfo}
+                  onAddPromotion={store.addPromotion}
+                  onUpdatePromotion={store.updatePromotion}
+                  onDeletePromotion={store.deletePromotion}
+                  onAddAssignment={store.addAssignment}
+                  onUpdateAssignment={store.updateAssignment}
+                  onDeleteAssignment={store.deleteAssignment}
+                  onAddAward={store.addAward}
+                  onUpdateAward={store.updateAward}
+                  onDeleteAward={store.deleteAward}
+                  onUpdateCareerInfo={store.updateCareerInfo}
+                />
+              )}
+              {(currentTab === 'promotion' || currentTab === 'org') && (
                 <ComingSoon
                   label={MORE_TABS.find(t => t.key === currentTab)?.label ?? ''}
                   desc="앱에서 확인하세요"

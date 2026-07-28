@@ -4,6 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import { ScheduleEvent, TodoItem, SubProject, SnapshotData } from './useSnapshot';
 
+export interface PromotionRecord { id: string; grade: string; date: string; note: string; }
+export interface AssignmentRecord { id: string; department: string; date: string; }
+export interface AwardRecord { id: string; name: string; grade: string; date: string; }
+export interface CareerInfo { startDate: string | null; initialGrade: string; stepGrade: number; nextStepUpDate: string | null; }
+export const defaultCareerInfo = (): CareerInfo => ({ startDate: null, initialGrade: '9급', stepGrade: 0, nextStepUpDate: null });
+
 export interface ExternalContact {
   id: string; companyName: string; personName: string; department: string;
   position: string; phone: string; email: string; relatedWork: string; groupId: string | null;
@@ -32,10 +38,14 @@ export function useWebStore(userId: string | undefined) {
   const [subProjects, setSubProjects] = useState<SubProject[]>([]);
   const [externalContacts, setExternalContacts] = useState<ExternalContact[]>([]);
   const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
+  const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentRecord[]>([]);
+  const [awards, setAwards] = useState<AwardRecord[]>([]);
+  const [careerInfo, setCareerInfo] = useState<CareerInfo>(defaultCareerInfo());
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [] });
+  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [], promotions: [], assignments: [], awards: [], careerInfo: defaultCareerInfo() });
   // 아직 저장 안 된 데이터 (flush용)
   const pendingRef = useRef<Record<string, unknown> | null>(null);
   // 내가 마지막으로 저장한 updated_at (에코 방지용)
@@ -51,6 +61,10 @@ export function useWebStore(userId: string | undefined) {
   useEffect(() => {
     dataRef.current = { ...dataRef.current, externalContacts, contactGroups };
   }, [externalContacts, contactGroups]);
+
+  useEffect(() => {
+    dataRef.current = { ...dataRef.current, promotions, assignments, awards, careerInfo };
+  }, [promotions, assignments, awards, careerInfo]);
 
   // 초기 로드
   useEffect(() => {
@@ -70,9 +84,19 @@ export function useWebStore(userId: string | undefined) {
           setEvents(ev);
           setTodos(td);
           setSubProjects(sp);
-          setExternalContacts((d.externalContacts as ExternalContact[]) ?? []);
-          setContactGroups((d.contactGroups as ContactGroup[]) ?? []);
-          dataRef.current = { events: ev, todos: td, subProjects: sp };
+          const ec = (d.externalContacts as ExternalContact[]) ?? [];
+          const cg = (d.contactGroups as ContactGroup[]) ?? [];
+          const pr = (d.promotions as PromotionRecord[]) ?? [];
+          const as = (d.assignments as AssignmentRecord[]) ?? [];
+          const aw = (d.awards as AwardRecord[]) ?? [];
+          const ci = (d.careerInfo as CareerInfo) ?? defaultCareerInfo();
+          setExternalContacts(ec);
+          setContactGroups(cg);
+          setPromotions(pr);
+          setAssignments(as);
+          setAwards(aw);
+          setCareerInfo(ci);
+          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci };
         }
         setLoading(false);
       });
@@ -157,7 +181,11 @@ export function useWebStore(userId: string | undefined) {
           setSubProjects(sp);
           setExternalContacts((d.externalContacts as ExternalContact[]) ?? []);
           setContactGroups((d.contactGroups as ContactGroup[]) ?? []);
-          dataRef.current = { events: ev, todos: td, subProjects: sp };
+          setPromotions((d.promotions as PromotionRecord[]) ?? []);
+          setAssignments((d.assignments as AssignmentRecord[]) ?? []);
+          setAwards((d.awards as AwardRecord[]) ?? []);
+          setCareerInfo((d.careerInfo as CareerInfo) ?? defaultCareerInfo());
+          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo() };
         },
       )
       .subscribe();
@@ -356,12 +384,53 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  // ── 이력관리 CRUD ──────────────────────────────────────────────────────────
+  const addPromotion = useCallback((p: PromotionRecord) => {
+    setPromotions(prev => { const next = [...prev, p]; push({ ...dataRef.current, promotions: next }); return next; });
+  }, [push]);
+  const updatePromotion = useCallback((p: PromotionRecord) => {
+    setPromotions(prev => { const next = prev.map(x => x.id === p.id ? p : x); push({ ...dataRef.current, promotions: next }); return next; });
+  }, [push]);
+  const deletePromotion = useCallback((id: string) => {
+    setPromotions(prev => { const next = prev.filter(x => x.id !== id); push({ ...dataRef.current, promotions: next }); return next; });
+  }, [push]);
+
+  const addAssignment = useCallback((a: AssignmentRecord) => {
+    setAssignments(prev => { const next = [...prev, a]; push({ ...dataRef.current, assignments: next }); return next; });
+  }, [push]);
+  const updateAssignment = useCallback((a: AssignmentRecord) => {
+    setAssignments(prev => { const next = prev.map(x => x.id === a.id ? a : x); push({ ...dataRef.current, assignments: next }); return next; });
+  }, [push]);
+  const deleteAssignment = useCallback((id: string) => {
+    setAssignments(prev => { const next = prev.filter(x => x.id !== id); push({ ...dataRef.current, assignments: next }); return next; });
+  }, [push]);
+
+  const addAward = useCallback((a: AwardRecord) => {
+    setAwards(prev => { const next = [...prev, a]; push({ ...dataRef.current, awards: next }); return next; });
+  }, [push]);
+  const updateAward = useCallback((a: AwardRecord) => {
+    setAwards(prev => { const next = prev.map(x => x.id === a.id ? a : x); push({ ...dataRef.current, awards: next }); return next; });
+  }, [push]);
+  const deleteAward = useCallback((id: string) => {
+    setAwards(prev => { const next = prev.filter(x => x.id !== id); push({ ...dataRef.current, awards: next }); return next; });
+  }, [push]);
+
+  const updateCareerInfo = useCallback((ci: CareerInfo) => {
+    setCareerInfo(ci);
+    push({ ...dataRef.current, careerInfo: ci });
+  }, [push]);
+
   return {
-    events, todos, subProjects, externalContacts, contactGroups, loading,
+    events, todos, subProjects, externalContacts, contactGroups,
+    promotions, assignments, awards, careerInfo, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, updateTodo, toggleTodo, deleteTodo,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
     addContact, updateContact, deleteContact,
     addContactGroup, updateContactGroup, deleteContactGroup,
+    addPromotion, updatePromotion, deletePromotion,
+    addAssignment, updateAssignment, deleteAssignment,
+    addAward, updateAward, deleteAward,
+    updateCareerInfo,
   };
 }
