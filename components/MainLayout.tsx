@@ -120,7 +120,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  padding: '16px 36px', fontSize: 17,
+                  padding: '16px 36px', fontSize: 20,
                   fontWeight: isActive ? 700 : 500,
                   color: '#1C1C1E',
                   background: 'none', border: 'none',
