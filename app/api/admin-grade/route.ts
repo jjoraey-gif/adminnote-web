@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const { error } = await adminSupabase.from('profiles').update({ grade }).eq('id', userId);
+  const { error } = await adminSupabase
+    .from('profiles')
+    .upsert({ id: userId, grade }, { onConflict: 'id' });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
