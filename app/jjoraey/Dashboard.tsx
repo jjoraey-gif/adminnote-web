@@ -71,10 +71,201 @@ function GradeBadge({ grade }: { grade: string }) {
   );
 }
 
+// ── 회원 데이터 모달 ──────────────────────────────────────────────────────────
+function UserDataModal({ user, onClose }: { user: PersonalUser; onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [snap, setSnap] = useState<Record<string, any> | null>(null);
+  const [tab, setTab] = useState<'history' | 'promotion'>('history');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin-user-data?userId=${user.id}`);
+      const body = await res.json();
+      setSnap(body.data ?? null);
+    } catch { setSnap(null); }
+    setLoading(false);
+  };
+
+  useState(() => { fetchData(); });
+
+  const promotions = snap?.promotions ?? [];
+  const assignments = snap?.assignments ?? [];
+  const awards = snap?.awards ?? [];
+  const careerInfo = snap?.careerInfo ?? null;
+  const perfRatings = snap?.performanceRatings ?? [];
+  const pastPerf = snap?.pastPerformanceRatings ?? [];
+  const sameGrade = snap?.sameGradePromotions ?? [];
+
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('ko-KR') : '-';
+
+  const TABS = [
+    { key: 'history', label: '이력관리' },
+    { key: 'promotion', label: '승진순위관리' },
+  ] as const;
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#F9FAFB', borderRadius: 20, width: '100%', maxWidth: 680, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        {/* 헤더 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', background: '#fff', borderBottom: '1px solid #E5E7EB' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>{user.nickname || user.email}</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{user.email}</div>
+          </div>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
+        </div>
+
+        {/* 탭 */}
+        <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #E5E7EB' }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              flex: 1, padding: '12px 0', fontSize: 14, fontWeight: tab === t.key ? 700 : 400,
+              color: tab === t.key ? '#2563EB' : '#6B7280',
+              border: 'none', background: 'none',
+              borderBottom: tab === t.key ? '2px solid #2563EB' : '2px solid transparent',
+              cursor: 'pointer',
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* 내용 */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200, color: '#9CA3AF', fontSize: 14 }}>불러오는 중...</div>
+          ) : snap === null ? (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF' }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>📭</div>
+              <div>저장된 데이터가 없습니다</div>
+            </div>
+          ) : tab === 'history' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* 공직정보 */}
+              {careerInfo && (
+                <Section title="공직정보">
+                  <InfoGrid items={[
+                    { label: '입직일', value: fmtDate(careerInfo.startDate) },
+                    { label: '초임직급', value: careerInfo.initialGrade || '-' },
+                    { label: '현재 호봉', value: careerInfo.stepGrade ? `${careerInfo.stepGrade}호봉` : '-' },
+                    { label: '다음 호봉 승급일', value: fmtDate(careerInfo.nextStepUpDate) },
+                  ]} />
+                </Section>
+              )}
+              {/* 승진이력 */}
+              <Section title={`승진이력 (${promotions.length}건)`}>
+                {promotions.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['직급', '날짜', '비고']}
+                    rows={promotions.map((p: any) => [p.grade, fmtDate(p.date), p.note || '-'])}
+                  />
+                )}
+              </Section>
+              {/* 발령이력 */}
+              <Section title={`발령이력 (${assignments.length}건)`}>
+                {assignments.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['부서', '날짜']}
+                    rows={assignments.map((a: any) => [a.department, fmtDate(a.date)])}
+                  />
+                )}
+              </Section>
+              {/* 포상이력 */}
+              <Section title={`포상이력 (${awards.length}건)`}>
+                {awards.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['포상명', '등급', '날짜']}
+                    rows={awards.map((a: any) => [a.name, a.grade || '-', fmtDate(a.date)])}
+                  />
+                )}
+              </Section>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* 최근 근평 순위 */}
+              <Section title={`최근 근평 순위 (${perfRatings.length}건)`}>
+                {perfRatings.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['날짜', '순위']}
+                    rows={perfRatings.map((r: any) => [fmtDate(r.date), `${r.rank}위`])}
+                  />
+                )}
+              </Section>
+              {/* 과거 근평 이력 */}
+              <Section title={`과거 근평 이력 (${pastPerf.length}건)`}>
+                {pastPerf.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['날짜', '순위']}
+                    rows={pastPerf.map((r: any) => [fmtDate(r.date), `${r.rank}위`])}
+                  />
+                )}
+              </Section>
+              {/* 동직급 승진자 수 */}
+              <Section title={`동직급 승진자 수 (${sameGrade.length}건)`}>
+                {sameGrade.length === 0 ? <Empty /> : (
+                  <SimpleTable
+                    headers={['날짜', '인원']}
+                    rows={sameGrade.map((s: any) => [fmtDate(s.date), `${s.count}명`])}
+                  />
+                )}
+              </Section>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+      <div style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#374151', borderBottom: '1px solid #F3F4F6', background: '#F9FAFB' }}>{title}</div>
+      <div style={{ padding: '12px 16px' }}>{children}</div>
+    </div>
+  );
+}
+
+function InfoGrid({ items }: { items: { label: string; value: string }[] }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
+      {items.map(it => (
+        <div key={it.label}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{it.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>{it.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SimpleTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <thead>
+        <tr style={{ background: '#F9FAFB' }}>
+          {headers.map(h => <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#6B7280', fontWeight: 600, fontSize: 12, borderBottom: '1px solid #F3F4F6' }}>{h}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid #F9FAFB' : 'none' }}>
+            {row.map((cell, j) => <td key={j} style={{ padding: '8px 10px', color: '#374151' }}>{cell}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Empty() {
+  return <div style={{ fontSize: 13, color: '#C7C7CC', textAlign: 'center', padding: '12px 0' }}>데이터 없음</div>;
+}
+
 export default function AdminDashboard({ data, sessionToken }: { data: AdminData; sessionToken: string }) {
   const router = useRouter();
   const authHeader = { 'Content-Type': 'application/json', 'X-Admin-Token': sessionToken };
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
+  const [selectedUser, setSelectedUser] = useState<PersonalUser | null>(null);
   const [personalPage, setPersonalPage] = useState(1);
   const [photoPage, setPhotoPage] = useState(1);
   const PHOTO_PAGE_SIZE = 35; // 7열 × 5행
@@ -279,7 +470,12 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                           return (
                             <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
                               <td style={{ ...td, color: '#9CA3AF' }}>{globalIdx}</td>
-                              <td style={td}>{u.email}</td>
+                              <td style={td}>
+                                <button
+                                  onClick={() => setSelectedUser(u)}
+                                  style={{ background: 'none', border: 'none', color: '#2563EB', cursor: 'pointer', fontSize: 13, textDecoration: 'underline', padding: 0 }}
+                                >{u.email}</button>
+                              </td>
                               <td style={td}>{u.nickname}</td>
                               <td style={td}><ProviderBadge provider={u.provider} /></td>
                               <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
@@ -550,6 +746,11 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
             </div>
           );
         })()}
+
+        {/* 회원 데이터 모달 */}
+        {selectedUser && (
+          <UserDataModal user={selectedUser} onClose={() => setSelectedUser(null)} />
+        )}
 
         {/* 사진 전체보기 모달 */}
         {selectedPhoto && (
