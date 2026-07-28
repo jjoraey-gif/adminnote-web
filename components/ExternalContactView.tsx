@@ -120,7 +120,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
           {ungrouped.length > 0 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 10, letterSpacing: 1 }}>미분류</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
                 {ungrouped.map(c => (
                   <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />
                 ))}
@@ -176,7 +176,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
                 </div>
                 {gc.length === 0
                   ? <div style={{ fontSize: 13, color: '#C7C7CC', paddingLeft: 4 }}>비어 있음</div>
-                  : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
                       {gc.map(c => <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />)}
                     </div>
                 }
