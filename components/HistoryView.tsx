@@ -281,9 +281,9 @@ function Row({ dot, title, badge, subtitle, date, last, onEdit, onDelete }: {
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ position: 'relative' }}>
+    <>
       <div
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen(true)}
         style={{
           display: 'flex', alignItems: 'center', padding: '12px 20px',
           borderBottom: last ? 'none' : `1px solid ${C.border}`,
@@ -305,26 +305,40 @@ function Row({ dot, title, badge, subtitle, date, last, onEdit, onDelete }: {
         {date && <span style={{ fontSize: 13, color: C.gray, marginLeft: 12, flexShrink: 0 }}>{date}</span>}
         <span style={{ fontSize: 12, color: '#D1D5DB', marginLeft: 8 }}>···</span>
       </div>
+
+      {/* 수정/삭제 모달 */}
       {open && (
-        <div style={{
-          position: 'absolute', right: 16, top: '100%', zIndex: 50,
-          background: '#fff', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          border: `1px solid ${C.border}`, overflow: 'hidden', minWidth: 120,
-        }}>
-          <button onClick={() => { setOpen(false); onEdit(); }} style={menuBtnStyle('#374151')}>수정</button>
-          <button onClick={() => { setOpen(false); onDelete(); }} style={menuBtnStyle('#EF4444')}>삭제</button>
-          <button onClick={() => setOpen(false)} style={menuBtnStyle('#9CA3AF')}>취소</button>
+        <div
+          onClick={() => setOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+              width: '100%', maxWidth: 600, overflow: 'hidden', paddingBottom: 8,
+            }}
+          >
+            <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</div>
+              {date && <div style={{ fontSize: 13, color: C.gray, marginTop: 2 }}>{date}</div>}
+            </div>
+            <button onClick={() => { setOpen(false); onEdit(); }} style={actionBtnStyle('#1C1C1E')}>수정</button>
+            <button onClick={() => { setOpen(false); onDelete(); }} style={actionBtnStyle('#EF4444')}>삭제</button>
+            <div style={{ height: 8 }} />
+            <button onClick={() => setOpen(false)} style={{ ...actionBtnStyle('#6B7280'), fontWeight: 400 }}>취소</button>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
-function menuBtnStyle(color: string): React.CSSProperties {
+function actionBtnStyle(color: string): React.CSSProperties {
   return {
-    display: 'block', width: '100%', padding: '12px 20px',
-    background: 'none', border: 'none', textAlign: 'left',
-    fontSize: 14, fontWeight: 500, color, cursor: 'pointer',
+    display: 'block', width: '100%', padding: '16px 20px',
+    background: 'none', border: 'none', textAlign: 'center',
+    fontSize: 16, fontWeight: 600, color, cursor: 'pointer',
     borderBottom: `1px solid #F3F4F6`,
   };
 }
