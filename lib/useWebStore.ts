@@ -11,6 +11,9 @@ export interface CareerInfo { startDate: string | null; initialGrade: string; st
 export const defaultCareerInfo = (): CareerInfo => ({ startDate: null, initialGrade: '9급', stepGrade: 0, nextStepUpDate: null });
 export interface PerformanceRating { id: string; date: string; rank: number; }
 export interface SameGradePromotion { id: string; date: string; count: number; }
+export interface OrgMember { id: string; name: string; position: string; officePhone: string; mobilePhone: string; }
+export interface OrgTeam { id: string; name: string; members: OrgMember[]; }
+export interface OrgDepartment { id: string; name: string; teams: OrgTeam[]; }
 
 export interface ExternalContact {
   id: string; companyName: string; personName: string; department: string;
@@ -47,10 +50,11 @@ export function useWebStore(userId: string | undefined) {
   const [performanceRatings, setPerformanceRatings] = useState<PerformanceRating[]>([]);
   const [pastPerformanceRatings, setPastPerformanceRatings] = useState<PerformanceRating[]>([]);
   const [sameGradePromotions, setSameGradePromotions] = useState<SameGradePromotion[]>([]);
+  const [orgDepartments, setOrgDepartments] = useState<OrgDepartment[]>([]);
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [], promotions: [], assignments: [], awards: [], careerInfo: defaultCareerInfo(), performanceRatings: [], pastPerformanceRatings: [], sameGradePromotions: [] });
+  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [], promotions: [], assignments: [], awards: [], careerInfo: defaultCareerInfo(), performanceRatings: [], pastPerformanceRatings: [], sameGradePromotions: [], orgDepartments: [] });
   // 아직 저장 안 된 데이터 (flush용)
   const pendingRef = useRef<Record<string, unknown> | null>(null);
   // 내가 마지막으로 저장한 updated_at (에코 방지용)
@@ -74,6 +78,10 @@ export function useWebStore(userId: string | undefined) {
   useEffect(() => {
     dataRef.current = { ...dataRef.current, performanceRatings, pastPerformanceRatings, sameGradePromotions };
   }, [performanceRatings, pastPerformanceRatings, sameGradePromotions]);
+
+  useEffect(() => {
+    dataRef.current = { ...dataRef.current, orgDepartments };
+  }, [orgDepartments]);
 
   // 초기 로드
   useEffect(() => {
@@ -108,10 +116,12 @@ export function useWebStore(userId: string | undefined) {
           setAssignments(as);
           setAwards(aw);
           setCareerInfo(ci);
+          const od = (d.orgDepartments as OrgDepartment[]) ?? [];
           setPerformanceRatings(prf);
           setPastPerformanceRatings(pprf);
           setSameGradePromotions(sgp);
-          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp };
+          setOrgDepartments(od);
+          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp, orgDepartments: od };
         }
         setLoading(false);
       });
@@ -203,7 +213,8 @@ export function useWebStore(userId: string | undefined) {
           setPerformanceRatings((d.performanceRatings as PerformanceRating[]) ?? []);
           setPastPerformanceRatings((d.pastPerformanceRatings as PerformanceRating[]) ?? []);
           setSameGradePromotions((d.sameGradePromotions as SameGradePromotion[]) ?? []);
-          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [] };
+          setOrgDepartments((d.orgDepartments as OrgDepartment[]) ?? []);
+          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
         },
       )
       .subscribe();
@@ -402,6 +413,35 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  // ── 부서조직도 CRUD ────────────────────────────────────────────────────────
+  const setDepartments = useCallback((list: OrgDepartment[]) => {
+    setOrgDepartments(() => { push({ ...dataRef.current, orgDepartments: list }); return list; });
+  }, [push]);
+  const addDepartment = useCallback((d: OrgDepartment) => {
+    setOrgDepartments(prev => { const next = [...prev, d]; push({ ...dataRef.current, orgDepartments: next }); return next; });
+  }, [push]);
+  const updateDepartment = useCallback((d: OrgDepartment) => {
+    setOrgDepartments(prev => { const next = prev.map(x => x.id === d.id ? d : x); push({ ...dataRef.current, orgDepartments: next }); return next; });
+  }, [push]);
+  const deleteDepartment = useCallback((id: string) => {
+    setOrgDepartments(prev => { const next = prev.filter(x => x.id !== id); push({ ...dataRef.current, orgDepartments: next }); return next; });
+  }, [push]);
+  const moveMemberToTeam = useCallback((member: OrgMember, srcDeptId: string, srcTeamId: string, tgtDeptId: string, tgtTeamId: string) => {
+    setOrgDepartments(prev => {
+      const next = prev.map(dept => {
+        if (dept.id === srcDeptId) {
+          return { ...dept, teams: dept.teams.map(t => t.id === srcTeamId ? { ...t, members: t.members.filter(m => m.id !== member.id) } : t) };
+        }
+        if (dept.id === tgtDeptId) {
+          return { ...dept, teams: dept.teams.map(t => t.id === tgtTeamId ? { ...t, members: [...t.members, member] } : t) };
+        }
+        return dept;
+      });
+      push({ ...dataRef.current, orgDepartments: next });
+      return next;
+    });
+  }, [push]);
+
   // ── 승진순위 CRUD ──────────────────────────────────────────────────────────
   const replacePerformanceRating = useCallback((r: PerformanceRating) => {
     setPerformanceRatings(() => { const next = [r]; push({ ...dataRef.current, performanceRatings: next }); return next; });
@@ -476,7 +516,7 @@ export function useWebStore(userId: string | undefined) {
   return {
     events, todos, subProjects, externalContacts, contactGroups,
     promotions, assignments, awards, careerInfo,
-    performanceRatings, pastPerformanceRatings, sameGradePromotions, loading,
+    performanceRatings, pastPerformanceRatings, sameGradePromotions, orgDepartments, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, updateTodo, toggleTodo, deleteTodo,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
@@ -490,5 +530,6 @@ export function useWebStore(userId: string | undefined) {
     addPastPerformanceRating, updatePastPerformanceRating, deletePastPerformanceRating,
     addSameGradePromotion, updateSameGradePromotion, deleteSameGradePromotion,
     clearSameGradePromotions, clearPromotionRankData,
+    setDepartments, addDepartment, updateDepartment, deleteDepartment, moveMemberToTeam,
   };
 }

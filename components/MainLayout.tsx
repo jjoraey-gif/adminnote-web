@@ -14,6 +14,7 @@ import ExternalContactView from './ExternalContactView';
 import MyPageView from './MyPageView';
 import HistoryView from './HistoryView';
 import PromotionRankView from './PromotionRankView';
+import OrgChartView from './OrgChartView';
 
 const MAIN_TABS = [
   { key: 'photo',    label: '사진전송' },
@@ -263,9 +264,13 @@ export default function MainLayout({ user, onLogout }: Props) {
                 />
               )}
               {currentTab === 'org' && (
-                <ComingSoon
-                  label={MORE_TABS.find(t => t.key === currentTab)?.label ?? ''}
-                  desc="앱에서 확인하세요"
+                <OrgChartView
+                  orgDepartments={store.orgDepartments}
+                  onSetDepartments={store.setDepartments}
+                  onAddDepartment={store.addDepartment}
+                  onUpdateDepartment={store.updateDepartment}
+                  onDeleteDepartment={store.deleteDepartment}
+                  onMoveMemberToTeam={store.moveMemberToTeam}
                 />
               )}
             </>
