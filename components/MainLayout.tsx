@@ -13,14 +13,22 @@ import AppIntroView from './AppIntroView';
 import ExternalContactView from './ExternalContactView';
 import MyPageView from './MyPageView';
 
-const TABS = [
-  { key: 'photo', label: '사진전송', disabled: false },
-  { key: 'schedule', label: '업무일정', disabled: false },
-  { key: 'todo', label: '오늘 할 일', disabled: false },
-  { key: 'budget', label: '예산관리', disabled: false },
-  { key: 'contacts', label: '외부연락처', disabled: false },
-  { key: 'about', label: '앱 소개', disabled: false },
+const MAIN_TABS = [
+  { key: 'photo',    label: '사진전송' },
+  { key: 'schedule', label: '업무일정' },
+  { key: 'todo',     label: '오늘 할 일' },
+  { key: 'budget',   label: '예산관리' },
+  { key: 'more',     label: '더보기' },
 ];
+
+const MORE_TABS = [
+  { key: 'history',   label: '이력관리' },
+  { key: 'promotion', label: '승진순위관리' },
+  { key: 'org',       label: '부서조직도' },
+  { key: 'contacts',  label: '외부연락처' },
+  { key: 'about',     label: '앱 소개' },
+];
+
 
 interface Props {
   user: User;
@@ -29,7 +37,10 @@ interface Props {
 
 export default function MainLayout({ user, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState('photo');
+  const [activeMoreTab, setActiveMoreTab] = useState('history');
   const [myPageOpen, setMyPageOpen] = useState(false);
+  const showMoreBar = activeTab === 'more';
+  const currentTab = activeTab === 'more' ? activeMoreTab : activeTab;
   const supabase = createClient();
   const store = useWebStore(user.id);
 
@@ -95,35 +106,70 @@ export default function MainLayout({ user, onLogout }: Props) {
         </div>
       </header>
 
-      {/* 탭 바 */}
+      {/* 메인 탭 바 */}
       <div style={{
-        borderBottom: '1px solid #E5E7EB',
+        borderBottom: showMoreBar ? 'none' : '1px solid #E5E7EB',
         display: 'flex', justifyContent: 'center', background: '#fff',
         position: 'sticky', top: 100, zIndex: 40,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => !tab.disabled && setActiveTab(tab.key)}
-              style={{
-                padding: '16px 36px', fontSize: 17,
-                fontWeight: activeTab === tab.key ? 700 : 500,
-                color: tab.disabled ? '#D1D5DB' : '#1C1C1E',
-                background: 'none', border: 'none',
-                borderBottom: activeTab === tab.key ? '3px solid #1C1C1E' : '3px solid transparent',
-                cursor: tab.disabled ? 'default' : 'pointer',
-                whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {MAIN_TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  padding: '16px 36px', fontSize: 17,
+                  fontWeight: isActive ? 700 : 500,
+                  color: '#1C1C1E',
+                  background: 'none', border: 'none',
+                  borderBottom: isActive ? '3px solid #1C1C1E' : '3px solid transparent',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* 더보기 서브 탭 바 */}
+      {showMoreBar && (
+        <div style={{
+          borderBottom: '1px solid #E5E7EB', borderTop: '1px solid #E5E7EB',
+          display: 'flex', justifyContent: 'center', background: '#F9FAFB',
+          position: 'sticky', top: 153, zIndex: 39,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
+            {MORE_TABS.map((tab) => {
+              const isActive = activeMoreTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveMoreTab(tab.key)}
+                  style={{
+                    padding: '12px 28px', fontSize: 15,
+                    fontWeight: isActive ? 700 : 400,
+                    color: isActive ? '#2563EB' : '#6B7280',
+                    background: 'none', border: 'none',
+                    borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 콘텐츠 */}
-      {activeTab === 'about' ? (
+      {currentTab === 'about' ? (
         <main style={{ flex: 1 }}>
           <AppIntroView />
         </main>
@@ -136,7 +182,7 @@ export default function MainLayout({ user, onLogout }: Props) {
             </div>
           ) : (
             <>
-              {activeTab === 'schedule' && (
+              {currentTab === 'schedule' && (
                 <ScheduleView
                   events={store.events}
                   onAdd={store.addEvent}
@@ -145,7 +191,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onToggle={store.toggleEvent}
                 />
               )}
-              {activeTab === 'todo' && (
+              {currentTab === 'todo' && (
                 <TodoView
                   todos={store.todos}
                   onAdd={store.addTodo}
@@ -154,7 +200,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onDelete={store.deleteTodo}
                 />
               )}
-              {activeTab === 'budget' && (
+              {currentTab === 'budget' && (
                 <BudgetView
                   subProjects={store.subProjects}
                   onAddSubProject={store.addSubProject}
@@ -165,8 +211,8 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onUpdateSpent={store.updateSpent}
                 />
               )}
-              {activeTab === 'photo' && <PhotoTransferView userId={user.id} userEmail={user.email ?? ''} />}
-              {activeTab === 'contacts' && (
+              {currentTab === 'photo' && <PhotoTransferView userId={user.id} userEmail={user.email ?? ''} />}
+              {currentTab === 'contacts' && (
                 <ExternalContactView
                   contacts={store.externalContacts}
                   groups={store.contactGroups}
@@ -176,6 +222,12 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onAddGroup={store.addContactGroup}
                   onUpdateGroup={store.updateContactGroup}
                   onDeleteGroup={store.deleteContactGroup}
+                />
+              )}
+              {(currentTab === 'history' || currentTab === 'promotion' || currentTab === 'org') && (
+                <ComingSoon
+                  label={MORE_TABS.find(t => t.key === currentTab)?.label ?? ''}
+                  desc="앱에서 확인하세요"
                 />
               )}
             </>
