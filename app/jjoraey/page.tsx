@@ -20,22 +20,51 @@ async function getAdminData() {
 
   const adminSupabase = createClient(supabaseUrl, serviceKey);
 
-  // ── 1. auth.admin.listUsers (서비스 롤 키 필요) ──
-  const { data: listData, error: listError } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
-  const authUsers = listData?.users ?? [];
+  // KST(UTC+9) 기준 오늘 자정 → UTC로 변환
+  const now = new Date();
+  const kstOffset = 9 * 60 * 60 * 1000;
+  const kstNow = new Date(now.getTime() + kstOffset);
+  const kstMidnight = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
+  const todayStart = new Date(kstMidnight.getTime() - kstOffset);
 
-  // ── 2. profiles 테이블 ──
-  const { data: profiles, error: profilesError } = await adminSupabase.from('profiles').select('*');
+  // ── 모든 독립 쿼리를 병렬 실행 ──
+  const [
+    { data: listData, error: listError },
+    { data: profiles, error: profilesError },
+    { count: todayPhotoCount },
+    { data: noticeRows },
+    { data: suggestionRows },
+    { data: versionRows },
+    { data: photoRows },
+  ] = await Promise.all([
+    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
+    adminSupabase.from('profiles').select('*'),
+    adminSupabase.from('photo_transfers').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
+    adminSupabase.from('notices').select('id, title, content, category, is_published, created_at').order('created_at', { ascending: false }),
+    adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),
+    adminSupabase.from('app_versions').select('platform, min_version, force_update, message, store_url, updated_at'),
+    adminSupabase.from('photo_transfers').select('*').order('created_at', { ascending: false }).limit(200),
+  ]);
+
+  const authUsers = listData?.users ?? [];
+  const notices = noticeRows ?? [];
+  const suggestions = suggestionRows ?? [];
 
   const profileMap: Record<string, any> = {};
   (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
 
-  // ── 3. user_snapshots로 보완 (listUsers 실패 시 fallback) ──
+  const versionMap: Record<string, any> = {};
+  (versionRows ?? []).forEach((r: any) => { versionMap[r.platform] = r; });
+  const appVersions = {
+    ios: versionMap['ios'] ?? { platform: 'ios', min_version: '1.0.0', force_update: false, message: '' },
+    android: versionMap['android'] ?? { platform: 'android', min_version: '1.0.0', force_update: false, message: '' },
+  };
+
+  // ── user_snapshots fallback (listUsers 실패 시) ──
   let users = authUsers;
   let usingFallback = false;
 
   if (users.length === 0) {
-    // listUsers 실패 → profiles + user_snapshots 기반으로 재구성
     usingFallback = true;
     const { data: snapshots } = await adminSupabase
       .from('user_snapshots')
@@ -45,7 +74,6 @@ async function getAdminData() {
     const seen = new Set<string>();
     const syntheticUsers: any[] = [];
 
-    // profiles 기반
     (profiles ?? []).forEach((p: any) => {
       seen.add(p.id);
       syntheticUsers.push({
@@ -56,7 +84,6 @@ async function getAdminData() {
       });
     });
 
-    // snapshots 기반 (profiles에 없는 유저)
     (snapshots ?? []).forEach((s: any) => {
       if (!seen.has(s.user_id)) {
         seen.add(s.user_id);
@@ -74,13 +101,6 @@ async function getAdminData() {
 
   const userMap: Record<string, any> = {};
   users.forEach(u => { userMap[u.id] = u; });
-
-  // KST(UTC+9) 기준 오늘 자정 → UTC로 변환
-  const now = new Date();
-  const kstOffset = 9 * 60 * 60 * 1000;
-  const kstNow = new Date(now.getTime() + kstOffset);
-  const kstMidnight = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
-  const todayStart = new Date(kstMidnight.getTime() - kstOffset);
 
   const personal = users
     .filter(u => (profileMap[u.id]?.account_type === 'personal') || (!profileMap[u.id] && !usingFallback))
@@ -103,46 +123,7 @@ async function getAdminData() {
       createdAt: u.created_at,
     }));
 
-  // ── 4. 오늘 사진전송 건수 ──
-  const { count: todayPhotoCount } = await adminSupabase
-    .from('photo_transfers')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', todayStart.toISOString());
-
-  // ── 5. 공지사항 ──
-  const { data: noticeRows } = await adminSupabase
-    .from('notices')
-    .select('id, title, content, category, is_published, created_at')
-    .order('created_at', { ascending: false });
-  const notices = noticeRows ?? [];
-
-  // ── 5b. 건의사항 ──
-  const { data: suggestionRows } = await adminSupabase
-    .from('suggestions')
-    .select('id, user_email, user_nickname, content, is_read, created_at')
-    .order('created_at', { ascending: false })
-    .limit(200);
-  const suggestions = suggestionRows ?? [];
-
-  // ── 6. 앱 버전 설정 ──
-  const { data: versionRows } = await adminSupabase
-    .from('app_versions')
-    .select('platform, min_version, force_update, message, store_url, updated_at');
-
-  const versionMap: Record<string, any> = {};
-  (versionRows ?? []).forEach((r: any) => { versionMap[r.platform] = r; });
-  const appVersions = {
-    ios: versionMap['ios'] ?? { platform: 'ios', min_version: '1.0.0', force_update: false, message: '' },
-    android: versionMap['android'] ?? { platform: 'android', min_version: '1.0.0', force_update: false, message: '' },
-  };
-
-  // ── 6. 사진 목록 ──
-  const { data: photoRows } = await adminSupabase
-    .from('photo_transfers')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(200);
-
+  // ── 사진 signed URL 생성 ──
   const validPhotos = (photoRows ?? []).filter((p: any) => new Date(p.expires_at) > new Date());
   let photos: any[] = [];
 
