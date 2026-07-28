@@ -473,7 +473,7 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
                               <td style={td}>
                                 <button
                                   onClick={() => setSelectedUser(u)}
-                                  style={{ background: 'none', border: 'none', color: '#2563EB', cursor: 'pointer', fontSize: 13, textDecoration: 'underline', padding: 0 }}
+                                  style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 15, textDecoration: 'none', padding: 0 }}
                                 >{u.email}</button>
                               </td>
                               <td style={td}>{u.nickname}</td>
