@@ -14,13 +14,30 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const [{ data: snapshots }, { data: profiles }] = await Promise.all([
+  const [{ data: snapshots }, { data: profiles }, { data: authData }] = await Promise.all([
     adminSupabase.from('user_snapshots').select('user_id, data, updated_at'),
     adminSupabase.from('profiles').select('id, email, nickname'),
+    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
+  // auth.users 이메일 맵
+  const authEmailMap: Record<string, string> = {};
+  (authData?.users ?? []).forEach((u: any) => { if (u.email) authEmailMap[u.id] = u.email; });
+
+  // profiles 맵 (email은 auth 우선)
   const profileMap: Record<string, { email: string; nickname: string }> = {};
-  (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+  (profiles ?? []).forEach((p: any) => {
+    profileMap[p.id] = {
+      email: authEmailMap[p.id] ?? p.email ?? '-',
+      nickname: p.nickname ?? '-',
+    };
+  });
+  // profiles에 없는 유저도 auth email로 보완
+  (authData?.users ?? []).forEach((u: any) => {
+    if (!profileMap[u.id]) {
+      profileMap[u.id] = { email: u.email ?? '-', nickname: '-' };
+    }
+  });
 
   const rows = (snapshots ?? []).map((s: any) => {
     const d = s.data ?? {};
