@@ -261,6 +261,128 @@ function Empty() {
   return <div style={{ fontSize: 13, color: '#C7C7CC', textAlign: 'center', padding: '12px 0' }}>데이터 없음</div>;
 }
 
+// ── 전체 이력 현황 섹션 ────────────────────────────────────────────────────────
+interface HistoryRow {
+  userId: string; email: string; nickname: string;
+  currentDept: string; currentGrade: string; startDate: string | null;
+  promotionCount: number; assignmentCount: number; awardCount: number;
+  assignments: { department: string; date: string }[];
+}
+
+function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<HistoryRow[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin-all-histories');
+      const body = await res.json();
+      setRows(body.rows ?? []);
+      setLoaded(true);
+    } catch { /* silent */ }
+    setLoading(false);
+  };
+
+  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+
+  const th: React.CSSProperties = { padding: '9px 14px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #F3F4F6', whiteSpace: 'nowrap', background: '#F9FAFB' };
+  const td: React.CSSProperties = { padding: '10px 14px', fontSize: 13, color: '#374151', borderBottom: '1px solid #F9FAFB', whiteSpace: 'nowrap' };
+
+  return (
+    <div style={{ ...card, marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: loaded ? 20 : 0 }}>
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+            전체 이력 현황
+            {loaded && <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400, marginLeft: 8 }}>{rows.length}명</span>}
+          </h2>
+          {!loaded && <p style={{ fontSize: 13, color: '#9CA3AF', margin: '4px 0 0' }}>회원별 현재 부서·직급·이력 요약</p>}
+        </div>
+        {!loaded ? (
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
+          >{loading ? '불러오는 중...' : '불러오기'}</button>
+        ) : (
+          <button onClick={load} style={{ padding: '6px 14px', fontSize: 12, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>새로고침</button>
+        )}
+      </div>
+
+      {loaded && (
+        rows.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF', fontSize: 13 }}>이력 데이터가 없습니다</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>닉네임</th>
+                  <th style={th}>이메일</th>
+                  <th style={th}>현재 부서</th>
+                  <th style={th}>현재 직급</th>
+                  <th style={th}>입직일</th>
+                  <th style={th}>승진</th>
+                  <th style={th}>발령</th>
+                  <th style={th}>포상</th>
+                  <th style={th}>발령 내역</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <>
+                    <tr key={r.userId} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                      <td style={{ ...td, color: '#9CA3AF' }}>{i + 1}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>{r.nickname !== '-' ? r.nickname : '-'}</td>
+                      <td style={{ ...td, color: '#6B7280' }}>{r.email}</td>
+                      <td style={td}>
+                        <span style={{ background: r.currentDept !== '-' ? '#EFF6FF' : '#F9FAFB', color: r.currentDept !== '-' ? '#2563EB' : '#9CA3AF', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>
+                          {r.currentDept}
+                        </span>
+                      </td>
+                      <td style={td}>{r.currentGrade !== '-' ? <span style={{ background: '#F0FDF4', color: '#16A34A', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>{r.currentGrade}</span> : '-'}</td>
+                      <td style={{ ...td, color: '#9CA3AF' }}>{fmtDate(r.startDate)}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>{r.promotionCount > 0 ? <span style={{ fontWeight: 600, color: '#7C3AED' }}>{r.promotionCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>{r.assignmentCount > 0 ? <span style={{ fontWeight: 600, color: '#0891B2' }}>{r.assignmentCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>{r.awardCount > 0 ? <span style={{ fontWeight: 600, color: '#D97706' }}>{r.awardCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
+                      <td style={td}>
+                        {r.assignments.length > 0 && (
+                          <button
+                            onClick={() => setExpandedId(expandedId === r.userId ? null : r.userId)}
+                            style={{ fontSize: 12, color: '#6B7280', background: '#F3F4F6', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}
+                          >{expandedId === r.userId ? '접기 ▲' : '보기 ▼'}</button>
+                        )}
+                      </td>
+                    </tr>
+                    {expandedId === r.userId && r.assignments.length > 0 && (
+                      <tr key={`${r.userId}-expand`} style={{ background: '#F0F9FF' }}>
+                        <td colSpan={10} style={{ padding: '10px 20px 14px 60px' }}>
+                          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 600 }}>발령 이력 (최신순)</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {r.assignments.map((a, ai) => (
+                              <span key={ai} style={{ background: '#fff', border: '1px solid #BFDBFE', borderRadius: 8, padding: '4px 12px', fontSize: 12, color: '#1D4ED8' }}>
+                                {a.department} <span style={{ color: '#93C5FD', marginLeft: 4 }}>{fmtDate(a.date)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard({ data, sessionToken }: { data: AdminData; sessionToken: string }) {
   const router = useRouter();
   const authHeader = { 'Content-Type': 'application/json', 'X-Admin-Token': sessionToken };
@@ -876,6 +998,9 @@ export default function AdminDashboard({ data, sessionToken }: { data: AdminData
             </div>
           )}
         </div>
+
+        {/* 전체 이력 현황 */}
+        <AllHistoriesSection card={card} />
 
         {/* 앱 버전 관리 */}
         <div style={card}>
