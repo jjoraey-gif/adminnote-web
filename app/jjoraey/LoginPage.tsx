@@ -55,6 +55,7 @@ export default function AdminLoginPage() {
             value={id}
             onChange={e => setId(e.target.value)}
             required
+            autoComplete="off"
             style={{
               padding: '14px 16px', fontSize: 15, borderRadius: 12,
               border: '1px solid #E5E7EB', outline: 'none', width: '100%', boxSizing: 'border-box',
@@ -66,6 +67,7 @@ export default function AdminLoginPage() {
             value={pw}
             onChange={e => setPw(e.target.value)}
             required
+            autoComplete="new-password"
             style={{
               padding: '14px 16px', fontSize: 15, borderRadius: 12,
               border: '1px solid #E5E7EB', outline: 'none', width: '100%', boxSizing: 'border-box',
