@@ -41,8 +41,10 @@ export async function POST(request: Request) {
     if (typeof email !== 'string' || !EMAIL_RE.test(email.trim()) || email.length > 254) {
       return NextResponse.json({ error: '올바른 이메일을 입력해주세요.' }, { status: 400 });
     }
-    if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
-      return NextResponse.json({ error: '비밀번호는 8자 이상이어야 합니다.' }, { status: 400 });
+    // 앱 클라이언트 검증(6자 이상)과 동일하게 맞춤 — 서버만 8자로 올리면
+    // 6~7자 비밀번호 사용자가 가입 단계에서 막힌다.
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
+      return NextResponse.json({ error: '비밀번호는 6자 이상이어야 합니다.' }, { status: 400 });
     }
     if (!ACCOUNT_TYPES.includes(accountType)) {
       return NextResponse.json({ error: '잘못된 계정 유형입니다.' }, { status: 400 });
@@ -91,10 +93,12 @@ export async function POST(request: Request) {
     }
 
     // profiles 테이블에 저장
+    // ※ profiles 테이블에 email 컬럼이 없어(supabase-profiles.sql 기준) 넣으면 insert가
+    //   실패하고 계정이 롤백돼 가입이 항상 막혔었다. 이메일은 auth.users에 이미 저장되므로
+    //   여기서는 넣지 않는다 (관리자 페이지는 auth.users에서 이메일을 조회해 사용 중).
     if (data.user) {
       const { error: profileError } = await adminSupabase.from('profiles').insert({
         id: data.user.id,
-        email: cleanEmail,
         account_type: accountType,
         nickname: cleanNick,
         org_name: accountType === 'shared' ? orgName.trim() : null,
