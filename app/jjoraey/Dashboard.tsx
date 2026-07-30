@@ -918,7 +918,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
         )}
 
         {/* 공지사항 관리 */}
-        <div style={card}>
+        <div style={{ ...card, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>공지사항 관리</h2>
             <button
