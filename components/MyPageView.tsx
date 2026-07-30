@@ -30,10 +30,17 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
   const [withdrawing, setWithdrawing] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  const [nickOpen, setNickOpen] = useState(false);
+  const [nickValue, setNickValue] = useState('');
+  const [savingNick, setSavingNick] = useState(false);
+  // 저장 직후 서버 반영을 기다리지 않고 즉시 화면에 반영하기 위한 로컬 오버라이드
+  const [localNickname, setLocalNickname] = useState<string | null>(null);
+
   const isAdmin = user?.email === ADMIN_EMAIL;
   const provider = user?.app_metadata?.provider ?? 'email';
   const isEmailUser = provider === 'email';
   const displayName =
+    localNickname ??
     user?.user_metadata?.full_name ??
     user?.user_metadata?.name ??
     user?.user_metadata?.nickname ??
@@ -54,6 +61,39 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
     supabase.from('profiles').select('grade').eq('id', user.id).single()
       .then(({ data }) => { if (data?.grade) setGrade(data.grade); });
   }, [user?.id]);
+
+  // 닉네임 입력값 초기화 (현재 표시 이름 기준)
+  useEffect(() => {
+    setNickValue(displayName);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleChangeNickname = async () => {
+    const trimmed = nickValue.trim();
+    if (trimmed.length < 2 || trimmed.length > 20) {
+      alert('닉네임은 2~20자여야 합니다.');
+      return;
+    }
+    setSavingNick(true);
+    try {
+      const { error: authErr } = await supabase.auth.updateUser({ data: { nickname: trimmed } });
+      if (authErr) throw new Error(authErr.message);
+
+      // profiles 테이블도 함께 갱신 (관리자 페이지 등에서 사용)
+      if (user?.id) {
+        const { error: profileErr } = await supabase.from('profiles').update({ nickname: trimmed }).eq('id', user.id);
+        if (profileErr) console.error('[MyPage] profiles.nickname 갱신 실패:', profileErr);
+      }
+
+      setLocalNickname(trimmed);
+      setNickOpen(false);
+      alert('닉네임이 변경되었습니다.');
+    } catch (e: any) {
+      alert(e?.message ?? '닉네임 변경에 실패했습니다.');
+    } finally {
+      setSavingNick(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!currentPw.trim()) { alert('현재 비밀번호를 입력해주세요.'); return; }
@@ -172,6 +212,42 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
 
             {/* 계정 관리 */}
             <Section label="계정 관리">
+              <Row
+                label="닉네임 변경하기"
+                icon="✏️"
+                onClick={() => setNickOpen(v => !v)}
+                arrow
+              />
+              {nickOpen && (
+                <div style={{ padding: '0 16px 16px' }}>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>닉네임 (2~20자)</div>
+                    <input
+                      type="text"
+                      value={nickValue}
+                      onChange={e => setNickValue(e.target.value)}
+                      maxLength={20}
+                      style={{
+                        width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB',
+                        borderRadius: 8, fontSize: 14, color: '#1C1C1E', background: '#FAFAFA',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleChangeNickname}
+                    disabled={savingNick}
+                    style={{
+                      width: '100%', padding: '11px 0', background: '#2563EB', color: '#fff',
+                      border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      cursor: savingNick ? 'default' : 'pointer', opacity: savingNick ? 0.6 : 1,
+                    }}
+                  >
+                    {savingNick ? '저장 중...' : '저장하기'}
+                  </button>
+                </div>
+              )}
+              <Divider />
               {isEmailUser && (
                 <>
                   <Row
