@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import AdminLoginPage from './LoginPage';
 import AdminDashboard from './Dashboard';
+import { isAdminAuthed } from '@/lib/admin-auth';
 
 // 캐시 완전 비활성화 — 항상 최신 데이터
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const SESSION_COOKIE = 'an_admin_auth';
 const BUCKET = 'photo-transfers';
 
 async function getAdminData() {
@@ -42,7 +41,7 @@ async function getAdminData() {
     adminSupabase.from('photo_transfers').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
     adminSupabase.from('notices').select('id, title, content, category, is_published, created_at').order('created_at', { ascending: false }),
     adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),
-    adminSupabase.from('app_versions').select('platform, min_version, force_update, message, store_url, updated_at'),
+    adminSupabase.from('app_versions').select('platform, version, force_update, message, store_url, updated_at'),
     adminSupabase.from('photo_transfers').select('*').order('created_at', { ascending: false }).limit(200),
   ]);
 
@@ -53,8 +52,11 @@ async function getAdminData() {
   const profileMap: Record<string, any> = {};
   (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
 
+  // DB 컬럼명은 `version`, UI에서는 `min_version`으로 다룸
   const versionMap: Record<string, any> = {};
-  (versionRows ?? []).forEach((r: any) => { versionMap[r.platform] = r; });
+  (versionRows ?? []).forEach((r: any) => {
+    versionMap[r.platform] = { ...r, min_version: r.version };
+  });
   const appVersions = {
     ios: versionMap['ios'] ?? { platform: 'ios', min_version: '1.0.0', force_update: false, message: '' },
     android: versionMap['android'] ?? { platform: 'android', min_version: '1.0.0', force_update: false, message: '' },
@@ -191,14 +193,12 @@ async function getAdminData() {
 }
 
 export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const isAuthed = token === (process.env.ADMIN_SESSION_SECRET ?? 'an_admin_ok');
-
-  if (!isAuthed) {
+  if (!await isAdminAuthed()) {
     return <AdminLoginPage />;
   }
 
   const data = await getAdminData();
-  return <AdminDashboard data={data} sessionToken={token ?? ''} />;
+  // sessionToken은 절대 클라이언트로 전달하지 않는다 (RSC 페이로드에 평문 노출됨).
+  // 모든 admin API는 httpOnly 쿠키(path: '/')로 인증한다.
+  return <AdminDashboard data={data} />;
 }

@@ -383,9 +383,10 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
   );
 }
 
-export default function AdminDashboard({ data, sessionToken }: { data: AdminData; sessionToken: string }) {
+export default function AdminDashboard({ data }: { data: AdminData }) {
   const router = useRouter();
-  const authHeader = { 'Content-Type': 'application/json', 'X-Admin-Token': sessionToken };
+  // 인증은 httpOnly 쿠키(path: '/')로 자동 전송됨 — 토큰을 클라이언트에 두지 않는다
+  const authHeader = { 'Content-Type': 'application/json' };
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [selectedUser, setSelectedUser] = useState<PersonalUser | null>(null);
   const [personalPage, setPersonalPage] = useState(1);

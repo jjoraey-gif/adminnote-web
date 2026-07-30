@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { safeEqual } from '@/lib/admin-auth';
 
 // 매일 자정 실행 — 만료된 사진 정리
 export async function GET(request: Request) {
-  // Vercel Cron 보안 헤더 검증
+  // CRON_SECRET 미설정 시 무조건 거부 (설정 누락으로 인한 인증 우회 방지)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[cleanup-photos] CRON_SECRET 환경변수 미설정');
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+  }
+
+  // Vercel Cron 보안 헤더 검증 (상수 시간 비교)
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!safeEqual(authHeader, `Bearer ${cronSecret}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

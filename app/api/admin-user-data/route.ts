@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { isAdminAuthed } from '@/lib/admin-auth';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: Request) {
-  // 관리자 인증 확인
-  const cookieStore = await cookies();
-  const token = cookieStore.get('an_admin_auth')?.value;
-  const secret = process.env.ADMIN_SESSION_SECRET ?? 'an_admin_ok';
-  if (token !== secret) {
+  if (!await isAdminAuthed()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
-  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
+  if (!userId || !UUID_RE.test(userId)) {
+    return NextResponse.json({ error: 'valid userId required' }, { status: 400 });
+  }
 
   const adminSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +26,10 @@ export async function GET(request: Request) {
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[admin-user-data]', error);
+    return NextResponse.json({ error: '조회 실패' }, { status: 500 });
+  }
   if (!data) return NextResponse.json({ data: null });
 
   return NextResponse.json({ data: data.data, updatedAt: data.updated_at });

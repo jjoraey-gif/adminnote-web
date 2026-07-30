@@ -14,3 +14,8 @@ out/
 # misc
 .DS_Store
 *.pem
+
+# 환경변수 전체 차단 (보안)
+.env
+.env.*
+!.env.example

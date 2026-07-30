@@ -149,13 +149,18 @@ function AuthPage() {
 }
 
 // ─── 로그인 폼 ────────────────────────────────────────────────────────────────
+// ※ 보안: 비밀번호는 저장하지 않는다.
+//   로그인 상태 유지는 Supabase의 세션(refresh token) 지속 기능이 담당하며,
+//   RootPage의 getSession()이 새로고침 시 자동으로 세션을 복원한다.
+//   여기 저장되는 값은 입력 편의를 위한 비민감 정보(이메일/기관명/아이디)뿐이다.
 const AN_KEYS = {
   auto: 'an_auto_login',
   email: 'an_saved_email',
   org: 'an_saved_org',
   uid: 'an_saved_uid',
-  pw: 'an_saved_pw',
 };
+// 이전 버전에서 평문 비밀번호를 저장했던 키 — 마이그레이션 시 반드시 삭제
+const LEGACY_PW_KEY = 'an_saved_pw';
 
 function LoginForm({ accountType }: { accountType: AccountType }) {
   const [email, setEmail] = useState('');
@@ -165,34 +170,21 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [autoLogin, setAutoLogin] = useState(false);
-  const didAutoSubmit = useRef(false);
 
   const supabase = createClient();
 
-  // 저장된 자격증명 복원 + 자동로그인 실행
+  // 저장된 아이디 정보 복원 (비밀번호는 복원하지 않음)
   useEffect(() => {
-    const isAuto = localStorage.getItem(AN_KEYS.auto) === 'true';
-    const savedEmail = localStorage.getItem(AN_KEYS.email) ?? '';
-    const savedOrg = localStorage.getItem(AN_KEYS.org) ?? '';
-    const savedUid = localStorage.getItem(AN_KEYS.uid) ?? '';
-    const savedPw = localStorage.getItem(AN_KEYS.pw) ?? '';
+    // 과거에 저장된 평문 비밀번호 즉시 제거
+    localStorage.removeItem(LEGACY_PW_KEY);
 
-    setAutoLogin(isAuto);
-    setEmail(savedEmail);
-    setOrgName(savedOrg);
-    setUserId(savedUid);
-    setPassword(savedPw);
+    setAutoLogin(localStorage.getItem(AN_KEYS.auto) === 'true');
+    setEmail(localStorage.getItem(AN_KEYS.email) ?? '');
+    setOrgName(localStorage.getItem(AN_KEYS.org) ?? '');
+    setUserId(localStorage.getItem(AN_KEYS.uid) ?? '');
 
     const skipAuto = sessionStorage.getItem('an_skip_auto') === 'true';
     if (skipAuto) sessionStorage.removeItem('an_skip_auto');
-
-    if (isAuto && !skipAuto && !didAutoSubmit.current && savedPw) {
-      const canAuto = accountType === 'personal' ? !!savedEmail : (!!savedOrg && !!savedUid);
-      if (canAuto) {
-        didAutoSubmit.current = true;
-        setTimeout(() => doLogin(savedEmail, savedOrg, savedUid, savedPw, true), 300);
-      }
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -227,16 +219,16 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
       }
       setLoading(false);
     } else {
+      // 비밀번호는 절대 저장하지 않는다. 로그인 유지는 Supabase 세션이 담당.
       if (saveFlag) {
         localStorage.setItem(AN_KEYS.auto, 'true');
         localStorage.setItem(AN_KEYS.email, loginEmail);
         localStorage.setItem(AN_KEYS.org, loginOrg);
         localStorage.setItem(AN_KEYS.uid, loginUid);
-        localStorage.setItem(AN_KEYS.pw, loginPw);
       } else {
         localStorage.removeItem(AN_KEYS.auto);
-        localStorage.removeItem(AN_KEYS.pw);
       }
+      localStorage.removeItem(LEGACY_PW_KEY);
     }
   };
 

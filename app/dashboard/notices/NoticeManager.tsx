@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase';
 
 interface Notice {
   id: string;
@@ -22,31 +21,43 @@ export default function NoticeManager({ initialNotices }: { initialNotices: Noti
   const [form, setForm] = useState({ category: '이용안내' as Notice['category'], title: '', content: '' });
   const [saving, setSaving] = useState(false);
 
-  const supabase = createClient();
-
+  // 공지 쓰기는 반드시 관리자 API 경유 (anon 키 직접 접근 금지 — RLS로도 차단됨)
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.content.trim()) return;
     setSaving(true);
-
-    const { data, error } = await supabase
-      .from('notices')
-      .insert({ category: form.category, title: form.title, content: form.content })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setNotices([data, ...notices]);
+    try {
+      const res = await fetch('/api/admin-notice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: form.category,
+          title: form.title,
+          content: form.content,
+          is_published: true,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) { alert(body.error ?? '등록 실패'); return; }
+      if (body.data) setNotices([body.data, ...notices]);
       setForm({ category: '이용안내', title: '', content: '' });
       setShowForm(false);
+    } catch {
+      alert('등록 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('삭제하시겠습니까?')) return;
-    const { error } = await supabase.from('notices').delete().eq('id', id);
-    if (!error) setNotices(notices.filter((n) => n.id !== id));
+    const res = await fetch('/api/admin-notice', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (res.ok) setNotices(notices.filter((n) => n.id !== id));
+    else alert('삭제 실패');
   };
 
   const formatDate = (iso: string) =>

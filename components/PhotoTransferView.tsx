@@ -80,10 +80,19 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const [grade, setGrade] = useState<string>('normal');
 
   useEffect(() => {
-    fetch(`/api/user-grade?userId=${userId}`)
-      .then(r => r.json())
-      .then(({ grade: g }) => { if (g) setGrade(g); })
-      .catch(() => {});
+    // 본인 등급 조회 — 세션 토큰으로 인증
+    (async () => {
+      try {
+        const { data: s } = await createClient().auth.getSession();
+        const token = s.session?.access_token;
+        if (!token) return;
+        const res = await fetch('/api/user-grade', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const { grade: g } = await res.json();
+        if (g) setGrade(g);
+      } catch { /* 기본값 normal 유지 */ }
+    })();
   }, [userId]);
 
   const canUpload = isAdmin || grade === 'vip' || grade === 'vvip';

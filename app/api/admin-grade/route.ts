@@ -1,19 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-const SESSION_COOKIE = 'an_admin_auth';
-const SECRET = process.env.ADMIN_SESSION_SECRET ?? 'an_admin_ok';
-
-async function checkAuth(request: NextRequest): Promise<boolean> {
-  const headerToken = request.headers.get('X-Admin-Token');
-  if (headerToken === SECRET) return true;
-  const cookieStore = await cookies();
-  return cookieStore.get(SESSION_COOKIE)?.value === SECRET;
-}
+import { isAdminAuthed } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
-  if (!await checkAuth(request))
+  if (!await isAdminAuthed())
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { userId, grade } = await request.json();
