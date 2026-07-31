@@ -57,6 +57,9 @@ function ProviderBadge({ provider }: { provider: string }) {
 
 const PAGE_SIZE = 20;
 
+// 관리자 페이지에서 한 번에 불러올 전송 파일 최대 건수 (서버에서도 60으로 상한 적용)
+const PHOTO_FETCH_LIMIT = 60;
+
 const GRADE_OPTIONS = [
   { value: 'normal', label: '일반', bg: '#F3F4F6', color: '#6B7280' },
   { value: 'vip',    label: 'VIP',  bg: '#FEF3C7', color: '#D97706' },
@@ -433,7 +436,29 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   const [selectedUser, setSelectedUser] = useState<PersonalUser | null>(null);
   const [personalPage, setPersonalPage] = useState(1);
   const [photoPage, setPhotoPage] = useState(1);
-  const PHOTO_PAGE_SIZE = 35; // 7열 × 5행
+  const PHOTO_PAGE_SIZE = 20; // 이미지 전송량을 줄이기 위해 한 페이지 표시 수를 축소
+
+  // ── 전송된 파일 — 요청할 때만 불러온다 (Egress 절감) ──
+  // 예전에는 페이지를 열 때마다 서버가 200건의 signed URL을 만들고 브라우저가
+  // 원본 이미지를 즉시 전부 내려받아 대역폭을 크게 소모했다.
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [photosLoading, setPhotosLoading] = useState(false);
+
+  const loadPhotos = async () => {
+    setPhotosLoading(true);
+    try {
+      const res = await fetch(`/api/admin-photos?limit=${PHOTO_FETCH_LIMIT}`);
+      const body = await res.json();
+      setPhotos(body.photos ?? []);
+      setPhotosLoaded(true);
+      setPhotoPage(1);
+    } catch {
+      alert('파일 목록을 불러오지 못했습니다.');
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
   const [grades, setGrades] = useState<Record<string, string>>(
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
   );
@@ -737,10 +762,10 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
           </div>
         </div>
 
-        {/* 사진 갤러리 */}
+        {/* 사진 갤러리 — 불러오기를 누를 때만 조회 (Egress 절감) */}
         {(() => {
-          const totalPhotoPages = Math.ceil(data.photos.length / PHOTO_PAGE_SIZE);
-          const pagedPhotos = data.photos.slice((photoPage - 1) * PHOTO_PAGE_SIZE, photoPage * PHOTO_PAGE_SIZE);
+          const totalPhotoPages = Math.ceil(photos.length / PHOTO_PAGE_SIZE);
+          const pagedPhotos = photos.slice((photoPage - 1) * PHOTO_PAGE_SIZE, photoPage * PHOTO_PAGE_SIZE);
           const photoPageNums: number[] = [];
           if (totalPhotoPages <= 7) {
             for (let i = 1; i <= totalPhotoPages; i++) photoPageNums.push(i);
@@ -753,10 +778,28 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
           }
           return (
             <div style={{ ...card, marginBottom: 24 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-                전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
-              </h2>
-              {data.photos.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: photosLoaded ? 16 : 0 }}>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                    전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
+                  </h2>
+                  {!photosLoaded && (
+                    <p style={{ fontSize: 13, color: '#9CA3AF', margin: '4px 0 0' }}>
+                      이미지 전송량을 아끼기 위해 필요할 때만 불러옵니다 (최근 {PHOTO_FETCH_LIMIT}건)
+                    </p>
+                  )}
+                </div>
+                {!photosLoaded ? (
+                  <button
+                    onClick={loadPhotos}
+                    disabled={photosLoading || data.photoCount === 0}
+                    style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: photosLoading || data.photoCount === 0 ? 'default' : 'pointer', opacity: photosLoading || data.photoCount === 0 ? 0.6 : 1 }}
+                  >{photosLoading ? '불러오는 중...' : '불러오기'}</button>
+                ) : (
+                  <button onClick={loadPhotos} style={{ padding: '6px 14px', fontSize: 12, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>새로고침</button>
+                )}
+              </div>
+              {!photosLoaded ? null : photos.length === 0 ? (
                 <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>파일 없음</p>
               ) : (
                 <>
@@ -780,6 +823,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                         >
                           {p.thumbUrl ? (
                             <img src={p.thumbUrl} alt={p.fileName}
+                              loading="lazy" decoding="async"
                               style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', filter: isDeleted ? 'grayscale(60%)' : 'none' }} />
                           ) : (
                             <div style={{ width: '100%', aspectRatio: '1', background: isDeleted ? '#FEE2E2' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

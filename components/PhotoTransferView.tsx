@@ -21,9 +21,48 @@ function fileEmoji(fileName: string): string {
   return '📎';
 }
 
+// ─── 썸네일 생성 ──────────────────────────────────────────────────────────────
+// 무료 플랜에서는 Storage 이미지 변환(transform)이 동작하지 않아 원본이 그대로 전송된다.
+// 그래서 업로드 시점에 브라우저 canvas로 축소 이미지를 직접 만들어 함께 저장하고,
+// 목록에서는 그 파일만 읽어 전송량을 줄인다. (외부 라이브러리 없이 처리)
+const THUMB_MAX = 320;
+
+/** canvas로 이미지를 축소해 JPEG Blob 반환. 실패하면 null (썸네일 없이 진행). */
+async function makeThumbnail(file: File): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+  // createImageBitmap이 HEIC 등 일부 포맷을 못 읽을 수 있으므로 실패는 조용히 넘긴다.
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return null;
+  }
+  try {
+    const scale = Math.min(1, THUMB_MAX / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+
+    return await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(b => resolve(b), 'image/jpeg', 0.7)
+    );
+  } catch {
+    return null;
+  } finally {
+    bitmap.close?.();
+  }
+}
+
 interface PhotoMeta {
   id: string;
   file_path: string;
+  thumb_path?: string | null;   // 목록 표시용 축소 이미지 (없으면 file_path 폴백)
   file_name: string;
   file_size: number;
   expires_at: string;
@@ -147,29 +186,25 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
-    // 풀사이즈 URL (다운로드용) — 배치로 한번에
+    // 원본 URL(다운로드/미리보기용)과 썸네일 URL(그리드용)을 한 번의 배치로 발급한다.
+    // ※ 예전에는 그리드용으로 transform 옵션을 붙였지만 무료 플랜에서는 변환이 동작하지 않아
+    //   원본이 그대로 전송됐다. 이제는 업로드 때 저장해 둔 thumb_path 를 사용하고,
+    //   썸네일이 없는 항목(문서 / 구버전 업로드)만 원본으로 폴백한다.
+    const thumbPaths = valid
+      .map(p => p.thumb_path)
+      .filter((p): p is string => !!p);
+
     const { data: urls } = await supabase.storage
       .from(BUCKET)
-      .createSignedUrls(valid.map(p => p.file_path), 7200);
+      .createSignedUrls([...valid.map(p => p.file_path), ...thumbPaths], 7200);
 
     const urlMap: Record<string, string> = {};
     (urls ?? []).forEach(u => { if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl; });
 
-    // 썸네일 URL (그리드 표시용) — 400px로 리사이즈해서 로딩 속도 향상
-    const thumbResults = await Promise.all(
-      valid.map(p =>
-        supabase.storage.from(BUCKET).createSignedUrl(p.file_path, 7200, {
-          transform: { width: 400, height: 400, resize: 'cover', quality: 70 },
-        }).then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
-      )
-    );
-    const thumbMap: Record<string, string> = {};
-    thumbResults.forEach(t => { if (t.url) thumbMap[t.path] = t.url; });
-
     setPhotos(valid.map(p => ({
       ...p,
       signedUrl: urlMap[p.file_path],
-      thumbUrl: thumbMap[p.file_path] || urlMap[p.file_path],
+      thumbUrl: (p.thumb_path ? urlMap[p.thumb_path] : '') || urlMap[p.file_path],
     })));
     setLoading(false);
   }, [userId]);
@@ -204,8 +239,10 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
       const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
       const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
       const randPart = Math.random().toString(36).slice(2, 6);
-      const filePath = `${userId}/${datePart}_${timePart}_${randPart}.${ext}`;
-      const uploadMime = IMAGE_EXTS.includes(ext) ? file.type : 'application/octet-stream';
+      const base = `${datePart}_${timePart}_${randPart}`;
+      const filePath = `${userId}/${base}.${ext}`;
+      const isImg = IMAGE_EXTS.includes(ext);
+      const uploadMime = isImg ? file.type : 'application/octet-stream';
       const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
       try {
@@ -214,9 +251,24 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           .upload(filePath, file, { contentType: uploadMime, upsert: false });
         if (upErr) throw upErr;
 
+        // 목록 표시용 썸네일 — 실패해도 업로드 자체는 성공 처리하고 원본으로 폴백한다.
+        let thumbPath: string | null = null;
+        if (isImg) {
+          const thumb = await makeThumbnail(file);
+          if (thumb) {
+            const candidate = `${userId}/${base}_thumb.jpg`;
+            const { error: thumbErr } = await supabase.storage
+              .from(BUCKET)
+              .upload(candidate, thumb, { contentType: 'image/jpeg', upsert: false });
+            if (!thumbErr) thumbPath = candidate;
+            else console.error('[upload] 썸네일 업로드 실패:', thumbErr);
+          }
+        }
+
         const { error: dbErr } = await supabase.from('photo_transfers').insert({
           user_id: userId,
           file_path: filePath,
+          thumb_path: thumbPath,
           file_name: file.name,
           file_size: file.size,
           expires_at: expiresAt,
@@ -351,7 +403,9 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     if (photos.length === 0) return;
     if (!confirm(`파일 ${photos.length}개를 모두 삭제하시겠습니까?`)) return;
     const supabase = createClient();
-    await supabase.storage.from(BUCKET).remove(photos.map(p => p.file_path));
+    // 원본 + 썸네일을 함께 제거 (썸네일이 남아 스토리지를 차지하지 않도록)
+    const paths = photos.flatMap(p => p.thumb_path ? [p.file_path, p.thumb_path] : [p.file_path]);
+    await supabase.storage.from(BUCKET).remove(paths);
     await supabase.from('photo_transfers')
       .update({ deleted_at: new Date().toISOString() })
       .in('id', photos.map(p => p.id));
@@ -362,8 +416,10 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const deletePhoto = async (photo: PhotoMeta) => {
     if (!confirm(`"${photo.file_name}" 을 삭제하시겠습니까?`)) return;
     const supabase = createClient();
-    // 스토리지 실제 삭제 (공간 확보)
-    await supabase.storage.from(BUCKET).remove([photo.file_path]);
+    // 스토리지 실제 삭제 (공간 확보) — 썸네일도 함께 제거
+    await supabase.storage.from(BUCKET).remove(
+      photo.thumb_path ? [photo.file_path, photo.thumb_path] : [photo.file_path]
+    );
     // DB 소프트 삭제 (오늘 업로드 용량 추적 유지)
     await supabase.from('photo_transfers').update({ deleted_at: new Date().toISOString() }).eq('id', photo.id);
     setPhotos(prev => prev.filter(p => p.id !== photo.id));

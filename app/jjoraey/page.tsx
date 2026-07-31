@@ -7,8 +7,6 @@ import { isAdminAuthed } from '@/lib/admin-auth';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const BUCKET = 'photo-transfers';
-
 async function getAdminData() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -35,7 +33,7 @@ async function getAdminData() {
     { data: noticeRows },
     { data: suggestionRows },
     { data: versionRows },
-    { data: photoRows },
+    { count: validPhotoCount },
     { count: totalVisitCount },
     { count: todayVisitCount },
   ] = await Promise.all([
@@ -45,7 +43,10 @@ async function getAdminData() {
     adminSupabase.from('notices').select('id, title, content, category, is_published, created_at').order('created_at', { ascending: false }),
     adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),
     adminSupabase.from('app_versions').select('platform, version, force_update, message, store_url, updated_at'),
-    adminSupabase.from('photo_transfers').select('*').order('created_at', { ascending: false }).limit(200),
+    // 사진은 개수만 집계한다. 실제 목록/이미지 URL은 관리자가 "불러오기"를 누를 때
+    // /api/admin-photos 에서 필요한 만큼만 가져온다 (Egress 절감 — 예전에는 페이지를
+    // 열 때마다 200건에 대해 signed URL 400개를 만들고 원본 이미지를 전부 내려받았음).
+    adminSupabase.from('photo_transfers').select('*', { count: 'exact', head: true }).gt('expires_at', now.toISOString()),
     adminSupabase.from('site_visits').select('*', { count: 'exact', head: true }),
     adminSupabase.from('site_visits').select('*', { count: 'exact', head: true }).eq('visit_date', todayDateStr),
   ]);
@@ -106,9 +107,6 @@ async function getAdminData() {
     users = syntheticUsers;
   }
 
-  const userMap: Record<string, any> = {};
-  users.forEach(u => { userMap[u.id] = u; });
-
   // 번호(#)는 가입일 오름차순 기준으로 고정 부여 (먼저 가입한 사람이 낮은 번호),
   // 화면에는 최신 가입자가 먼저 보이도록 번호 부여 후 다시 최신순으로 뒤집는다.
   const personal = users
@@ -135,58 +133,16 @@ async function getAdminData() {
       createdAt: u.created_at,
     }));
 
-  // ── 사진 signed URL 생성 ──
-  const validPhotos = (photoRows ?? []).filter((p: any) => new Date(p.expires_at) > new Date());
-  let photos: any[] = [];
-
-  if (validPhotos.length > 0) {
-    const activePhotos = validPhotos.filter((p: any) => !p.deleted_at);
-    const [thumbResults, fullResults] = await Promise.all([
-      Promise.all(
-        activePhotos.map((p: any) =>
-          adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600, {
-            transform: { width: 300, height: 300, resize: 'cover', quality: 70 },
-          }).then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
-        )
-      ),
-      Promise.all(
-        activePhotos.map((p: any) =>
-          adminSupabase.storage.from(BUCKET).createSignedUrl(p.file_path, 3600)
-            .then(({ data }) => ({ path: p.file_path, url: data?.signedUrl ?? '' }))
-        )
-      ),
-    ]);
-
-    const thumbMap: Record<string, string> = {};
-    thumbResults.forEach(r => { thumbMap[r.path] = r.url; });
-    const fullMap: Record<string, string> = {};
-    fullResults.forEach(r => { fullMap[r.path] = r.url; });
-
-    photos = validPhotos.map((p: any) => {
-      const u = userMap[p.user_id];
-      const prof = profileMap[p.user_id];
-      return {
-        id: p.id,
-        filePath: p.file_path,
-        fileName: p.file_name,
-        fileSize: p.file_size,
-        expiresAt: p.expires_at,
-        createdAt: p.created_at,
-        deletedAt: p.deleted_at ?? null,
-        thumbUrl: thumbMap[p.file_path] ?? '',
-        fullUrl: fullMap[p.file_path] ?? '',
-        uploaderEmail: u?.email ?? '-',
-        uploaderName: prof?.nickname ?? prof?.org_name ?? '-',
-      };
-    });
-  }
+  // 사진 목록은 페이지 로드 시 만들지 않는다 (Egress 절감).
+  // Dashboard의 "전송된 파일" 섹션에서 불러오기를 누르면 /api/admin-photos 가 처리한다.
+  const photos: any[] = [];
 
   return {
     total: users.length,
     personalCount: personal.length,
     sharedCount: shared.length,
     todayUsers: users.filter(u => new Date(u.created_at) >= todayStart).length,
-    photoCount: validPhotos.length,
+    photoCount: validPhotoCount ?? 0,
     todayPhotoCount: todayPhotoCount ?? 0,
     totalVisits: totalVisitCount ?? 0,
     todayVisits: todayVisitCount ?? 0,

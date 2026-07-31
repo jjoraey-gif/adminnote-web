@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // 만료된 레코드 조회
   const { data: expired, error } = await adminSupabase
     .from('photo_transfers')
-    .select('id, file_path')
+    .select('id, file_path, thumb_path')
     .lt('expires_at', new Date().toISOString());
 
   if (error) {
@@ -37,8 +37,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ deleted: 0, message: '삭제할 항목 없음' });
   }
 
-  // Storage에서 파일 삭제
-  const filePaths = expired.map(r => r.file_path);
+  // Storage에서 파일 삭제 — 원본 + 썸네일
+  const filePaths = expired.flatMap(r => r.thumb_path ? [r.file_path, r.thumb_path] : [r.file_path]);
   const { error: storageErr } = await adminSupabase.storage
     .from('photo-transfers')
     .remove(filePaths);
