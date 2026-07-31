@@ -327,7 +327,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                   <th style={th}>#</th>
                   <th style={th}>닉네임</th>
                   <th style={th}>이메일</th>
-                  <th style={th}>현재 부서</th>
+                  <th style={{ ...th, maxWidth: 90, width: 90 }}>현재 부서</th>
                   <th style={th}>현재 직급</th>
                   <th style={th}>순위</th>
                   <th style={th}>입직일</th>
@@ -345,8 +345,15 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                       <td style={{ ...td, color: '#9CA3AF' }}>{i + 1}</td>
                       <td style={{ ...td, fontWeight: 600 }}>{r.nickname !== '-' ? r.nickname : '-'}</td>
                       <td style={{ ...td, color: '#6B7280' }}>{r.email}</td>
-                      <td style={td}>
-                        <span style={{ background: r.currentDept !== '-' ? '#EFF6FF' : '#F9FAFB', color: r.currentDept !== '-' ? '#2563EB' : '#9CA3AF', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>
+                      <td style={{ ...td, maxWidth: 90, width: 90, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                        <span
+                          title={r.currentDept}
+                          style={{
+                            display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom',
+                            background: r.currentDept !== '-' ? '#EFF6FF' : '#F9FAFB', color: r.currentDept !== '-' ? '#2563EB' : '#9CA3AF',
+                            fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
+                          }}
+                        >
                           {r.currentDept}
                         </span>
                       </td>
