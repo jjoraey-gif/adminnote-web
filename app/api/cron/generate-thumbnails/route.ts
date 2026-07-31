@@ -12,7 +12,9 @@ const BUCKET = 'photo-transfers';
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
 const THUMB_MAX = 320;
 // 한 번 실행에 처리할 최대 건수 — 서버리스 함수 실행 시간 제한을 넘지 않도록 배치 처리
-const BATCH_SIZE = 15;
+// (Vercel Hobby 플랜은 크론을 하루 1회로만 제한하므로, 적체된 사진을 더 빨리 처리하도록
+//  10분 간격일 때보다 배치 크기를 늘렸다)
+const BATCH_SIZE = 40;
 
 function isImageFile(fileName: string): boolean {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
