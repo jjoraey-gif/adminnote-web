@@ -464,6 +464,14 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   );
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // ── 비밀번호 초기화 ──
+  const [pwQuery, setPwQuery] = useState('');
+  const [pwResults, setPwResults] = useState<{ id: string; email: string; nickname: string | null; accountType: string; orgName: string | null; userId: string | null }[]>([]);
+  const [pwSearching, setPwSearching] = useState(false);
+  const [pwSearched, setPwSearched] = useState(false);
+  const [pwResettingId, setPwResettingId] = useState<string | null>(null);
+  const [pwResult, setPwResult] = useState<{ email: string; password: string } | null>(null);
+
   // 건의사항 상태
   const [suggestions, setSuggestions] = useState<SuggestionRow[]>(data.suggestions ?? []);
 
@@ -566,6 +574,41 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     setSavingId(null);
   };
 
+  const searchPwUsers = async () => {
+    const q = pwQuery.trim();
+    if (!q) return;
+    setPwSearching(true);
+    setPwResult(null);
+    try {
+      const res = await fetch(`/api/admin-reset-password?q=${encodeURIComponent(q)}`);
+      const body = await res.json();
+      setPwResults(body.users ?? []);
+    } catch {
+      alert('검색에 실패했습니다.');
+    } finally {
+      setPwSearching(false);
+      setPwSearched(true);
+    }
+  };
+
+  const resetPassword = async (u: { id: string; email: string }) => {
+    if (!confirm(`${u.email} 계정의 비밀번호를 초기화하시겠습니까?\n임시 비밀번호가 발급되며, 해당 회원에게 직접 전달해야 합니다.`)) return;
+    setPwResettingId(u.id);
+    setPwResult(null);
+    try {
+      const res = await fetch('/api/admin-reset-password', {
+        method: 'POST', headers: authHeader, body: JSON.stringify({ userId: u.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? '초기화 실패');
+      setPwResult({ email: body.email ?? u.email, password: body.password });
+    } catch (e: any) {
+      alert(`오류: ${e?.message}`);
+    } finally {
+      setPwResettingId(null);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch('/api/admin-login', { method: 'DELETE', headers: authHeader });
     router.refresh();
@@ -642,6 +685,69 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
               <div style={{ fontSize: 32, fontWeight: 800, color }}>{value}</div>
             </div>
           ))}
+        </div>
+
+        {/* 비밀번호 초기화 */}
+        <div style={{ ...card, marginBottom: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px' }}>비밀번호 초기화</h2>
+          <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px' }}>
+            이메일 / 닉네임 / 기관명 / 공용폰 아이디로 검색 후 초기화하세요. 초기화하면 임시 비밀번호가 즉시 발급되며, 회원에게 직접 전달해야 합니다.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: (pwSearched || pwResult) ? 16 : 0 }}>
+            <input
+              value={pwQuery}
+              onChange={e => setPwQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') searchPwUsers(); }}
+              placeholder="이메일, 닉네임, 기관명, 아이디로 검색"
+              style={{ flex: 1, padding: '8px 12px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 8 }}
+            />
+            <button
+              onClick={searchPwUsers}
+              disabled={pwSearching || !pwQuery.trim()}
+              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: pwSearching ? 'default' : 'pointer', opacity: pwSearching || !pwQuery.trim() ? 0.6 : 1 }}
+            >{pwSearching ? '검색 중...' : '검색'}</button>
+          </div>
+
+          {pwResult && (
+            <div style={{ background: '#ECFDF5', border: '1px solid #16A34A', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#065F46' }}>
+              <strong>{pwResult.email}</strong> 임시 비밀번호:{' '}
+              <code style={{ fontSize: 14, fontWeight: 700, background: '#fff', padding: '2px 8px', borderRadius: 4 }}>{pwResult.password}</code>
+              <button
+                onClick={() => navigator.clipboard.writeText(pwResult.password)}
+                style={{ marginLeft: 10, padding: '3px 10px', fontSize: 12, border: '1px solid #16A34A', borderRadius: 6, background: '#fff', color: '#16A34A', cursor: 'pointer' }}
+              >복사</button>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#047857' }}>회원에게 안전한 방법으로 전달하고, 로그인 후 비밀번호 변경을 권장하세요.</div>
+            </div>
+          )}
+
+          {pwSearched && (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr style={{ background: '#F9FAFB' }}>
+                  <th style={th}>이메일</th><th style={th}>닉네임/기관</th><th style={th}>유형</th><th style={th}></th>
+                </tr></thead>
+                <tbody>
+                  {pwResults.length === 0
+                    ? <tr><td colSpan={4} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '20px 0' }}>검색 결과 없음</td></tr>
+                    : pwResults.map(u => (
+                      <tr key={u.id}>
+                        <td style={td}>{u.email}</td>
+                        <td style={td}>{u.accountType === 'shared' ? `${u.orgName ?? '-'} / ${u.userId ?? '-'}` : (u.nickname ?? '-')}</td>
+                        <td style={td}>{u.accountType === 'shared' ? '공용폰' : '개인회원'}</td>
+                        <td style={td}>
+                          <button
+                            onClick={() => resetPassword(u)}
+                            disabled={pwResettingId === u.id}
+                            style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, border: '1px solid #EF4444', borderRadius: 6, background: '#fff', color: '#EF4444', cursor: pwResettingId === u.id ? 'default' : 'pointer', opacity: pwResettingId === u.id ? 0.6 : 1 }}
+                          >{pwResettingId === u.id ? '처리 중...' : '초기화'}</button>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* 개인회원 */}
