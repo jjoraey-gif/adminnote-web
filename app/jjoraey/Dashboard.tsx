@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface PersonalUser {
-  id: string; email: string; nickname: string; provider: string; createdAt: string; grade: string;
+  id: string; email: string; nickname: string; provider: string; createdAt: string; grade: string; no?: number;
 }
 interface SharedUser {
   id: string; email: string; orgName: string; userId: string; createdAt: string;
@@ -597,11 +597,11 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                     {paged.length === 0
                       ? <tr><td colSpan={6} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
                       : paged.map((u, i) => {
-                          const globalIdx = (personalPage - 1) * PAGE_SIZE + i + 1;
+                          // 번호(#)는 가입일 오름차순 기준 고정 번호(no) — 목록 표시 순서(최신순)와 무관
                           const currentGrade = grades[u.id] ?? 'normal';
                           return (
                             <tr key={u.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
-                              <td style={{ ...td, color: '#9CA3AF' }}>{globalIdx}</td>
+                              <td style={{ ...td, color: '#9CA3AF' }}>{u.no ?? '-'}</td>
                               <td style={td}>
                                 <button
                                   onClick={() => setSelectedUser(u)}

@@ -109,6 +109,8 @@ async function getAdminData() {
   const userMap: Record<string, any> = {};
   users.forEach(u => { userMap[u.id] = u; });
 
+  // 번호(#)는 가입일 오름차순 기준으로 고정 부여 (먼저 가입한 사람이 낮은 번호),
+  // 화면에는 최신 가입자가 먼저 보이도록 번호 부여 후 다시 최신순으로 뒤집는다.
   const personal = users
     .filter(u => (profileMap[u.id]?.account_type === 'personal') || (!profileMap[u.id] && !usingFallback))
     .map(u => ({
@@ -119,8 +121,9 @@ async function getAdminData() {
       createdAt: u.created_at,
       grade: profileMap[u.id]?.grade ?? 'normal',
     }))
-    // 가입일 오름차순 — 먼저 가입한 사람이 번호(#)가 낮고, 최신 가입자가 번호가 높게
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map((u, i) => ({ ...u, no: i + 1 }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const shared = users
     .filter(u => profileMap[u.id]?.account_type === 'shared')
