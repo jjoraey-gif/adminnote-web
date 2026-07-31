@@ -328,8 +328,8 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                   <th style={th}>닉네임</th>
                   <th style={th}>이메일</th>
                   <th style={{ ...th, maxWidth: 90, width: 90 }}>현재 부서</th>
-                  <th style={th}>현재 직급</th>
-                  <th style={th}>순위</th>
+                  <th style={{ ...th, paddingRight: 6 }}>현재 직급</th>
+                  <th style={{ ...th, paddingLeft: 6 }}>순위</th>
                   <th style={th}>입직일</th>
                   <th style={th}>승진</th>
                   <th style={th}>발령</th>
@@ -349,24 +349,21 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                         <span
                           title={r.currentDept}
                           style={{
-                            display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom',
+                            display: 'inline-block',
                             background: r.currentDept !== '-' ? '#EFF6FF' : '#F9FAFB', color: r.currentDept !== '-' ? '#2563EB' : '#9CA3AF',
                             fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
                           }}
                         >
-                          {r.currentDept}
+                          {r.currentDept !== '-' && r.currentDept.length > 6 ? `${r.currentDept.slice(0, 6)}…` : r.currentDept}
                         </span>
                       </td>
-                      <td style={td}>{r.currentGrade !== '-' ? <span style={{ background: '#F0FDF4', color: '#16A34A', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>{r.currentGrade}</span> : '-'}</td>
-                      <td style={td}>
+                      <td style={{ ...td, paddingRight: 6 }}>{r.currentGrade !== '-' ? <span style={{ background: '#F0FDF4', color: '#16A34A', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>{r.currentGrade}</span> : '-'}</td>
+                      <td style={{ ...td, paddingLeft: 6 }}>
                         {r.currentRank != null ? (
                           <span style={{ background: '#FEF3C7', color: '#B45309', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>
                             {r.currentRank}위
                           </span>
                         ) : '-'}
-                        {r.currentRank != null && r.currentRankDate && (
-                          <span style={{ color: '#9CA3AF', fontSize: 11, marginLeft: 6 }}>{fmtDate(r.currentRankDate)}</span>
-                        )}
                       </td>
                       <td style={{ ...td, color: '#9CA3AF' }}>{fmtDate(r.startDate)}</td>
                       <td style={{ ...td, textAlign: 'center' }}>{r.promotionCount > 0 ? <span style={{ fontWeight: 600, color: '#7C3AED' }}>{r.promotionCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
