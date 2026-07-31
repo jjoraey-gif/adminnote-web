@@ -13,6 +13,11 @@ export default function RootPage() {
 
   const supabase = createClient();
 
+  // 홈페이지 방문 집계 (익명 방문자 카운터) — 로그인 여부와 무관하게 페이지 로드 시 1회 기록
+  useEffect(() => {
+    fetch('/api/track-visit', { method: 'POST' }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);

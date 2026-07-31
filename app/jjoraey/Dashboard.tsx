@@ -27,6 +27,7 @@ interface SuggestionRow {
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number; todayPhotoCount: number;
+  totalVisits?: number; todayVisits?: number;
   personal: PersonalUser[]; shared: SharedUser[]; photos: PhotoItem[];
   usingFallback?: boolean;
   listError?: string | null;
@@ -536,10 +537,18 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
         {/* 헤더 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>
-              <span style={{ color: '#2563EB' }}>Admin</span>
-              <span style={{ color: '#1C1C1E' }}>Note</span>
-              <span style={{ fontSize: 16, fontWeight: 500, color: '#9CA3AF', marginLeft: 12 }}>관리자</span>
+            <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span>
+                <span style={{ color: '#2563EB' }}>Admin</span>
+                <span style={{ color: '#1C1C1E' }}>Note</span>
+              </span>
+              <span style={{ fontSize: 16, fontWeight: 500, color: '#9CA3AF' }}>관리자</span>
+              <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: '#EFF6FF', color: '#2563EB' }}>
+                총 방문자 {(data.totalVisits ?? 0).toLocaleString()}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: '#ECFDF5', color: '#16A34A' }}>
+                오늘 방문자 {(data.todayVisits ?? 0).toLocaleString()}
+              </span>
             </h1>
             <p style={{ margin: '6px 0 0', fontSize: 13, color: '#9CA3AF' }}>
               {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}

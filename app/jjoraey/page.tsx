@@ -25,6 +25,7 @@ async function getAdminData() {
   const kstNow = new Date(now.getTime() + kstOffset);
   const kstMidnight = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
   const todayStart = new Date(kstMidnight.getTime() - kstOffset);
+  const todayDateStr = kstMidnight.toISOString().slice(0, 10); // site_visits.visit_date 와 동일한 KST 기준 날짜 문자열
 
   // ── 모든 독립 쿼리를 병렬 실행 ──
   const [
@@ -35,6 +36,8 @@ async function getAdminData() {
     { data: suggestionRows },
     { data: versionRows },
     { data: photoRows },
+    { count: totalVisitCount },
+    { count: todayVisitCount },
   ] = await Promise.all([
     adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
     adminSupabase.from('profiles').select('*'),
@@ -43,6 +46,8 @@ async function getAdminData() {
     adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),
     adminSupabase.from('app_versions').select('platform, version, force_update, message, store_url, updated_at'),
     adminSupabase.from('photo_transfers').select('*').order('created_at', { ascending: false }).limit(200),
+    adminSupabase.from('site_visits').select('*', { count: 'exact', head: true }),
+    adminSupabase.from('site_visits').select('*', { count: 'exact', head: true }).eq('visit_date', todayDateStr),
   ]);
 
   const authUsers = listData?.users ?? [];
@@ -178,6 +183,8 @@ async function getAdminData() {
     todayUsers: users.filter(u => new Date(u.created_at) >= todayStart).length,
     photoCount: validPhotos.length,
     todayPhotoCount: todayPhotoCount ?? 0,
+    totalVisits: totalVisitCount ?? 0,
+    todayVisits: todayVisitCount ?? 0,
     personal,
     shared,
     photos,
