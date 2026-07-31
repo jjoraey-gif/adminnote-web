@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { getCachedSignedUrl, setCachedSignedUrls, pruneSignedUrlCache } from '@/lib/signedUrlCache';
 
 const BUCKET = 'photo-transfers';
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
@@ -186,26 +187,42 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     const valid = rows.filter(p => new Date(p.expires_at) > new Date());
     if (valid.length === 0) { setPhotos([]); setLoading(false); return; }
 
-    // 원본 URL(다운로드/미리보기용)과 썸네일 URL(그리드용)을 한 번의 배치로 발급한다.
+    // 원본 URL(다운로드/미리보기용)과 썸네일 URL(그리드용)이 필요하다.
     // ※ 예전에는 그리드용으로 transform 옵션을 붙였지만 무료 플랜에서는 변환이 동작하지 않아
     //   원본이 그대로 전송됐다. 이제는 업로드 때 저장해 둔 thumb_path 를 사용하고,
     //   썸네일이 없는 항목(문서 / 구버전 업로드)만 원본으로 폴백한다.
     const thumbPaths = valid
       .map(p => p.thumb_path)
       .filter((p): p is string => !!p);
+    const allPaths = [...valid.map(p => p.file_path), ...thumbPaths];
 
-    const { data: urls } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrls([...valid.map(p => p.file_path), ...thumbPaths], 7200);
-
+    // 만료 전까지는 새 URL을 발급하지 않고 캐시를 재사용한다.
+    // (매번 새 토큰의 URL을 만들면 CDN/브라우저 캐시가 매번 무효화되어 원본을
+    //  반복 다운로드하게 되는 게 Egress 낭비의 큰 원인이었다.)
     const urlMap: Record<string, string> = {};
-    (urls ?? []).forEach(u => { if (u.signedUrl && u.path) urlMap[u.path] = u.signedUrl; });
+    const needed: string[] = [];
+    for (const path of allPaths) {
+      const cached = getCachedSignedUrl(path);
+      if (cached) urlMap[path] = cached;
+      else needed.push(path);
+    }
+
+    if (needed.length > 0) {
+      const { data: urls } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrls(needed, 7200);
+      const fresh: { path: string; url: string }[] = [];
+      (urls ?? []).forEach(u => { if (u.signedUrl && u.path) fresh.push({ path: u.path, url: u.signedUrl }); });
+      fresh.forEach(u => { urlMap[u.path] = u.url; });
+      setCachedSignedUrls(fresh.map(u => ({ path: u.path, url: u.url, expiresInSeconds: 7200 })));
+    }
 
     setPhotos(valid.map(p => ({
       ...p,
       signedUrl: urlMap[p.file_path],
       thumbUrl: (p.thumb_path ? urlMap[p.thumb_path] : '') || urlMap[p.file_path],
     })));
+    pruneSignedUrlCache(allPaths);
     setLoading(false);
   }, [userId]);
 
