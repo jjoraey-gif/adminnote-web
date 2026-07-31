@@ -267,6 +267,7 @@ interface HistoryRow {
   userId: string; email: string; nickname: string;
   currentDept: string; currentGrade: string; startDate: string | null;
   promotionCount: number; assignmentCount: number; awardCount: number;
+  currentRank: number | null; currentRankDate: string | null;
   assignments: { department: string; date: string }[];
   promotions: { grade: string; date: string; note: string }[];
 }
@@ -328,6 +329,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                   <th style={th}>이메일</th>
                   <th style={th}>현재 부서</th>
                   <th style={th}>현재 직급</th>
+                  <th style={th}>순위</th>
                   <th style={th}>입직일</th>
                   <th style={th}>승진</th>
                   <th style={th}>발령</th>
@@ -349,6 +351,16 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                         </span>
                       </td>
                       <td style={td}>{r.currentGrade !== '-' ? <span style={{ background: '#F0FDF4', color: '#16A34A', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>{r.currentGrade}</span> : '-'}</td>
+                      <td style={td}>
+                        {r.currentRank != null ? (
+                          <span style={{ background: '#FEF3C7', color: '#B45309', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99 }}>
+                            {r.currentRank}위
+                          </span>
+                        ) : '-'}
+                        {r.currentRank != null && r.currentRankDate && (
+                          <span style={{ color: '#9CA3AF', fontSize: 11, marginLeft: 6 }}>{fmtDate(r.currentRankDate)}</span>
+                        )}
+                      </td>
                       <td style={{ ...td, color: '#9CA3AF' }}>{fmtDate(r.startDate)}</td>
                       <td style={{ ...td, textAlign: 'center' }}>{r.promotionCount > 0 ? <span style={{ fontWeight: 600, color: '#7C3AED' }}>{r.promotionCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
                       <td style={{ ...td, textAlign: 'center' }}>{r.assignmentCount > 0 ? <span style={{ fontWeight: 600, color: '#0891B2' }}>{r.assignmentCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
@@ -372,7 +384,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                     </tr>
                     {expandedPromoId === r.userId && r.promotions.length > 0 && (
                       <tr key={`${r.userId}-promo-expand`} style={{ background: '#FAF5FF' }}>
-                        <td colSpan={11} style={{ padding: '10px 20px 14px 60px' }}>
+                        <td colSpan={12} style={{ padding: '10px 20px 14px 60px' }}>
                           <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 600 }}>승진 이력 (최신순)</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {r.promotions.map((p, pi) => (
@@ -386,7 +398,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                     )}
                     {expandedId === r.userId && r.assignments.length > 0 && (
                       <tr key={`${r.userId}-expand`} style={{ background: '#F0F9FF' }}>
-                        <td colSpan={11} style={{ padding: '10px 20px 14px 60px' }}>
+                        <td colSpan={12} style={{ padding: '10px 20px 14px 60px' }}>
                           <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 600 }}>발령 이력 (최신순)</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {r.assignments.map((a, ai) => (
