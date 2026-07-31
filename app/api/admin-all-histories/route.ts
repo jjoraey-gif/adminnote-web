@@ -69,6 +69,8 @@ export async function GET() {
       registeredAt: authCreatedMap[s.user_id] ?? s.updated_at,
       // 전체 발령 목록 (부서 확인용)
       assignments: assignments.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
+      // 전체 승진 목록 (승진순위 확인용)
+      promotions: promotions.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     };
   });
 

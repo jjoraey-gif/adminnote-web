@@ -268,6 +268,7 @@ interface HistoryRow {
   currentDept: string; currentGrade: string; startDate: string | null;
   promotionCount: number; assignmentCount: number; awardCount: number;
   assignments: { department: string; date: string }[];
+  promotions: { grade: string; date: string; note: string }[];
 }
 
 function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
@@ -275,6 +276,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedPromoId, setExpandedPromoId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -330,6 +332,7 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                   <th style={th}>승진</th>
                   <th style={th}>발령</th>
                   <th style={th}>포상</th>
+                  <th style={th}>승진 내역</th>
                   <th style={th}>발령 내역</th>
                 </tr>
               </thead>
@@ -351,6 +354,14 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                       <td style={{ ...td, textAlign: 'center' }}>{r.assignmentCount > 0 ? <span style={{ fontWeight: 600, color: '#0891B2' }}>{r.assignmentCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
                       <td style={{ ...td, textAlign: 'center' }}>{r.awardCount > 0 ? <span style={{ fontWeight: 600, color: '#D97706' }}>{r.awardCount}</span> : <span style={{ color: '#D1D5DB' }}>0</span>}</td>
                       <td style={td}>
+                        {r.promotions.length > 0 && (
+                          <button
+                            onClick={() => setExpandedPromoId(expandedPromoId === r.userId ? null : r.userId)}
+                            style={{ fontSize: 12, color: '#6B7280', background: '#F3F4F6', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}
+                          >{expandedPromoId === r.userId ? '접기 ▲' : '보기 ▼'}</button>
+                        )}
+                      </td>
+                      <td style={td}>
                         {r.assignments.length > 0 && (
                           <button
                             onClick={() => setExpandedId(expandedId === r.userId ? null : r.userId)}
@@ -359,9 +370,23 @@ function AllHistoriesSection({ card }: { card: React.CSSProperties }) {
                         )}
                       </td>
                     </tr>
+                    {expandedPromoId === r.userId && r.promotions.length > 0 && (
+                      <tr key={`${r.userId}-promo-expand`} style={{ background: '#FAF5FF' }}>
+                        <td colSpan={11} style={{ padding: '10px 20px 14px 60px' }}>
+                          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 600 }}>승진 이력 (최신순)</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {r.promotions.map((p, pi) => (
+                              <span key={pi} style={{ background: '#fff', border: '1px solid #DDD6FE', borderRadius: 8, padding: '4px 12px', fontSize: 12, color: '#7C3AED' }}>
+                                {p.grade || p.note || '승진'} <span style={{ color: '#C4B5FD', marginLeft: 4 }}>{fmtDate(p.date)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {expandedId === r.userId && r.assignments.length > 0 && (
                       <tr key={`${r.userId}-expand`} style={{ background: '#F0F9FF' }}>
-                        <td colSpan={10} style={{ padding: '10px 20px 14px 60px' }}>
+                        <td colSpan={11} style={{ padding: '10px 20px 14px 60px' }}>
                           <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 600 }}>발령 이력 (최신순)</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {r.assignments.map((a, ai) => (
