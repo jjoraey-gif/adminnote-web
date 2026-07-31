@@ -109,6 +109,8 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const [preview, setPreview] = useState<PhotoMeta | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPhotos = useCallback(async () => {
@@ -174,11 +176,10 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
-  // 웹 파일 업로드
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  // 웹 파일 업로드 — 파일 선택(input)과 드래그&드롭 양쪽에서 공용으로 사용
+  const uploadFiles = async (files: File[]) => {
     if (!files.length) return;
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!canUpload) { alert('업로드 권한이 없습니다.'); return; }
 
     const todayUsedBytes = todaySizeMB * 1024 * 1024;
     const supabase = createClient();
@@ -233,6 +234,40 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     setUploadProgress('');
     if (errors.length > 0) alert(`일부 실패:\n${errors.join('\n')}`);
     if (successCount > 0) await fetchPhotos();
+  };
+
+  // <input type="file"> 선택 시
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    uploadFiles(files);
+  };
+
+  // 드래그 & 드롭으로 파일 추가
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!canUpload || uploading) return;
+    dragCounterRef.current += 1;
+    setIsDragging(true);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragging(false);
+    }
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    if (!canUpload || uploading) return;
+    const files = Array.from(e.dataTransfer.files ?? []);
+    uploadFiles(files);
   };
 
   // 개별 다운로드 — 저장 위치 지정
@@ -464,17 +499,37 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         />
       </div>
 
-      {photos.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🖼️</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-            {canUpload ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}
+      {/* 드래그&드롭 영역 — 목록/빈 상태 전체를 드롭 타겟으로 사용 */}
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{ position: 'relative', minHeight: photos.length === 0 ? 240 : undefined }}
+      >
+        {isDragging && canUpload && (
+          <div style={{
+            position: 'absolute', inset: -8, zIndex: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'rgba(239,246,255,0.92)', border: '2px dashed #2563EB', borderRadius: 16,
+            pointerEvents: 'none',
+          }}>
+            <span style={{ fontSize: 32 }}>📥</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#1D4ED8' }}>여기에 파일을 놓아 추가하세요</span>
           </div>
-          {canUpload && (
-            <div style={{ fontSize: 13, color: '#9CA3AF' }}>파일을 추가하면 앱에서 다운받을 수 있습니다</div>
-          )}
-        </div>
-      ) : (
+        )}
+
+        {photos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🖼️</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              {canUpload ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}
+            </div>
+            {canUpload && (
+              <div style={{ fontSize: 13, color: '#9CA3AF' }}>파일을 드래그해서 놓거나, 파일 추가 버튼을 눌러주세요</div>
+            )}
+          </div>
+        ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
           {photos.map(photo => {
             const img = isImage(photo.file_name);
@@ -533,7 +588,8 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             );
           })}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
