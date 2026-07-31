@@ -18,9 +18,13 @@ export async function GET() {
     adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
-  // auth.users 이메일 맵
+  // auth.users 이메일 / 가입일 맵
   const authEmailMap: Record<string, string> = {};
-  (authData?.users ?? []).forEach((u: any) => { if (u.email) authEmailMap[u.id] = u.email; });
+  const authCreatedMap: Record<string, string> = {};
+  (authData?.users ?? []).forEach((u: any) => {
+    if (u.email) authEmailMap[u.id] = u.email;
+    if (u.created_at) authCreatedMap[u.id] = u.created_at;
+  });
 
   // profiles 맵 (email은 auth 우선)
   const profileMap: Record<string, { email: string; nickname: string }> = {};
@@ -61,11 +65,17 @@ export async function GET() {
       assignmentCount: assignments.length,
       awardCount: awards.length,
       updatedAt: s.updated_at,
+      // 등록(가입)된 시간 — 정렬용
+      registeredAt: authCreatedMap[s.user_id] ?? s.updated_at,
       // 전체 발령 목록 (부서 확인용)
       assignments: assignments.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     };
   });
 
-  // 데이터 있는 사람만
-  return NextResponse.json({ rows: rows.filter(r => r.assignmentCount > 0 || r.promotionCount > 0 || r.awardCount > 0) });
+  // 데이터 있는 사람만 + 등록된 시간 오름차순(먼저 가입한 사람이 위로)
+  const filtered = rows
+    .filter(r => r.assignmentCount > 0 || r.promotionCount > 0 || r.awardCount > 0)
+    .sort((a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime());
+
+  return NextResponse.json({ rows: filtered });
 }

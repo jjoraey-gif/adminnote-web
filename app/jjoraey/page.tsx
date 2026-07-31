@@ -118,7 +118,9 @@ async function getAdminData() {
       provider: u.app_metadata?.provider ?? 'email',
       createdAt: u.created_at,
       grade: profileMap[u.id]?.grade ?? 'normal',
-    }));
+    }))
+    // 가입일 오름차순 — 먼저 가입한 사람이 번호(#)가 낮고, 최신 가입자가 번호가 높게
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   const shared = users
     .filter(u => profileMap[u.id]?.account_type === 'shared')
