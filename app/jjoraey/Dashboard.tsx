@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { getSeenPhotoIds, markPhotosSeen, resetSeenPhotos } from '@/lib/seenPhotosCache';
 
 interface PersonalUser {
   id: string; email: string; nickname: string; provider: string; createdAt: string; grade: string; no?: number;
@@ -444,13 +445,27 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photosLoaded, setPhotosLoaded] = useState(false);
   const [photosLoading, setPhotosLoading] = useState(false);
+  // 이번에 서버에서 불러온 전체 목록(이미 확인한 것 포함) — "전체보기" 토글용으로 별도 보관
+  const [allLoadedPhotos, setAllLoadedPhotos] = useState<PhotoItem[]>([]);
+  // 이번 조회에서 "처음 보는" 것으로 판정된 사진 id — 기본으로는 이것만 화면에 표시
+  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
+  const [showSeenPhotos, setShowSeenPhotos] = useState(false);
 
   const loadPhotos = async () => {
     setPhotosLoading(true);
     try {
       const res = await fetch(`/api/admin-photos?limit=${PHOTO_FETCH_LIMIT}`);
       const body = await res.json();
-      setPhotos(body.photos ?? []);
+      const fetched: PhotoItem[] = body.photos ?? [];
+      // 이전에 이미 확인했던 사진은 목록에서 제외하고, 처음 보는 사진만 기본으로 보여준다
+      // (같은 사진을 새로고침할 때마다 다시 내려받는 Egress 낭비 방지)
+      const seenBefore = getSeenPhotoIds();
+      const freshIds = new Set(fetched.filter(p => !seenBefore.has(p.id)).map(p => p.id));
+      setAllLoadedPhotos(fetched);
+      setNewPhotoIds(freshIds);
+      setShowSeenPhotos(false);
+      setPhotos(fetched.filter(p => freshIds.has(p.id)));
+      markPhotosSeen(fetched.map(p => p.id));
       setPhotosLoaded(true);
       setPhotoPage(1);
     } catch {
@@ -458,6 +473,20 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     } finally {
       setPhotosLoading(false);
     }
+  };
+
+  const toggleShowSeenPhotos = () => {
+    setShowSeenPhotos(prev => {
+      const next = !prev;
+      setPhotos(next ? allLoadedPhotos : allLoadedPhotos.filter(p => newPhotoIds.has(p.id)));
+      setPhotoPage(1);
+      return next;
+    });
+  };
+
+  const clearSeenPhotoHistory = () => {
+    if (!confirm('확인 기록을 초기화하면 다음 조회 시 모든 사진이 다시 "새 사진"으로 표시됩니다. 계속할까요?')) return;
+    resetSeenPhotos();
   };
   const [grades, setGrades] = useState<Record<string, string>>(
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
@@ -884,7 +913,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
           }
           return (
             <div style={{ ...card, marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: photosLoaded ? 16 : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: photosLoaded ? 8 : 0 }}>
                 <div>
                   <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
                     전송된 파일 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.photoCount}건</span>
@@ -895,18 +924,39 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                     </p>
                   )}
                 </div>
-                {!photosLoaded ? (
-                  <button
-                    onClick={loadPhotos}
-                    disabled={photosLoading || data.photoCount === 0}
-                    style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: photosLoading || data.photoCount === 0 ? 'default' : 'pointer', opacity: photosLoading || data.photoCount === 0 ? 0.6 : 1 }}
-                  >{photosLoading ? '불러오는 중...' : '불러오기'}</button>
-                ) : (
-                  <button onClick={loadPhotos} style={{ padding: '6px 14px', fontSize: 12, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>새로고침</button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {!photosLoaded ? (
+                    <button
+                      onClick={loadPhotos}
+                      disabled={photosLoading || data.photoCount === 0}
+                      style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: photosLoading || data.photoCount === 0 ? 'default' : 'pointer', opacity: photosLoading || data.photoCount === 0 ? 0.6 : 1 }}
+                    >{photosLoading ? '불러오는 중...' : '불러오기'}</button>
+                  ) : (
+                    <button onClick={loadPhotos} disabled={photosLoading} style={{ padding: '6px 14px', fontSize: 12, color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', cursor: photosLoading ? 'default' : 'pointer' }}>
+                      {photosLoading ? '불러오는 중...' : '새로고침'}
+                    </button>
+                  )}
+                </div>
               </div>
+              {photosLoaded && allLoadedPhotos.length > newPhotoIds.size && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <button
+                    onClick={toggleShowSeenPhotos}
+                    style={{ padding: '4px 10px', fontSize: 12, color: '#2563EB', border: '1px solid #DBEAFE', borderRadius: 6, background: '#EFF6FF', cursor: 'pointer' }}
+                  >
+                    {showSeenPhotos
+                      ? '새 사진만 보기'
+                      : `이미 확인한 사진 ${allLoadedPhotos.length - newPhotoIds.size}건 숨김 — 전체보기`}
+                  </button>
+                  <button onClick={clearSeenPhotoHistory} style={{ padding: 0, fontSize: 12, color: '#9CA3AF', border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                    확인 기록 초기화
+                  </button>
+                </div>
+              )}
               {!photosLoaded ? null : photos.length === 0 ? (
-                <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>파일 없음</p>
+                <p style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', padding: '24px 0', margin: 0 }}>
+                  {showSeenPhotos ? '파일 없음' : '새로 확인할 사진이 없습니다.'}
+                </p>
               ) : (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
