@@ -492,6 +492,22 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
   );
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+  const copyEmail = async (id: string, email: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+    } catch {
+      // 클립보드 API를 사용할 수 없는 환경 대비 폴백
+      const ta = document.createElement('textarea');
+      ta.value = email;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedEmailId(id);
+    setTimeout(() => setCopiedEmailId(prev => (prev === id ? null : prev)), 1200);
+  };
 
   // ── 비밀번호 초기화 ──
   const [pwQuery, setPwQuery] = useState('');
@@ -805,11 +821,21 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                               <td style={{ ...td, color: '#9CA3AF' }}>{u.no ?? '-'}</td>
                               <td style={td}>
                                 <button
-                                  onClick={() => setSelectedUser(u)}
-                                  style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 13, textDecoration: 'none', padding: 0 }}
-                                >{u.email}</button>
+                                  onClick={() => copyEmail(u.id, u.email)}
+                                  title="클릭하면 이메일이 복사됩니다"
+                                  style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0,
+                                    color: copiedEmailId === u.id ? '#16A34A' : '#374151',
+                                    fontWeight: copiedEmailId === u.id ? 600 : 400,
+                                  }}
+                                >{copiedEmailId === u.id ? '복사됨 ✓' : u.email}</button>
                               </td>
-                              <td style={td}>{u.nickname}</td>
+                              <td style={td}>
+                                <button
+                                  onClick={() => setSelectedUser(u)}
+                                  style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline', textDecorationColor: '#E5E7EB' }}
+                                >{u.nickname}</button>
+                              </td>
                               <td style={td}><ProviderBadge provider={u.provider} /></td>
                               <td style={{ ...td, color: '#9CA3AF' }}>{fmt(u.createdAt)}</td>
                               <td style={td}>
