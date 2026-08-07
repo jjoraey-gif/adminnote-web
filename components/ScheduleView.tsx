@@ -221,7 +221,8 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ flex: '0 0 58%', minWidth: 0 }}>
       {/* 월 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <button onClick={prevMonth} style={navBtn}>‹</button>
@@ -342,10 +343,12 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           );
         })}
       </div>
+      </div>
 
       {/* 선택 날짜 패널 */}
-      {selectedDay && (
-        <div style={{ marginTop: 16 }}>
+      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+      {selectedDay ? (
+        <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
               {month + 1}월 {selectedDay}일 일정
@@ -440,7 +443,12 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             </div>
           )}
         </div>
+      ) : (
+        <div style={{ padding: 20, textAlign: 'center', color: '#9CA3AF', fontSize: 14, background: '#F9FAFB', borderRadius: 12 }}>
+          날짜를 선택하세요.
+        </div>
       )}
+      </div>
     </div>
   );
 }
