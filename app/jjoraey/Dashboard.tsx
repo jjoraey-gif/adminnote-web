@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { getSeenPhotoIds, markPhotosSeen, resetSeenPhotos } from '@/lib/seenPhotosCache';
 
 interface PersonalUser {
   id: string; email: string; nickname: string; provider: string; createdAt: string; grade: string; no?: number;
@@ -12,7 +11,7 @@ interface SharedUser {
 }
 interface PhotoItem {
   id: string; filePath: string; fileName: string; fileSize: number;
-  expiresAt: string; createdAt: string; deletedAt: string | null;
+  expiresAt: string; createdAt: string; deletedAt: string | null; isNew: boolean;
   thumbUrl: string; fullUrl: string;
   uploaderEmail: string; uploaderName: string;
 }
@@ -457,15 +456,12 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
       const res = await fetch(`/api/admin-photos?limit=${PHOTO_FETCH_LIMIT}`);
       const body = await res.json();
       const fetched: PhotoItem[] = body.photos ?? [];
-      // 이전에 이미 확인했던 사진은 목록에서 제외하고, 처음 보는 사진만 기본으로 보여준다
-      // (같은 사진을 새로고침할 때마다 다시 내려받는 Egress 낭비 방지)
-      const seenBefore = getSeenPhotoIds();
-      const freshIds = new Set(fetched.filter(p => !seenBefore.has(p.id)).map(p => p.id));
+      // "확인함" 여부는 서버(DB)의 isNew 필드로 판별한다 — 어느 컴퓨터에서 조회해도 동일하게 유지됨
+      const freshIds = new Set(fetched.filter(p => p.isNew).map(p => p.id));
       setAllLoadedPhotos(fetched);
       setNewPhotoIds(freshIds);
       setShowSeenPhotos(false);
       setPhotos(fetched.filter(p => freshIds.has(p.id)));
-      markPhotosSeen(fetched.map(p => p.id));
       setPhotosLoaded(true);
       setPhotoPage(1);
     } catch {
@@ -484,9 +480,13 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
     });
   };
 
-  const clearSeenPhotoHistory = () => {
+  const clearSeenPhotoHistory = async () => {
     if (!confirm('확인 기록을 초기화하면 다음 조회 시 모든 사진이 다시 "새 사진"으로 표시됩니다. 계속할까요?')) return;
-    resetSeenPhotos();
+    try {
+      await fetch('/api/admin-reset-seen-photos', { method: 'POST' });
+    } catch {
+      alert('초기화에 실패했습니다.');
+    }
   };
   const [grades, setGrades] = useState<Record<string, string>>(
     Object.fromEntries(data.personal.map(u => [u.id, u.grade ?? 'normal']))
@@ -991,22 +991,21 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                       return (
                         <div
                           key={p.id}
-                          onClick={() => !isDeleted && p.fullUrl && setSelectedPhoto(p)}
+                          onClick={() => p.fullUrl && setSelectedPhoto(p)}
                           style={{
                             borderRadius: 10, overflow: 'hidden',
                             border: `1px solid ${isDeleted ? '#FCA5A5' : '#F3F4F6'}`,
                             position: 'relative',
-                            cursor: isDeleted ? 'default' : 'pointer',
-                            opacity: isDeleted ? 0.7 : 1,
+                            cursor: p.fullUrl ? 'pointer' : 'default',
                             transition: 'transform 0.15s, box-shadow 0.15s',
                           }}
-                          onMouseEnter={e => { if (!isDeleted) { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; } }}
+                          onMouseEnter={e => { if (p.fullUrl) { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; } }}
                           onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
                         >
                           {p.thumbUrl ? (
                             <img src={p.thumbUrl} alt={p.fileName}
                               loading="lazy" decoding="async"
-                              style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', filter: isDeleted ? 'grayscale(60%)' : 'none' }} />
+                              style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
                           ) : (
                             <div style={{ width: '100%', aspectRatio: '1', background: isDeleted ? '#FEE2E2' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ fontSize: 32 }}>📄</span>
@@ -1019,7 +1018,7 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                               fontSize: 10, fontWeight: 700,
                               padding: '2px 7px', borderRadius: 99,
                             }}>
-                              삭제됨
+                              유저 삭제
                             </div>
                           )}
                           <div style={{ padding: '6px 8px', background: isDeleted ? '#FFF5F5' : '#fff' }}>

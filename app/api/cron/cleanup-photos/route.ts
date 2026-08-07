@@ -22,18 +22,31 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  // 만료된 레코드 조회
-  const { data: expired, error } = await adminSupabase
+  const nowIso = new Date().toISOString();
+  // 유저가 삭제한 파일은 관리자 조회를 위해 3일간 유예를 준다 (admin-photos API의 그레이스 기간과 동일해야 함)
+  const DELETE_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+  const deleteGraceThresholdIso = new Date(Date.now() - DELETE_GRACE_MS).toISOString();
+
+  // 정리 대상 후보 조회: 자연 만료(expires_at 경과) 또는 유저가 삭제한(deleted_at) 레코드
+  const { data: candidates, error } = await adminSupabase
     .from('photo_transfers')
-    .select('id, file_path, thumb_path')
-    .lt('expires_at', new Date().toISOString());
+    .select('id, file_path, thumb_path, expires_at, deleted_at')
+    .or(`expires_at.lt.${nowIso},deleted_at.not.is.null`);
 
   if (error) {
     console.error('[cleanup-photos] DB 조회 실패:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  if (!expired || expired.length === 0) {
+  // 실제 영구 삭제 대상 판별
+  // - 유저가 삭제한 경우: 삭제 후 3일이 지나야 영구 삭제 (그 전에는 관리자가 조회 가능해야 함)
+  // - 유저가 삭제하지 않은 경우: 원래 만료 시각(expires_at)이 지나면 삭제
+  const expired = (candidates ?? []).filter(r => {
+    if (r.deleted_at) return r.deleted_at < deleteGraceThresholdIso;
+    return r.expires_at < nowIso;
+  });
+
+  if (expired.length === 0) {
     return NextResponse.json({ deleted: 0, message: '삭제할 항목 없음' });
   }
 

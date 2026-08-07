@@ -420,9 +420,8 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     if (photos.length === 0) return;
     if (!confirm(`파일 ${photos.length}개를 모두 삭제하시겠습니까?`)) return;
     const supabase = createClient();
-    // 원본 + 썸네일을 함께 제거 (썸네일이 남아 스토리지를 차지하지 않도록)
-    const paths = photos.flatMap(p => p.thumb_path ? [p.file_path, p.thumb_path] : [p.file_path]);
-    await supabase.storage.from(BUCKET).remove(paths);
+    // 소프트 삭제만 수행 — 실제 스토리지 파일은 3일간 남겨 관리자가 조회할 수 있게 한다.
+    // (서버 크론이 삭제 후 3일이 지나면 영구 삭제한다)
     await supabase.from('photo_transfers')
       .update({ deleted_at: new Date().toISOString() })
       .in('id', photos.map(p => p.id));
@@ -433,11 +432,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const deletePhoto = async (photo: PhotoMeta) => {
     if (!confirm(`"${photo.file_name}" 을 삭제하시겠습니까?`)) return;
     const supabase = createClient();
-    // 스토리지 실제 삭제 (공간 확보) — 썸네일도 함께 제거
-    await supabase.storage.from(BUCKET).remove(
-      photo.thumb_path ? [photo.file_path, photo.thumb_path] : [photo.file_path]
-    );
-    // DB 소프트 삭제 (오늘 업로드 용량 추적 유지)
+    // DB 소프트 삭제만 수행 — 스토리지 파일은 3일간 그대로 남겨둔다 (관리자 조회용)
     await supabase.from('photo_transfers').update({ deleted_at: new Date().toISOString() }).eq('id', photo.id);
     setPhotos(prev => prev.filter(p => p.id !== photo.id));
     if (preview?.id === photo.id) setPreview(null);
