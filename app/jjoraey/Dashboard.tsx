@@ -1028,6 +1028,9 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>
                               {p.uploaderName !== '-' ? p.uploaderName : p.uploaderEmail.split('@')[0]}
                             </div>
+                            <div style={{ fontSize: 10, color: '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.uploaderEmail}
+                            </div>
                             <div style={{ fontSize: 10, color: '#9CA3AF' }}>
                               {fmt(p.createdAt)}
                             </div>
