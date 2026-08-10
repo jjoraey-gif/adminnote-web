@@ -350,7 +350,12 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 116, maxHeight: 'calc(100vh - 136px)', overflowY: 'auto' }}>
       {selectedDay ? (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          {/* 패널 안에서 일정 목록을 스크롤해도 날짜 제목 + 추가 버튼은 계속 보이도록 패널 내부에서도 상단에 고정 */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            position: 'sticky', top: 0, zIndex: 2, background: '#fff',
+            paddingTop: 14, paddingBottom: 10, marginBottom: 6,
+          }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
               {month + 1}월 {selectedDay}일 일정
               {KOREAN_HOLIDAYS[toDateStr(year, month, selectedDay)] && (
