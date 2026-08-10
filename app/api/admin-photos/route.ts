@@ -29,28 +29,41 @@ export async function GET(request: NextRequest) {
 
   const now = Date.now();
 
-  // 유저가 삭제한 파일도 삭제 시점으로부터 3일간은 관리자가 조회할 수 있어야 하므로
-  // expires_at 기준으로 미리 걸러내지 않고 최근 생성 순으로 가져온 뒤 아래에서 직접 판별한다.
-  const [{ data: photoRows, error }, { data: profiles }, { data: authData }] = await Promise.all([
+  // 유저 삭제 후 관리자에게 계속 보여줄 그레이스 기간 (서버 크론의 영구 삭제 유예와 동일해야 함)
+  const DELETE_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+  const graceThresholdIso = new Date(now - DELETE_GRACE_MS).toISOString();
+
+  const SELECT_COLS = 'id, user_id, file_path, thumb_path, file_name, file_size, expires_at, created_at, deleted_at, admin_seen_at';
+
+  // 최근 업로드 상위 N건만 가져오면, 오래전에 올렸다가 "지금" 삭제한 사진은 순위 밖으로 밀려나
+  // 그레이스 기간 안인데도 목록에서 통째로 빠지는 문제가 있었다.
+  // → ①최근 업로드 상위 N건 ②삭제 후 그레이스 기간 안인 모든 건을 각각 조회해 합친다.
+  const [{ data: recentRows, error }, { data: gracePeriodRows, error: graceErr }, { data: profiles }, { data: authData }] = await Promise.all([
     adminSupabase
       .from('photo_transfers')
-      .select('id, user_id, file_path, thumb_path, file_name, file_size, expires_at, created_at, deleted_at, admin_seen_at')
+      .select(SELECT_COLS)
       .order('created_at', { ascending: false })
       .limit(limit),
+    adminSupabase
+      .from('photo_transfers')
+      .select(SELECT_COLS)
+      .gt('deleted_at', graceThresholdIso),
     adminSupabase.from('profiles').select('id, nickname, org_name'),
     adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
-  if (error) {
-    console.error('[admin-photos]', error);
+  if (error || graceErr) {
+    console.error('[admin-photos]', error ?? graceErr);
     return NextResponse.json({ error: '파일 목록을 불러올 수 없습니다.' }, { status: 500 });
   }
 
-  // 유저 삭제 후 관리자에게 계속 보여줄 그레이스 기간 (서버 크론의 영구 삭제 유예와 동일해야 함)
-  const DELETE_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+  const mergedById = new Map<string, NonNullable<typeof recentRows>[number]>();
+  [...(recentRows ?? []), ...(gracePeriodRows ?? [])].forEach(p => mergedById.set(p.id, p));
+  const photoRows = Array.from(mergedById.values())
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   // 삭제 안 된 파일은 원래 만료(expires_at) 전까지, 삭제된 파일은 삭제 후 3일간 조회 가능
-  const visibleRows = (photoRows ?? []).filter(p => {
+  const visibleRows = photoRows.filter(p => {
     if (p.deleted_at) return now - new Date(p.deleted_at).getTime() < DELETE_GRACE_MS;
     return new Date(p.expires_at).getTime() > now;
   });

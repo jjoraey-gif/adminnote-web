@@ -870,19 +870,26 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                     disabled={personalPage === 1}
                     style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === 1 ? 'default' : 'pointer', opacity: personalPage === 1 ? 0.4 : 1 }}
                   >‹</button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setPersonalPage(page)}
-                      style={{
-                        padding: '5px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer',
-                        border: page === personalPage ? '1px solid #2563EB' : '1px solid #E5E7EB',
-                        background: page === personalPage ? '#2563EB' : '#fff',
-                        color: page === personalPage ? '#fff' : '#374151',
-                        fontWeight: page === personalPage ? 700 : 400,
-                      }}
-                    >{page}</button>
-                  ))}
+                  {(() => {
+                    // 페이지 번호는 최대 10개까지만 보이고, 나머지는 ‹ › 로 넘긴다
+                    const PAGE_WINDOW = 10;
+                    let startPage = Math.max(1, personalPage - Math.floor(PAGE_WINDOW / 2));
+                    let endPage = Math.min(totalPages, startPage + PAGE_WINDOW - 1);
+                    startPage = Math.max(1, endPage - PAGE_WINDOW + 1);
+                    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setPersonalPage(page)}
+                        style={{
+                          padding: '5px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer',
+                          border: page === personalPage ? '1px solid #2563EB' : '1px solid #E5E7EB',
+                          background: page === personalPage ? '#2563EB' : '#fff',
+                          color: page === personalPage ? '#fff' : '#374151',
+                          fontWeight: page === personalPage ? 700 : 400,
+                        }}
+                      >{page}</button>
+                    ));
+                  })()}
                   <button
                     onClick={() => setPersonalPage(p => Math.min(totalPages, p + 1))}
                     disabled={personalPage === totalPages}
