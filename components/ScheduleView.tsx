@@ -346,7 +346,8 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       </div>
 
       {/* 선택 날짜 패널 */}
-      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+      {/* top은 상단 헤더(높이 100px, sticky)에 가리지 않도록 헤더 높이보다 아래로 잡아야 한다 */}
+      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 116, maxHeight: 'calc(100vh - 136px)', overflowY: 'auto' }}>
       {selectedDay ? (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
