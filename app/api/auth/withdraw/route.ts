@@ -4,10 +4,23 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    // 일부 네트워크 환경(사내/기관 프록시 등)에서 커스텀 Authorization 헤더가
+    // 중간에 걸러지는 경우가 있어, 헤더가 없으면 요청 본문의 토큰을 폴백으로 사용한다.
+    let accessToken = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : null;
+
+    if (!accessToken) {
+      try {
+        const body = await request.json();
+        if (typeof body?.accessToken === 'string') accessToken = body.accessToken;
+      } catch {
+        // 본문이 없거나 JSON이 아니면 무시 — 아래에서 401 처리
+      }
+    }
+
+    if (!accessToken) {
+      console.error('[withdraw] Authorization 헤더/본문에 토큰 없음. authHeader 존재 여부:', !!authHeader);
       return NextResponse.json({ error: '인증 정보가 없습니다.' }, { status: 401 });
     }
-    const accessToken = authHeader.replace('Bearer ', '');
 
     const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
