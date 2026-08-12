@@ -1,18 +1,24 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { TodoItem } from '@/lib/useSnapshot';
+import { useCallback, useMemo, useState } from 'react';
+import { TodoItem, TodoTopic } from '@/lib/useSnapshot';
 
 interface Props {
   todos: TodoItem[];
-  onAdd: (title: string, date?: string) => void;
+  topics: TodoTopic[];
+  onAdd: (title: string, date?: string, topicId?: string) => void;
   onUpdate: (id: string, title: string, date: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onAddTopic: (name: string) => void;
+  onRenameTopic: (id: string, name: string) => void;
+  onDeleteTopic: (id: string) => void;
+  onReorderTopics: (ids: string[]) => void;
 }
 
-type MainTab = 'today' | 'recent';
+type MainTab = 'today' | 'upcoming' | 'recent';
 type Filter = 'today' | 'all' | 'completed';
+const ALL_TOPICS = 'all';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -23,6 +29,14 @@ function localDateStr(d: Date) {
 function dateLabel(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+}
+
+// "내일 · 8월 5일 (수)" 형태의 섹션 헤더용 라벨
+function sectionDateLabel(dateStr: string, today: string) {
+  const base = dateLabel(dateStr);
+  const diff = Math.round((new Date(dateStr + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / 86400000);
+  if (diff === 1) return `내일 · ${base}`;
+  return base;
 }
 
 function EditModal({ todo, onClose, onSave }: { todo: TodoItem; onClose: () => void; onSave: (title: string, date: string) => void }) {
@@ -78,6 +92,105 @@ function EditModal({ todo, onClose, onSave }: { todo: TodoItem; onClose: () => v
   );
 }
 
+// 주제 관리 모달 — 이름 변경 / 순서 변경 / 삭제 / 추가
+function TopicManagerModal({ topics, activeTopicId, onClose, onAdd, onRename, onDelete, onReorder, onDeleteActive }: {
+  topics: TodoTopic[];
+  activeTopicId: string;
+  onClose: () => void;
+  onAdd: (name: string) => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  onReorder: (ids: string[]) => void;
+  onDeleteActive: () => void;
+}) {
+  const sorted = useMemo(() => [...topics].sort((a, b) => a.sortOrder - b.sortOrder), [topics]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [newName, setNewName] = useState('');
+
+  const nameFor = (t: TodoTopic) => drafts[t.id] ?? t.name;
+  const commit = (t: TodoTopic) => {
+    const v = (drafts[t.id] ?? t.name).trim();
+    if (v && v !== t.name) onRename(t.id, v);
+  };
+  const move = (t: TodoTopic, offset: number) => {
+    const ids = sorted.map(x => x.id);
+    const idx = ids.indexOf(t.id);
+    const target = idx + offset;
+    if (target < 0 || target >= ids.length) return;
+    [ids[idx], ids[target]] = [ids[target], ids[idx]];
+    onReorder(ids);
+  };
+  const remove = (t: TodoTopic) => {
+    if (sorted.length <= 1) return;
+    if (!confirm(`"${t.name || '(제목없음)'}" 주제를 삭제하시겠습니까?\n이 주제의 할 일은 남은 첫 주제로 옮겨집니다.`)) return;
+    onDelete(t.id);
+    if (activeTopicId === t.id) onDeleteActive();
+  };
+  const add = () => {
+    const v = newName.trim();
+    if (!v) return;
+    onAdd(v);
+    setNewName('');
+  };
+
+  return (
+    <div
+      onMouseDown={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onMouseDown={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 16, width: 420, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>주제 관리</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+        </div>
+        <div style={{ padding: '16px 20px', maxHeight: 340, overflowY: 'auto' }}>
+          {sorted.map((t, idx) => (
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <input
+                value={nameFor(t)}
+                onChange={e => setDrafts(d => ({ ...d, [t.id]: e.target.value }))}
+                onBlur={() => commit(t)}
+                onKeyDown={e => e.key === 'Enter' && commit(t)}
+                placeholder="주제 이름"
+                style={{ flex: 1, padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, outline: 'none' }}
+              />
+              <button onClick={() => move(t, -1)} disabled={idx === 0} style={iconBtnStyle(idx === 0)}>▲</button>
+              <button onClick={() => move(t, 1)} disabled={idx === sorted.length - 1} style={iconBtnStyle(idx === sorted.length - 1)}>▼</button>
+              <button onClick={() => remove(t)} disabled={sorted.length <= 1} style={iconBtnStyle(sorted.length <= 1, '#EF4444')}>✕</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, padding: '0 20px 20px' }}>
+          <input
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && add()}
+            placeholder="+ 새 주제 추가"
+            style={{ flex: 1, padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none' }}
+          />
+          <button
+            onClick={add}
+            style={{
+              padding: '0 18px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              background: newName.trim() ? '#2563EB' : '#E5E7EB', color: newName.trim() ? '#fff' : '#9CA3AF',
+            }}
+          >추가</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function iconBtnStyle(disabled: boolean, color = '#6B7280'): React.CSSProperties {
+  return {
+    width: 30, height: 30, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff',
+    color: disabled ? '#D1D5DB' : color, fontSize: 12, cursor: disabled ? 'default' : 'pointer',
+  };
+}
+
 function TodoRow({ todo, onToggle, onEdit, onDelete }: { todo: TodoItem; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
     <div style={{
@@ -104,21 +217,31 @@ function TodoRow({ todo, onToggle, onEdit, onDelete }: { todo: TodoItem; onToggl
         }}>{todo.title}</div>
         {todo.date && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{todo.date}</div>}
       </div>
-      <button onClick={onEdit} title="수정" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#9CA3AF', padding: '4px', lineHeight: 1, flexShrink: 0 }}>✏️</button>
+      <button onClick={onEdit} title="수정 (제목/날짜)" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#9CA3AF', padding: '4px', lineHeight: 1, flexShrink: 0 }}>✏️</button>
       <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#D1D5DB', padding: '4px', lineHeight: 1, flexShrink: 0 }}>✕</button>
     </div>
   );
 }
 
-export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }: Props) {
+export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onDelete, onAddTopic, onRenameTopic, onDeleteTopic, onReorderTopics }: Props) {
   const [mainTab, setMainTab] = useState<MainTab>('today');
   const [filter, setFilter] = useState<Filter>('today');
   const [input, setInput] = useState('');
   const [editing, setEditing] = useState<TodoItem | null>(null);
+  const [activeTopicId, setActiveTopicId] = useState<string>(ALL_TOPICS);
+  const [topicManagerOpen, setTopicManagerOpen] = useState(false);
 
   const todayStr = localDateStr(new Date());
+  const [addDate, setAddDate] = useState(todayStr);
 
-  const isTodayItem = (t: TodoItem) => {
+  const sortedTopics = useMemo(() => [...topics].sort((a, b) => a.sortOrder - b.sortOrder), [topics]);
+
+  const matchesTopic = useCallback(
+    (t: TodoItem) => activeTopicId === ALL_TOPICS || t.topicId === activeTopicId,
+    [activeTopicId],
+  );
+
+  const isTodayItem = useCallback((t: TodoItem) => {
     if (t.date === todayStr || t.date === '') return true;
     if (t.date < todayStr) {
       if (!t.isCompleted) return true;
@@ -127,9 +250,11 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
       }
     }
     return false;
-  };
+  }, [todayStr]);
 
-  const filtered = todos.filter(t => {
+  const topicTodos = useMemo(() => todos.filter(matchesTopic), [todos, matchesTopic]);
+
+  const filtered = topicTodos.filter(t => {
     if (filter === 'today') return isTodayItem(t);
     if (filter === 'completed') return t.isCompleted;
     return true;
@@ -138,13 +263,27 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
     return a.sortOrder - b.sortOrder;
   });
 
-  const todayCount = todos.filter(isTodayItem).length;
-  const todayDone = todos.filter(t => isTodayItem(t) && t.isCompleted).length;
+  const todayCount = topicTodos.filter(isTodayItem).length;
+  const todayDone = topicTodos.filter(t => isTodayItem(t) && t.isCompleted).length;
+
+  // 예정: 아직 오지 않은 날짜의 미완료 항목, 날짜별 그룹
+  const upcomingByDate = useMemo(() => {
+    const items = topicTodos
+      .filter(t => !t.isCompleted && t.date > todayStr)
+      .sort((a, b) => a.date === b.date ? a.sortOrder - b.sortOrder : a.date.localeCompare(b.date));
+    const map = new Map<string, TodoItem[]>();
+    for (const t of items) {
+      if (!map.has(t.date)) map.set(t.date, []);
+      map.get(t.date)!.push(t);
+    }
+    return Array.from(map.entries());
+  }, [topicTodos, todayStr]);
+  const upcomingTotal = upcomingByDate.reduce((s, [, items]) => s + items.length, 0);
 
   // 최근한달: 30일 내 완료 항목, 날짜별 그룹
   const recentByDate = useMemo(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const items = todos
+    const items = topicTodos
       .filter(t => t.isCompleted && t.completedDate != null && t.completedDate >= cutoff)
       .sort((a, b) => (b.completedDate ?? 0) - (a.completedDate ?? 0));
     const map = new Map<string, TodoItem[]>();
@@ -154,23 +293,52 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
       map.get(d)!.push(t);
     }
     return Array.from(map.entries());
-  }, [todos]);
+  }, [topicTodos]);
 
   const recentTotal = recentByDate.reduce((s, [, items]) => s + items.length, 0);
 
   const handleAdd = () => {
     const title = input.trim();
     if (!title) return;
-    onAdd(title, todayStr);
+    onAdd(title, addDate, activeTopicId === ALL_TOPICS ? undefined : activeTopicId);
     setInput('');
   };
+
+  const AddRow = (
+    <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <input
+        type="date"
+        value={addDate}
+        onChange={e => setAddDate(e.target.value)}
+        style={{
+          height: 44, padding: '0 10px', border: '1px solid #E5E7EB', borderRadius: 10,
+          fontSize: 13, outline: 'none', color: '#2563EB', background: '#EFF6FF', fontWeight: 600,
+        }}
+      />
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        placeholder="할 일을 입력하세요 (Enter)"
+        style={{
+          flex: 1, height: 44, padding: '0 14px',
+          border: '1px solid #E5E7EB', borderRadius: 10,
+          fontSize: 14, outline: 'none', color: '#1C1C1E',
+        }}
+      />
+      <button onClick={handleAdd} style={{
+        height: 44, padding: '0 20px', background: '#2563EB', color: '#fff',
+        border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+      }}>추가</button>
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-      {/* 메인 탭 — 오늘 / 최근한달 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['today', 'recent'] as MainTab[]).map(tab => (
+      {/* 메인 탭 — 오늘 / 예정 / 최근한달 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {(['today', 'upcoming', 'recent'] as MainTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setMainTab(tab)}
@@ -181,9 +349,40 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
               color: mainTab === tab ? '#fff' : '#6B7280',
             }}
           >
-            {tab === 'today' ? '오늘' : '최근 한달'}
+            {tab === 'today' ? '오늘' : tab === 'upcoming' ? '예정' : '최근 한달'}
           </button>
         ))}
+      </div>
+
+      {/* 주제 칩 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 20 }}>
+        <button
+          onClick={() => setActiveTopicId(ALL_TOPICS)}
+          style={{
+            padding: '6px 14px', borderRadius: 15, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
+            background: activeTopicId === ALL_TOPICS ? '#1C1C1E' : '#F0F0F5',
+            color: activeTopicId === ALL_TOPICS ? '#fff' : '#6B7280',
+          }}
+        >전체</button>
+        {sortedTopics.map(topic => (
+          <button
+            key={topic.id}
+            onClick={() => setActiveTopicId(topic.id)}
+            style={{
+              padding: '6px 14px', borderRadius: 15, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: activeTopicId === topic.id ? '#1C1C1E' : '#F0F0F5',
+              color: activeTopicId === topic.id ? '#fff' : '#6B7280',
+            }}
+          >{topic.name || '(제목없음)'}</button>
+        ))}
+        <button
+          onClick={() => setTopicManagerOpen(true)}
+          title="주제 관리"
+          style={{
+            width: 28, height: 28, borderRadius: 14, border: 'none', background: '#F0F0F5',
+            color: '#6B7280', fontSize: 13, cursor: 'pointer', marginLeft: 2,
+          }}
+        >⚙</button>
       </div>
 
       {mainTab === 'today' ? (
@@ -220,24 +419,8 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
             )}
           </div>
 
-          {/* 할 일 추가 */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              placeholder="할 일을 입력하세요 (Enter)"
-              style={{
-                flex: 1, height: 44, padding: '0 14px',
-                border: '1px solid #E5E7EB', borderRadius: 10,
-                fontSize: 14, outline: 'none', color: '#1C1C1E',
-              }}
-            />
-            <button onClick={handleAdd} style={{
-              height: 44, padding: '0 20px', background: '#2563EB', color: '#fff',
-              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            }}>추가</button>
-          </div>
+          {/* 할 일 추가 — 날짜 지정 가능 (미래 날짜 기록) */}
+          {AddRow}
 
           {/* 서브 필터 탭 */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -266,6 +449,53 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
                   onEdit={() => setEditing(todo)}
                   onDelete={() => onDelete(todo.id)}
                 />
+              ))}
+            </div>
+          )}
+        </>
+      ) : mainTab === 'upcoming' ? (
+        <>
+          {/* 예정 헤더 */}
+          <div style={{
+            padding: '14px 20px', background: '#EFF6FF', borderRadius: 14,
+            border: '1px solid #BFDBFE', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 20 }}>🗓️</span>
+            <div>
+              <div style={{ fontSize: 14, color: '#1D4ED8', fontWeight: 600, marginBottom: 2 }}>예정된 할 일</div>
+              <div style={{ fontSize: 13, color: '#3B82F6' }}>
+                {upcomingTotal === 0 ? '예정된 항목이 없습니다' : `총 ${upcomingTotal}건`}
+              </div>
+            </div>
+          </div>
+
+          {/* 미래 날짜로 할 일 추가 */}
+          {AddRow}
+
+          {upcomingByDate.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+              예정된 할 일이 없습니다. 위에서 날짜를 미래로 지정해 추가해보세요.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {upcomingByDate.map(([dateStr, items]) => (
+                <div key={dateStr}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', marginBottom: 8, paddingLeft: 4 }}>
+                    {sectionDateLabel(dateStr, todayStr)} · {items.length}건
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {items.map(todo => (
+                      <TodoRow
+                        key={todo.id}
+                        todo={todo}
+                        onToggle={() => onToggle(todo.id)}
+                        onEdit={() => setEditing(todo)}
+                        onDelete={() => onDelete(todo.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -325,6 +555,19 @@ export default function TodoView({ todos, onAdd, onUpdate, onToggle, onDelete }:
           todo={editing}
           onClose={() => setEditing(null)}
           onSave={(title, date) => onUpdate(editing.id, title, date)}
+        />
+      )}
+
+      {topicManagerOpen && (
+        <TopicManagerModal
+          topics={topics}
+          activeTopicId={activeTopicId}
+          onClose={() => setTopicManagerOpen(false)}
+          onAdd={onAddTopic}
+          onRename={onRenameTopic}
+          onDelete={onDeleteTopic}
+          onReorder={onReorderTopics}
+          onDeleteActive={() => setActiveTopicId(ALL_TOPICS)}
         />
       )}
     </div>

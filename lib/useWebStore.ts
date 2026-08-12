@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
-import { ScheduleEvent, TodoItem, SubProject, SnapshotData } from './useSnapshot';
+import { ScheduleEvent, TodoItem, TodoTopic, SubProject, SnapshotData } from './useSnapshot';
 
 export interface PromotionRecord { id: string; grade: string; date: string; note: string; }
 export interface AssignmentRecord { id: string; department: string; date: string; }
@@ -29,6 +29,19 @@ function uuid(): string {
   });
 }
 
+// 앱과 동일하게 최초에는 "기본" 주제 하나로 시작한다.
+function defaultTodoTopics(): TodoTopic[] {
+  return [{ id: uuid(), name: '기본', sortOrder: 0 }];
+}
+
+// 앱 쪽에서 먼저 마이그레이션된 데이터(topicId 없는 레거시 todos)도 웹에서 안전하게 다루기 위한 보정
+function ensureTodoTopics(topics: TodoTopic[], todos: TodoItem[]): { topics: TodoTopic[]; todos: TodoItem[] } {
+  const t = topics.length > 0 ? topics : defaultTodoTopics();
+  const fallbackId = t[0].id;
+  const fixedTodos = todos.map(item => item.topicId ? item : { ...item, topicId: fallbackId });
+  return { topics: t, todos: fixedTodos };
+}
+
 async function saveToSupabase(userId: string, data: Record<string, unknown>, updatedAt: string) {
   const supabase = createClient();
   const { error } = await supabase
@@ -40,6 +53,7 @@ async function saveToSupabase(userId: string, data: Record<string, unknown>, upd
 export function useWebStore(userId: string | undefined) {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [todoTopics, setTodoTopics] = useState<TodoTopic[]>([]);
   const [subProjects, setSubProjects] = useState<SubProject[]>([]);
   const [externalContacts, setExternalContacts] = useState<ExternalContact[]>([]);
   const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
@@ -54,7 +68,7 @@ export function useWebStore(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], subProjects: [], externalContacts: [], contactGroups: [], promotions: [], assignments: [], awards: [], careerInfo: defaultCareerInfo(), performanceRatings: [], pastPerformanceRatings: [], sameGradePromotions: [], orgDepartments: [] });
+  const dataRef = useRef<Record<string, unknown>>({ events: [], todos: [], todoTopics: [], subProjects: [], externalContacts: [], contactGroups: [], promotions: [], assignments: [], awards: [], careerInfo: defaultCareerInfo(), performanceRatings: [], pastPerformanceRatings: [], sameGradePromotions: [], orgDepartments: [] });
   // 아직 저장 안 된 데이터 (flush용)
   const pendingRef = useRef<Record<string, unknown> | null>(null);
   // 내가 마지막으로 저장한 updated_at (에코 방지용)
@@ -64,8 +78,8 @@ export function useWebStore(userId: string | undefined) {
 
   // 최신 state를 ref에 동기화 (모든 필드 포함 — 누락 시 push 때 해당 필드가 DB에서 삭제됨)
   useEffect(() => {
-    dataRef.current = { ...dataRef.current, events, todos, subProjects };
-  }, [events, todos, subProjects]);
+    dataRef.current = { ...dataRef.current, events, todos, todoTopics, subProjects };
+  }, [events, todos, todoTopics, subProjects]);
 
   useEffect(() => {
     dataRef.current = { ...dataRef.current, externalContacts, contactGroups };
@@ -96,10 +110,13 @@ export function useWebStore(userId: string | undefined) {
         if (row?.data) {
           const d = row.data as Record<string, unknown>;
           const ev = (d.events as ScheduleEvent[]) ?? [];
-          const td = (d.todos as TodoItem[]) ?? [];
+          const rawTd = (d.todos as TodoItem[]) ?? [];
+          const rawTopics = (d.todoTopics as TodoTopic[]) ?? [];
+          const { topics: tt, todos: td } = ensureTodoTopics(rawTopics, rawTd);
           const sp = (d.subProjects as SubProject[]) ?? [];
           setEvents(ev);
           setTodos(td);
+          setTodoTopics(tt);
           setSubProjects(sp);
           const ec = (d.externalContacts as ExternalContact[]) ?? [];
           const cg = (d.contactGroups as ContactGroup[]) ?? [];
@@ -121,7 +138,7 @@ export function useWebStore(userId: string | undefined) {
           setPastPerformanceRatings(pprf);
           setSameGradePromotions(sgp);
           setOrgDepartments(od);
-          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp, orgDepartments: od };
+          dataRef.current = { events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp, orgDepartments: od };
         }
         setLoading(false);
       });
@@ -199,10 +216,13 @@ export function useWebStore(userId: string | undefined) {
           // 원격 데이터 적용
           const d = payload.new.data as Record<string, unknown>;
           const ev = (d.events as ScheduleEvent[]) ?? [];
-          const td = (d.todos as TodoItem[]) ?? [];
+          const rawTd = (d.todos as TodoItem[]) ?? [];
+          const rawTopics = (d.todoTopics as TodoTopic[]) ?? [];
+          const { topics: tt, todos: td } = ensureTodoTopics(rawTopics, rawTd);
           const sp = (d.subProjects as SubProject[]) ?? [];
           setEvents(ev);
           setTodos(td);
+          setTodoTopics(tt);
           setSubProjects(sp);
           setExternalContacts((d.externalContacts as ExternalContact[]) ?? []);
           setContactGroups((d.contactGroups as ContactGroup[]) ?? []);
@@ -214,7 +234,7 @@ export function useWebStore(userId: string | undefined) {
           setPastPerformanceRatings((d.pastPerformanceRatings as PerformanceRating[]) ?? []);
           setSameGradePromotions((d.sameGradePromotions as SameGradePromotion[]) ?? []);
           setOrgDepartments((d.orgDepartments as OrgDepartment[]) ?? []);
-          dataRef.current = { events: ev, todos: td, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
+          dataRef.current = { events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
         },
       )
       .subscribe();
@@ -257,18 +277,19 @@ export function useWebStore(userId: string | undefined) {
   }, [push]);
 
   // ── 오늘할일 CRUD ──────────────────────────────────────────────────────────
-  const addTodo = useCallback((title: string, date?: string) => {
+  const addTodo = useCallback((title: string, date?: string, topicId?: string) => {
     setTodos(prev => {
+      const tId = topicId ?? todoTopics[0]?.id ?? '';
       const newTodo: TodoItem = {
         id: uuid(), title, date: date ?? new Date().toISOString().slice(0, 10),
         isCompleted: false, createdAt: Date.now(), completedDate: null,
-        sortOrder: prev.length,
+        sortOrder: prev.length, topicId: tId,
       };
       const next = [...prev, newTodo];
       push({ ...dataRef.current, todos: next });
       return next;
     });
-  }, [push]);
+  }, [push, todoTopics]);
 
   const toggleTodo = useCallback((id: string) => {
     setTodos(prev => {
@@ -292,6 +313,57 @@ export function useWebStore(userId: string | undefined) {
     setTodos(prev => {
       const next = prev.filter(t => t.id !== id);
       push({ ...dataRef.current, todos: next });
+      return next;
+    });
+  }, [push]);
+
+  const reorderTodos = useCallback((ids: string[]) => {
+    setTodos(prev => {
+      const order = new Map(ids.map((id, i) => [id, i] as const));
+      const next = prev.map(t => order.has(t.id) ? { ...t, sortOrder: order.get(t.id)! } : t);
+      push({ ...dataRef.current, todos: next });
+      return next;
+    });
+  }, [push]);
+
+  // ── 오늘할일 주제 CRUD ─────────────────────────────────────────────────────
+  const addTodoTopic = useCallback((name: string) => {
+    setTodoTopics(prev => {
+      const maxOrder = prev.reduce((m, x) => Math.max(m, x.sortOrder), -1);
+      const next = [...prev, { id: uuid(), name, sortOrder: maxOrder + 1 }];
+      push({ ...dataRef.current, todoTopics: next });
+      return next;
+    });
+  }, [push]);
+
+  const renameTodoTopic = useCallback((id: string, name: string) => {
+    setTodoTopics(prev => {
+      const next = prev.map(x => x.id === id ? { ...x, name } : x);
+      push({ ...dataRef.current, todoTopics: next });
+      return next;
+    });
+  }, [push]);
+
+  const deleteTodoTopic = useCallback((id: string) => {
+    setTodoTopics(prev => {
+      const remaining = prev.filter(x => x.id !== id);
+      if (remaining.length === 0) return prev; // 마지막 주제는 삭제 불가
+      const fallbackId = remaining[0].id;
+      // 삭제되는 주제에 속한 할 일은 남은 첫 주제로 재배정
+      setTodos(prevTodos => {
+        const nextTodos = prevTodos.map(t => t.topicId === id ? { ...t, topicId: fallbackId } : t);
+        push({ ...dataRef.current, todos: nextTodos, todoTopics: remaining });
+        return nextTodos;
+      });
+      return remaining;
+    });
+  }, [push]);
+
+  const reorderTodoTopics = useCallback((ids: string[]) => {
+    setTodoTopics(prev => {
+      const order = new Map(ids.map((id, i) => [id, i] as const));
+      const next = prev.map(x => order.has(x.id) ? { ...x, sortOrder: order.get(x.id)! } : x);
+      push({ ...dataRef.current, todoTopics: next });
       return next;
     });
   }, [push]);
@@ -514,11 +586,12 @@ export function useWebStore(userId: string | undefined) {
   }, [push]);
 
   return {
-    events, todos, subProjects, externalContacts, contactGroups,
+    events, todos, todoTopics, subProjects, externalContacts, contactGroups,
     promotions, assignments, awards, careerInfo,
     performanceRatings, pastPerformanceRatings, sameGradePromotions, orgDepartments, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
-    addTodo, updateTodo, toggleTodo, deleteTodo,
+    addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
+    addTodoTopic, renameTodoTopic, deleteTodoTopic, reorderTodoTopics,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
     addContact, updateContact, deleteContact,
     addContactGroup, updateContactGroup, deleteContactGroup,

@@ -25,6 +25,14 @@ export interface TodoItem {
   createdAt: number;
   completedDate: number | null;
   sortOrder: number;
+  topicId: string;
+}
+
+// 오늘할 일 주제 (한 주제 안에 여러 항목을 묶는 단위) — 앱과 동일한 모델
+export interface TodoTopic {
+  id: string;
+  name: string;
+  sortOrder: number;
 }
 
 export interface Seomok {
@@ -58,6 +66,7 @@ export interface SubProject {
 export interface SnapshotData {
   events: ScheduleEvent[];
   todos: TodoItem[];
+  todoTopics: TodoTopic[];
   subProjects: SubProject[];
 }
 
@@ -80,6 +89,7 @@ export function useSnapshot(userId: string | undefined) {
           setData({
             events: (d.events as ScheduleEvent[]) ?? [],
             todos: (d.todos as TodoItem[]) ?? [],
+            todoTopics: (d.todoTopics as TodoTopic[]) ?? [],
             subProjects: (d.subProjects as SubProject[]) ?? [],
           });
         }

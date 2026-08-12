@@ -197,10 +197,15 @@ export default function MainLayout({ user, onLogout }: Props) {
               {currentTab === 'todo' && (
                 <TodoView
                   todos={store.todos}
+                  topics={store.todoTopics}
                   onAdd={store.addTodo}
                   onUpdate={store.updateTodo}
                   onToggle={store.toggleTodo}
                   onDelete={store.deleteTodo}
+                  onAddTopic={store.addTodoTopic}
+                  onRenameTopic={store.renameTodoTopic}
+                  onDeleteTopic={store.deleteTodoTopic}
+                  onReorderTopics={store.reorderTodoTopics}
                 />
               )}
               {currentTab === 'budget' && (
