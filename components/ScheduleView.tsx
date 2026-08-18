@@ -346,14 +346,15 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       </div>
 
       {/* 선택 날짜 패널 */}
-      {/* top은 상단 헤더(높이 100px, sticky)에 가리지 않도록 헤더 높이보다 아래로 잡아야 한다 */}
-      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 116, maxHeight: 'calc(100vh - 136px)', overflowY: 'auto' }}>
+      {/* top은 상단 헤더(높이 100px, sticky)에 가리지 않도록 헤더 높이보다 아래로 잡는다.
+          내부에 별도 스크롤 영역(overflow-y:auto)을 두지 않는다 — 중첩 스크롤 컨테이너가 있으면
+          패널 위에서 마우스 휠을 굴렸을 때 페이지가 아니라 패널 내부만 스크롤되어 버튼이
+          화면 스크롤과 함께 움직이지 않는 것처럼 보이는 문제가 있었다. */}
+      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 116, alignSelf: 'flex-start' }}>
       {selectedDay ? (
         <div>
-          {/* 패널 안에서 일정 목록을 스크롤해도 날짜 제목 + 추가 버튼은 계속 보이도록 패널 내부에서도 상단에 고정 */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            position: 'sticky', top: 0, zIndex: 2, background: '#fff',
             paddingTop: 14, paddingBottom: 10, marginBottom: 6,
           }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
