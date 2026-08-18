@@ -152,6 +152,8 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const fetchPhotos = useCallback(async () => {
     setLoading(true);
@@ -438,6 +440,76 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
     if (preview?.id === photo.id) setPreview(null);
   };
 
+  // ─── 선택 모드 ──────────────────────────────────────────────────────────────
+  const toggleSelectMode = () => {
+    setSelectMode(v => !v);
+    setSelectedIds(new Set());
+  };
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => setSelectedIds(new Set(photos.map(p => p.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+  const selectedPhotos = photos.filter(p => selectedIds.has(p.id));
+
+  // 선택 항목만 다운로드 — 전체 다운로드와 동일한 방식(폴더 선택 or 순차 다운로드)
+  const downloadSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+    setDownloadingAll(true);
+    setDownloadProgress('');
+    try {
+      if (window.showDirectoryPicker) {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' } as object);
+        for (let i = 0; i < selectedPhotos.length; i++) {
+          const photo = selectedPhotos[i];
+          setDownloadProgress(`저장 중... (${i + 1}/${selectedPhotos.length})`);
+          try {
+            const url = await getFreshSignedUrl(photo.file_path);
+            const blob = await fetchBlob(url);
+            const fileHandle = await dirHandle.getFileHandle(photo.file_name, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+          } catch {
+            // 개별 실패는 스킵
+          }
+        }
+        setDownloadProgress(`완료! ${selectedPhotos.length}장 저장됨`);
+        setTimeout(() => setDownloadProgress(''), 3000);
+      } else {
+        for (let i = 0; i < selectedPhotos.length; i++) {
+          const photo = selectedPhotos[i];
+          setDownloadProgress(`다운로드 중... (${i + 1}/${selectedPhotos.length})`);
+          await downloadPhoto(photo);
+          await new Promise(r => setTimeout(r, 400));
+        }
+        setDownloadProgress('');
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') alert(`선택 다운로드 실패: ${e.message}`);
+      setDownloadProgress('');
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  // 선택 항목만 삭제 — 소프트 삭제(스토리지는 3일간 유지)
+  const deleteSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+    if (!confirm(`선택한 파일 ${selectedPhotos.length}개를 삭제하시겠습니까?`)) return;
+    const supabase = createClient();
+    await supabase.from('photo_transfers')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', selectedPhotos.map(p => p.id));
+    setPhotos(prev => prev.filter(p => !selectedIds.has(p.id)));
+    setSelectedIds(new Set());
+    if (preview && selectedIds.has(preview.id)) setPreview(null);
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF' }}>불러오는 중...</div>;
   }
@@ -537,8 +609,13 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{uploadProgress || downloadProgress}</span>
           )}
           <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
-          <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>
-          {canUpload && (
+          {photos.length > 0 && (
+            <button onClick={toggleSelectMode} style={selectMode ? btnStyle('#2563EB', '#2563EB', '#fff') : btnStyle('#fff', '#E5E7EB', '#374151')}>
+              {selectMode ? '선택 취소' : '선택'}
+            </button>
+          )}
+          {!selectMode && <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>}
+          {canUpload && !selectMode && (
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
@@ -547,7 +624,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
               {uploading ? '업로드 중...' : (grade === 'vip' ? '+ 사진 추가' : '+ 파일 추가')}
             </button>
           )}
-          {photos.length > 0 && (
+          {photos.length > 0 && !selectMode && (
             <button
               onClick={downloadAll}
               disabled={downloadingAll}
@@ -566,6 +643,37 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           onChange={handleFileUpload}
         />
       </div>
+
+      {/* 선택 모드 액션 바 */}
+      {selectMode && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
+          padding: '10px 16px', margin: '-16px auto 24px', maxWidth: '90%',
+          background: '#F9FAFB', borderRadius: 12, border: '1px solid #E5E7EB',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{selectedIds.size}개 선택됨</span>
+            <button onClick={selectAll} style={btnStyle('#fff', '#E5E7EB', '#374151')}>전체선택</button>
+            <button onClick={clearSelection} style={btnStyle('#fff', '#E5E7EB', '#374151')}>선택해제</button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={downloadSelected}
+              disabled={selectedIds.size === 0 || downloadingAll}
+              style={{ ...btnStyle('#1C1C1E', '#1C1C1E', '#fff'), opacity: selectedIds.size === 0 || downloadingAll ? 0.5 : 1 }}
+            >
+              ⬇ 선택 다운로드
+            </button>
+            <button
+              onClick={deleteSelected}
+              disabled={selectedIds.size === 0}
+              style={{ ...btnStyle('#fff', '#FEE2E2', '#EF4444'), opacity: selectedIds.size === 0 ? 0.5 : 1 }}
+            >
+              🗑 선택 삭제
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 드래그&드롭 영역 — 목록/빈 상태 전체를 드롭 타겟으로 사용 */}
       <div
@@ -601,14 +709,29 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
           {photos.map(photo => {
             const img = isImage(photo.file_name);
+            const isSelected = selectedIds.has(photo.id);
             return (
-              <div key={photo.id} style={{ border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div key={photo.id} style={{
+                border: `1px solid ${selectMode && isSelected ? '#2563EB' : '#E5E7EB'}`,
+                borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}>
 
                 {/* 썸네일 or 파일 아이콘 */}
                 <div
-                  onClick={() => img && photo.signedUrl && setPreview(photo)}
-                  style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: img && photo.signedUrl ? 'zoom-in' : 'default' }}
+                  onClick={() => selectMode ? toggleSelected(photo.id) : (img && photo.signedUrl && setPreview(photo))}
+                  style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: selectMode ? 'pointer' : (img && photo.signedUrl ? 'zoom-in' : 'default') }}
                 >
+                  {selectMode && (
+                    <div style={{
+                      position: 'absolute', top: 8, left: 8, zIndex: 2,
+                      width: 22, height: 22, borderRadius: 6,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: isSelected ? '#2563EB' : 'rgba(255,255,255,0.85)',
+                      border: `2px solid ${isSelected ? '#2563EB' : '#D1D5DB'}`,
+                    }}>
+                      {isSelected && <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>✓</span>}
+                    </div>
+                  )}
                   {img && photo.thumbUrl ? (
                     <img
                       src={photo.thumbUrl}
@@ -636,21 +759,35 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>
                     {formatSize(photo.file_size)} · <span style={{ color: '#EF4444' }}>{daysLeft(photo.expires_at)}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  {selectMode ? (
                     <button
-                      onClick={() => downloadPhoto(photo)}
-                      disabled={downloading === photo.id}
-                      style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
+                      onClick={() => toggleSelected(photo.id)}
+                      style={{
+                        width: '100%', padding: '7px 0', fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: 'pointer',
+                        background: isSelected ? '#2563EB' : '#fff',
+                        color: isSelected ? '#fff' : '#374151',
+                        border: `1px solid ${isSelected ? '#2563EB' : '#E5E7EB'}`,
+                      }}
                     >
-                      {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
+                      {isSelected ? '선택됨' : '선택'}
                     </button>
-                    <button
-                      onClick={() => deletePhoto(photo)}
-                      style={{ padding: '7px 10px', fontSize: 12, background: '#fff', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: 7, cursor: 'pointer' }}
-                    >
-                      🗑
-                    </button>
-                  </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={() => downloadPhoto(photo)}
+                        disabled={downloading === photo.id}
+                        style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
+                      >
+                        {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
+                      </button>
+                      <button
+                        onClick={() => deletePhoto(photo)}
+                        style={{ padding: '7px 10px', fontSize: 12, background: '#fff', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: 7, cursor: 'pointer' }}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
