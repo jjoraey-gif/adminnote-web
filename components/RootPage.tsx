@@ -139,6 +139,28 @@ function AuthPage() {
         }
       </div>
 
+      {/* 앱 다운로드 링크 */}
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20, width: '100%', maxWidth: 380 }}>
+        <a
+          href="https://apps.apple.com/kr/app/%EA%B3%B5%EB%AC%B4%EC%9B%90-%EC%97%85%EB%AC%B4%EC%88%98%EC%B2%A9/id6760883601"
+          target="_blank"
+          rel="noreferrer"
+          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1C1C1E', color: '#fff', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+        >
+          <svg width="14" height="17" viewBox="0 0 20 24" fill="none"><path d="M16.5 12.4C16.48 9.86 18.6 8.61 18.7 8.55C17.48 6.74 15.55 6.51 14.88 6.49C13.28 6.31 11.73 7.41 10.9 7.41C10.06 7.41 8.78 6.51 7.43 6.54C5.66 6.57 4.01 7.59 3.1 9.19C1.22 12.41 2.63 17.1 4.44 19.69C5.35 20.96 6.41 22.38 7.8 22.33C9.15 22.28 9.65 21.49 11.28 21.49C12.9 21.49 13.37 22.33 14.77 22.3C16.21 22.28 17.13 21.01 18.01 19.73C19.07 18.27 19.5 16.84 19.52 16.77C19.49 16.76 16.52 15.66 16.5 12.4Z" fill="white"/><path d="M13.66 4.44C14.39 3.55 14.89 2.33 14.75 1.09C13.73 1.13 12.48 1.78 11.73 2.65C11.06 3.43 10.47 4.71 10.62 5.9C11.76 5.99 12.91 5.3 13.66 4.44Z" fill="white"/></svg>
+          App Store
+        </a>
+        <a
+          href="https://play.google.com/store/apps/details?id=com.jjoraey.adminnote"
+          target="_blank"
+          rel="noreferrer"
+          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#01875F', color: '#fff', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3.18 23.76c.3.17.64.2.97.1l11.65-11.65L12.34 8.75 3.18 23.76z" fill="white" opacity=".6"/><path d="M1.5 2.67A1.5 1.5 0 0 0 1 3.87v16.26a1.5 1.5 0 0 0 .5 1.2l.07.06 9.11-9.11v-.21L1.57 2.6l-.07.07z" fill="white"/><path d="M15.8 15.73l-3.04-3.04v-.22l3.04-3.04.07.04 3.6 2.05c1.03.58 1.03 1.54 0 2.12l-3.6 2.05-.07.04z" fill="white" opacity=".8"/><path d="M15.87 15.69L12.76 12.6 3.18 23.76c.34.36.89.4 1.3.1l11.39-8.17" fill="white" opacity=".4"/><path d="M15.87 9.51L4.48 1.34A1.02 1.02 0 0 0 3.18.25L12.76 12.6 15.87 9.51z" fill="white" opacity=".4"/></svg>
+          Google Play
+        </a>
+      </div>
+
       {/* 소셜 로그인 (비활성화 - 코드 보존) */}
       {/* TODO: 재활성화 시 아래 주석 해제
       <SocialLogin />
