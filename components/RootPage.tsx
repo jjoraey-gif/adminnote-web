@@ -239,6 +239,8 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
 
     const { error: loginErr } = await supabase.auth.signInWithPassword({ email: finalEmail, password: loginPw });
     if (loginErr) {
+      // 진단용: 실제 원인은 브라우저 개발자도구 콘솔에서 확인 가능 (사용자에게는 그대로 노출하지 않음)
+      console.error('[login] Supabase 로그인 에러:', loginErr.status, loginErr.message);
       if (loginErr.message.includes('Email not confirmed')) {
         setError('이메일 인증이 필요합니다. 받은 편지함을 확인해주세요. (스팸 폴더도 확인해주세요)');
       } else {
