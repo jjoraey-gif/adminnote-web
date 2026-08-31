@@ -220,7 +220,8 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
   ) => {
     setLoading(true);
     setError('');
-    let finalEmail = loginEmail;
+    // 이메일 앞뒤 공백/대소문자 차이로 인한 로그인 실패 방지 (모바일 앱과 동일하게 정규화)
+    let finalEmail = loginEmail.trim().toLowerCase();
 
     if (accountType === 'shared') {
       const res = await fetch('/api/auth/shared-login', {
