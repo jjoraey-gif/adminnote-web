@@ -190,6 +190,7 @@ const AN_KEYS = {
 const LEGACY_PW_KEY = 'an_saved_pw';
 
 function LoginForm({ accountType }: { accountType: AccountType }) {
+  const [showReset, setShowReset] = useState(false);
   const [email, setEmail] = useState('');
   const [orgName, setOrgName] = useState('');
   const [userId, setUserId] = useState('');
@@ -269,6 +270,11 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
     doLogin(email, orgName, userId, password, autoLogin);
   };
 
+  // 비밀번호 찾기 화면 (개인 회원만 지원 — 공용폰은 로그인에 이메일을 쓰지 않는다)
+  if (showReset) {
+    return <ForgotPasswordForm initialEmail={email} onBack={() => setShowReset(false)} />;
+  }
+
   return (
     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {accountType === 'personal' ? (
@@ -281,21 +287,106 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
       )}
       <Input label="비밀번호" type="password" value={password} onChange={setPassword} placeholder="비밀번호를 입력하세요" autoComplete="current-password" />
 
-      {/* 자동로그인 */}
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: -2 }}>
-        <input
-          type="checkbox"
-          checked={autoLogin}
-          onChange={e => setAutoLogin(e.target.checked)}
-          style={{ width: 15, height: 15, accentColor: '#2563EB', cursor: 'pointer' }}
-        />
-        <span style={{ fontSize: 13, color: '#6B7280' }}>자동로그인</span>
-      </label>
+      {/* 자동로그인 + 비밀번호 찾기 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: -2 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={autoLogin}
+            onChange={e => setAutoLogin(e.target.checked)}
+            style={{ width: 15, height: 15, accentColor: '#2563EB', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 13, color: '#6B7280' }}>자동로그인</span>
+        </label>
+        {accountType === 'personal' && (
+          <button
+            type="button"
+            onClick={() => setShowReset(true)}
+            style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
+          >
+            비밀번호를 잊으셨나요?
+          </button>
+        )}
+      </div>
 
       {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
 
       <button type="submit" disabled={loading} style={submitBtn(loading)}>
         {loading ? '로그인 중...' : '로그인'}
+      </button>
+    </form>
+  );
+}
+
+// ─── 비밀번호 찾기 폼 ─────────────────────────────────────────────────────────
+// 가입 시 등록한 이메일로 재설정 링크를 보낸다. 링크를 열 수 있는 사람 = 본인 확인.
+// ※ 비밀번호는 해시로 저장되므로 기존 비밀번호를 알려주는 것은 불가능하다.
+function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const supabase = createClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` },
+    );
+
+    if (resetErr) {
+      console.error('[reset] 재설정 메일 발송 실패:', resetErr.status, resetErr.message);
+      if (resetErr.status === 429) {
+        setError('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+        setLoading(false);
+        return;
+      }
+      // 그 외 오류는 계정 존재 여부가 드러나지 않도록 성공과 동일하게 처리한다.
+    }
+    setSent(true);
+    setLoading(false);
+  };
+
+  if (sent) {
+    return (
+      <div style={{ textAlign: 'center', padding: '10px 0' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📮</div>
+        <p style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E', margin: '0 0 8px' }}>
+          재설정 메일을 보냈습니다
+        </p>
+        <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 0 20px' }}>
+          <b>{email.trim().toLowerCase()}</b> 주소로 비밀번호 재설정 링크를 보냈습니다.<br />
+          메일이 보이지 않으면 스팸함도 확인해주세요.<br />
+          가입되지 않은 이메일이면 메일이 오지 않습니다.
+        </p>
+        <button type="button" onClick={onBack} style={submitBtn(false)}>로그인으로 돌아가기</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>
+        가입할 때 등록한 이메일 주소를 입력하시면, 비밀번호를 다시 설정할 수 있는 링크를 보내드립니다.
+      </p>
+      <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" autoComplete="email" />
+
+      {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
+
+      <button type="submit" disabled={loading} style={submitBtn(loading)}>
+        {loading ? '보내는 중...' : '재설정 메일 보내기'}
+      </button>
+      <button
+        type="button"
+        onClick={onBack}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
+      >
+        로그인으로 돌아가기
       </button>
     </form>
   );
