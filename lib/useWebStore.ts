@@ -138,7 +138,10 @@ export function useWebStore(userId: string | undefined) {
           setPastPerformanceRatings(pprf);
           setSameGradePromotions(sgp);
           setOrgDepartments(od);
-          dataRef.current = { events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp, orgDepartments: od };
+          // ※ 반드시 원본 d를 먼저 펼친 뒤 웹이 아는 필드로 덮어쓴다.
+          //   웹이 모르는 키(앱 전용: memos, colorPresets 등)를 여기서 빠뜨리면
+          //   다음 push 때 그 키가 서버 스냅샷에서 사라져 다른 기기에서 복원되지 않는다.
+          dataRef.current = { ...d, events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: ec, contactGroups: cg, promotions: pr, assignments: as, awards: aw, careerInfo: ci, performanceRatings: prf, pastPerformanceRatings: pprf, sameGradePromotions: sgp, orgDepartments: od };
         }
         setLoading(false);
       });
@@ -234,7 +237,8 @@ export function useWebStore(userId: string | undefined) {
           setPastPerformanceRatings((d.pastPerformanceRatings as PerformanceRating[]) ?? []);
           setSameGradePromotions((d.sameGradePromotions as SameGradePromotion[]) ?? []);
           setOrgDepartments((d.orgDepartments as OrgDepartment[]) ?? []);
-          dataRef.current = { events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
+          // 초기 로드와 같은 이유로 원본 d를 먼저 펼쳐 앱 전용 키를 보존한다
+          dataRef.current = { ...d, events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
         },
       )
       .subscribe();
