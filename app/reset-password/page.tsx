@@ -5,15 +5,27 @@
 // 이 시점에는 recovery 세션이 열려 있어 updateUser로 새 비밀번호를 설정할 수 있다.
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 
 type Phase = 'checking' | 'ready' | 'invalid' | 'done';
 
+// 콜백 라우트가 실패 원인을 ?error= 로 넘겨준다
+const ERROR_MESSAGES: Record<string, string> = {
+  other_browser:
+    '재설정을 요청한 기기·브라우저와 다른 곳에서 링크를 열면 보안상 인증이 되지 않습니다. 링크를 요청했던 그 브라우저에서 다시 열어보시거나, 이 기기에서 재설정 메일을 새로 요청해주세요.',
+  link_expired:
+    '링크가 만료되었거나 이미 사용되었습니다. 재설정 메일을 새로 요청해주세요.',
+  no_token:
+    '링크 정보가 올바르지 않습니다. 메일에 있는 링크를 그대로 눌러주세요.',
+};
+
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>('checking');
+  const searchParams = useSearchParams();
+  const errorCode = searchParams.get('error');
+  const [phase, setPhase] = useState<Phase>(errorCode ? 'invalid' : 'checking');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -22,6 +34,7 @@ export default function ResetPasswordPage() {
 
   // 링크로 들어왔을 때 재설정 가능한 세션이 있는지 확인
   useEffect(() => {
+    if (errorCode) return; // 콜백에서 이미 실패 원인을 받았으면 세션 확인 불필요
     const supabase = createClient();
     let settled = false;
 
@@ -51,7 +64,7 @@ export default function ResetPasswordPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [errorCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,10 +116,12 @@ export default function ResetPasswordPage() {
           {phase === 'invalid' && (
             <div className="text-center py-2">
               <div className="text-4xl mb-3">⚠️</div>
-              <h1 className="text-lg font-semibold text-gray-900 mb-2">링크가 만료되었습니다</h1>
+              <h1 className="text-lg font-semibold text-gray-900 mb-2">
+                {errorCode === 'other_browser' ? '다른 브라우저에서 열렸습니다' : '링크를 사용할 수 없습니다'}
+              </h1>
               <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                비밀번호 재설정 링크는 일정 시간이 지나면 사용할 수 없습니다.<br />
-                로그인 화면에서 재설정 메일을 다시 요청해주세요.
+                {(errorCode && ERROR_MESSAGES[errorCode]) ??
+                  '비밀번호 재설정 링크가 만료되었거나 이미 사용되었습니다. 로그인 화면에서 재설정 메일을 다시 요청해주세요.'}
               </p>
               <button
                 onClick={() => router.push('/')}
