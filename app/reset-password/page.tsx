@@ -4,7 +4,7 @@
 // 메일의 재설정 링크 → /auth/callback (코드 교환) → 이 페이지로 이동한다.
 // 이 시점에는 recovery 세션이 열려 있어 updateUser로 새 비밀번호를 설정할 수 있다.
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
@@ -21,7 +21,25 @@ const ERROR_MESSAGES: Record<string, string> = {
     '링크 정보가 올바르지 않습니다. 메일에 있는 링크를 그대로 눌러주세요.',
 };
 
+/**
+ * useSearchParams()는 정적 렌더링 단계에서 사용할 수 없어 Suspense로 감싸야 한다.
+ * (감싸지 않으면 Vercel 빌드가 prerender 오류로 실패한다)
+ */
 export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <p className="text-sm text-gray-500">확인 중입니다...</p>
+        </div>
+      }
+    >
+      <ResetPasswordInner />
+    </Suspense>
+  );
+}
+
+function ResetPasswordInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const errorCode = searchParams.get('error');
