@@ -319,50 +319,58 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
 }
 
 // ─── 비밀번호 찾기 폼 ─────────────────────────────────────────────────────────
-// 가입 시 등록한 이메일로 재설정 링크를 보낸다. 링크를 열 수 있는 사람 = 본인 확인.
+// 요청만 접수하고, 관리자가 관리자 페이지에서 확인해 임시 비밀번호를 직접 메일로 전달한다.
 // ※ 비밀번호는 해시로 저장되므로 기존 비밀번호를 알려주는 것은 불가능하다.
+//   Supabase 내장 메일은 프로젝트 전체 시간당 2통 제한이 있어 자동 발송을 쓰지 않는다.
 function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
   const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
-  const supabase = createClient();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
-      email.trim().toLowerCase(),
-      { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` },
-    );
-
-    if (resetErr) {
-      console.error('[reset] 재설정 메일 발송 실패:', resetErr.status, resetErr.message);
-      if (resetErr.status === 429) {
-        setError('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+    try {
+      const res = await fetch('/api/auth/reset-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error ?? '요청 접수에 실패했습니다. 잠시 후 다시 시도해주세요.');
         setLoading(false);
         return;
       }
-      // 그 외 오류는 계정 존재 여부가 드러나지 않도록 성공과 동일하게 처리한다.
+      setSent(true);
+    } catch {
+      setError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
     }
-    setSent(true);
-    setLoading(false);
   };
 
   if (sent) {
     return (
       <div style={{ textAlign: 'center', padding: '10px 0' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📮</div>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
         <p style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E', margin: '0 0 8px' }}>
-          재설정 메일을 보냈습니다
+          초기화 요청이 접수되었습니다
         </p>
-        <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 0 20px' }}>
-          <b>{email.trim().toLowerCase()}</b> 주소로 비밀번호 재설정 링크를 보냈습니다.<br />
-          메일이 보이지 않으면 스팸함도 확인해주세요.<br />
-          가입되지 않은 이메일이면 메일이 오지 않습니다.
+        <div style={{
+          background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10,
+          padding: '12px 14px', margin: '0 0 16px',
+        }}>
+          <p style={{ fontSize: 13, color: '#1D4ED8', lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
+            24시간 내에 해당 메일로<br />초기화된 비밀번호가 전송됩니다
+          </p>
+        </div>
+        <p style={{ fontSize: 12.5, color: '#9CA3AF', lineHeight: 1.6, margin: '0 0 20px' }}>
+          <b style={{ color: '#6B7280' }}>{email.trim().toLowerCase()}</b><br />
+          메일이 보이지 않으면 스팸함도 확인해주세요.
         </p>
         <button type="button" onClick={onBack} style={submitBtn(false)}>로그인으로 돌아가기</button>
       </div>
@@ -372,14 +380,14 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>
-        가입할 때 등록한 이메일 주소를 입력하시면, 비밀번호를 다시 설정할 수 있는 링크를 보내드립니다.
+        가입할 때 등록한 이메일 주소를 입력하고 초기화를 요청하시면, 확인 후 해당 메일로 초기화된 비밀번호를 보내드립니다.
       </p>
-      <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="이메일을 입력하세요" autoComplete="email" />
+      <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="가입한 이메일을 입력하세요" autoComplete="email" />
 
       {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
 
       <button type="submit" disabled={loading} style={submitBtn(loading)}>
-        {loading ? '보내는 중...' : '재설정 메일 보내기'}
+        {loading ? '요청 중...' : '비밀번호 초기화 요청하기'}
       </button>
       <button
         type="button"

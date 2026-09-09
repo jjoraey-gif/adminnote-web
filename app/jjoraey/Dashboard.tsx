@@ -24,6 +24,9 @@ interface NoticeRow {
 interface SuggestionRow {
   id: string; user_email: string; user_nickname: string; content: string; is_read: boolean; created_at: string;
 }
+interface ResetRequestRow {
+  id: string; email: string; status: string; created_at: string; handled_at: string | null;
+}
 interface AdminData {
   total: number; personalCount: number; sharedCount: number;
   todayUsers: number; photoCount: number; todayPhotoCount: number;
@@ -34,6 +37,7 @@ interface AdminData {
   appVersions?: { ios: AppVersionRow; android: AppVersionRow };
   notices?: NoticeRow[];
   suggestions?: SuggestionRow[];
+  resetRequests?: ResetRequestRow[];
 }
 
 function fmt(d: string) {
@@ -517,6 +521,41 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   const [pwResettingId, setPwResettingId] = useState<string | null>(null);
   const [pwResult, setPwResult] = useState<{ email: string; password: string } | null>(null);
 
+  // ── 비밀번호 초기화 요청 ──
+  const [resetRequests, setResetRequests] = useState<ResetRequestRow[]>(data.resetRequests ?? []);
+
+  const toggleResetRequestDone = async (r: ResetRequestRow) => {
+    const done = r.status !== 'done';
+    setResetRequests(prev => prev.map(x => x.id === r.id
+      ? { ...x, status: done ? 'done' : 'pending', handled_at: done ? new Date().toISOString() : null }
+      : x));
+    await fetch('/api/admin-reset-requests', {
+      method: 'PATCH',
+      headers: authHeader,
+      body: JSON.stringify({ id: r.id, done }),
+    });
+  };
+
+  const deleteResetRequest = async (id: string) => {
+    if (!confirm('이 요청을 목록에서 삭제하시겠습니까?')) return;
+    setResetRequests(prev => prev.filter(x => x.id !== id));
+    await fetch('/api/admin-reset-requests', {
+      method: 'DELETE',
+      headers: authHeader,
+      body: JSON.stringify({ id }),
+    });
+  };
+
+  // 요청 목록의 이메일을 눌러 비밀번호 초기화 검색창으로 바로 넘긴다
+  const useEmailForReset = (email: string) => {
+    copyEmail(`req-${email}`, email);
+    setPwQuery(email);
+    setPwResults([]);
+    setPwSearched(false);
+    setPwResult(null);
+    document.getElementById('pw-reset-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // 건의사항 상태
   const [suggestions, setSuggestions] = useState<SuggestionRow[]>(data.suggestions ?? []);
 
@@ -732,8 +771,100 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
           ))}
         </div>
 
+        {/* 비밀번호 초기화 요청 */}
+        {(() => {
+          const pending = resetRequests.filter(r => r.status !== 'done');
+          return (
+            <div style={{ ...card, marginBottom: 24, ...(pending.length > 0 ? { border: '1px solid #FCA5A5' } : {}) }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                비밀번호 초기화 요청
+                {pending.length > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 99, background: '#FEE2E2', color: '#DC2626' }}>
+                    미처리 {pending.length}
+                  </span>
+                )}
+                <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{resetRequests.length}건</span>
+              </h2>
+              <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px' }}>
+                사용자가 로그인 화면에서 초기화를 요청한 목록입니다. 이메일을 누르면 복사되고 아래 초기화 검색창에 자동 입력됩니다.
+                임시 비밀번호를 발급해 메일로 보낸 뒤 &quot;처리완료&quot;를 눌러주세요. (안내 문구: 24시간 내 전송)
+              </p>
+
+              {resetRequests.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#C7C7CC', margin: 0 }}>아직 요청이 없습니다.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>상태</th>
+                        <th style={th}>이메일</th>
+                        <th style={th}>요청일시</th>
+                        <th style={th}>처리일시</th>
+                        <th style={th}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resetRequests.map(r => {
+                        const done = r.status === 'done';
+                        return (
+                          <tr key={r.id} style={done ? { opacity: 0.55 } : undefined}>
+                            <td style={td}>
+                              <span style={{
+                                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                                background: done ? '#F3F4F6' : '#FEE2E2',
+                                color: done ? '#6B7280' : '#DC2626',
+                              }}>
+                                {done ? '처리완료' : '미처리'}
+                              </span>
+                            </td>
+                            <td
+                              style={{ ...td, cursor: 'pointer', color: '#2563EB', fontWeight: 600 }}
+                              onClick={() => useEmailForReset(r.email)}
+                              title="클릭하면 복사되고 초기화 검색창에 입력됩니다"
+                            >
+                              {copiedEmailId === `req-${r.email}` ? '복사됨 ✓' : r.email}
+                            </td>
+                            <td style={td}>
+                              {new Date(r.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+                            </td>
+                            <td style={td}>
+                              {r.handled_at ? new Date(r.handled_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-'}
+                            </td>
+                            <td style={{ ...td, textAlign: 'right' }}>
+                              <button
+                                onClick={() => toggleResetRequestDone(r)}
+                                style={{
+                                  padding: '5px 12px', fontSize: 12, fontWeight: 600, marginRight: 6,
+                                  border: '1px solid #E5E7EB', borderRadius: 7, cursor: 'pointer',
+                                  background: done ? '#fff' : '#2563EB', color: done ? '#6B7280' : '#fff',
+                                }}
+                              >
+                                {done ? '미처리로' : '처리완료'}
+                              </button>
+                              <button
+                                onClick={() => deleteResetRequest(r.id)}
+                                style={{
+                                  padding: '5px 10px', fontSize: 12, border: '1px solid #E5E7EB',
+                                  borderRadius: 7, background: '#fff', color: '#EF4444', cursor: 'pointer',
+                                }}
+                              >
+                                삭제
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* 비밀번호 초기화 */}
-        <div style={{ ...card, marginBottom: 24 }}>
+        <div id="pw-reset-section" style={{ ...card, marginBottom: 24 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px' }}>비밀번호 초기화</h2>
           <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px' }}>
             이메일 / 닉네임 / 기관명 / 공용폰 아이디로 검색 후 초기화하세요. 초기화하면 임시 비밀번호가 즉시 발급되며, 회원에게 직접 전달해야 합니다.

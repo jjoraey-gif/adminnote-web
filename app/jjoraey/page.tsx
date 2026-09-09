@@ -32,6 +32,7 @@ async function getAdminData() {
     { count: todayPhotoCount },
     { data: noticeRows },
     { data: suggestionRows },
+    { data: resetRequestRows },
     { data: versionRows },
     { count: validPhotoCount },
     { count: totalVisitCount },
@@ -42,6 +43,7 @@ async function getAdminData() {
     adminSupabase.from('photo_transfers').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
     adminSupabase.from('notices').select('id, title, content, category, is_published, created_at').order('created_at', { ascending: false }),
     adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),
+    adminSupabase.from('password_reset_requests').select('id, email, status, created_at, handled_at').order('created_at', { ascending: false }).limit(200),
     adminSupabase.from('app_versions').select('platform, version, force_update, message, store_url, updated_at'),
     // 사진은 개수만 집계한다. 실제 목록/이미지 URL은 관리자가 "불러오기"를 누를 때
     // /api/admin-photos 에서 필요한 만큼만 가져온다 (Egress 절감 — 예전에는 페이지를
@@ -54,6 +56,7 @@ async function getAdminData() {
   const authUsers = listData?.users ?? [];
   const notices = noticeRows ?? [];
   const suggestions = suggestionRows ?? [];
+  const resetRequests = resetRequestRows ?? [];
 
   const profileMap: Record<string, any> = {};
   (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
@@ -157,6 +160,7 @@ async function getAdminData() {
     appVersions,
     notices,
     suggestions,
+    resetRequests,
   };
 }
 
