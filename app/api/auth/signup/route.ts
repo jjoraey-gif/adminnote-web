@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { isTaken } from '@/lib/profile-uniqueness';
 import { NextResponse } from 'next/server';
 
 // ── 레이트 리밋 (IP당 5회/1시간) — 대량 계정 생성 방지 ──
@@ -68,6 +69,27 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
+
+    // ── 중복 차단 (서버에서 최종 판정) ──
+    // 화면의 중복확인은 입력 도중 안내용일 뿐이라 우회하거나 동시에 가입하면 통과한다.
+    // 앱에서 들어오는 가입 요청도 이 라우트를 거치므로 여기서 막으면 앱까지 함께 적용된다.
+    try {
+      if (accountType === 'personal') {
+        if (!cleanNick) {
+          return NextResponse.json({ error: '닉네임을 입력해주세요.' }, { status: 400 });
+        }
+        if (await isTaken(adminSupabase, 'nickname', cleanNick)) {
+          return NextResponse.json({ error: '이미 사용 중인 닉네임입니다.' }, { status: 409 });
+        }
+      } else {
+        if (await isTaken(adminSupabase, 'org_name', orgName.trim())) {
+          return NextResponse.json({ error: '이미 등록된 기관이름입니다.' }, { status: 409 });
+        }
+      }
+    } catch (e) {
+      console.error('[signup] 중복 확인 실패:', e);
+      return NextResponse.json({ error: '가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' }, { status: 500 });
+    }
 
     // email_confirm: true → 이메일 인증 없이 바로 가입 완료
     // ※ 보안 참고: 이메일 소유 확인을 건너뛰므로 타인 이메일로 계정 선점이 가능합니다.

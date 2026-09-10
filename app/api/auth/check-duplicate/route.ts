@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { isTaken } from '@/lib/profile-uniqueness';
 
 // ── 레이트 리밋 (IP당 30회/10분) ──
 const WINDOW_MS = 10 * 60 * 1000;
@@ -62,13 +63,19 @@ export async function POST(request: Request) {
       if (nick.length < 2 || nick.length > 20) {
         return NextResponse.json({ available: false, message: '닉네임은 2~20자여야 합니다.' });
       }
-      const { data } = await adminSupabase
-        .from('profiles')
-        .select('id')
-        .eq('nickname', nick)
-        .limit(1);
-      if (data && data.length > 0) {
+      if (await isTaken(adminSupabase, 'nickname', nick)) {
         return NextResponse.json({ available: false, message: '이미 사용 중인 닉네임입니다.' });
+      }
+      return NextResponse.json({ available: true });
+    }
+
+    if (type === 'orgName') {
+      const org = value.trim();
+      if (org.length < 2 || org.length > 50) {
+        return NextResponse.json({ available: false, message: '기관이름은 2~50자여야 합니다.' });
+      }
+      if (await isTaken(adminSupabase, 'org_name', org)) {
+        return NextResponse.json({ available: false, message: '이미 등록된 기관이름입니다.' });
       }
       return NextResponse.json({ available: true });
     }

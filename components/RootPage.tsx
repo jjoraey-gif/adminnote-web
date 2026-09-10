@@ -403,7 +403,7 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
 // ─── 회원가입 폼 ──────────────────────────────────────────────────────────────
 type CheckState = 'idle' | 'checking' | 'ok' | 'taken';
 
-async function checkDuplicate(type: 'email' | 'nickname', value: string): Promise<CheckState> {
+async function checkDuplicate(type: 'email' | 'nickname' | 'orgName', value: string): Promise<CheckState> {
   if (!value.trim()) return 'idle';
   const res = await fetch('/api/auth/check-duplicate', {
     method: 'POST',
@@ -427,6 +427,7 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
   const [email, setEmail] = useState('');
   const [emailCheck, setEmailCheck] = useState<CheckState>('idle');
   const [orgName, setOrgName] = useState('');
+  const [orgNameCheck, setOrgNameCheck] = useState<CheckState>('idle');
   const [userId, setUserId] = useState('');
   const [verifyEmail, setVerifyEmail] = useState('');
   const [verifyEmailCheck, setVerifyEmailCheck] = useState<CheckState>('idle');
@@ -450,6 +451,12 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     if (!email.trim()) return;
     setEmailCheck('checking');
     setEmailCheck(await checkDuplicate('email', email));
+  };
+
+  const handleOrgNameBlur = async () => {
+    if (!orgName.trim()) return;
+    setOrgNameCheck('checking');
+    setOrgNameCheck(await checkDuplicate('orgName', orgName));
   };
 
   const handleVerifyEmailBlur = async () => {
@@ -483,6 +490,10 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     }
     if (nicknameCheck === 'taken') {
       setError('이미 사용 중인 닉네임입니다.');
+      return;
+    }
+    if (orgNameCheck === 'taken') {
+      setError('이미 등록된 기관이름입니다.');
       return;
     }
 
@@ -583,7 +594,15 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
         </>
       ) : (
         <>
-          <Input label="기관이름" type="text" value={orgName} onChange={setOrgName} placeholder="기관이름을 입력하세요" />
+          <InputWithCheck
+            label="기관이름"
+            type="text"
+            value={orgName}
+            onChange={v => { setOrgName(v); setOrgNameCheck('idle'); }}
+            onBlur={handleOrgNameBlur}
+            placeholder="기관이름을 입력하세요"
+            checkState={orgName ? orgNameCheck : 'idle'}
+          />
           <Input label="아이디" type="text" value={userId} onChange={setUserId} placeholder="로그인에 사용할 아이디" />
           <InputWithCheck
             label="이메일 (인증용)"
