@@ -99,14 +99,6 @@ async function fetchBlob(url: string): Promise<Blob> {
   return res.blob();
 }
 
-// File System Access API 타입
-declare global {
-  interface Window {
-    showSaveFilePicker?: (options?: object) => Promise<FileSystemFileHandle>;
-    showDirectoryPicker?: (options?: object) => Promise<FileSystemDirectoryHandle>;
-  }
-}
-
 const ADMIN_EMAIL = 'jjoraey@naver.com';
 
 const GRADE_LIMITS: Record<string, { fileMB: number | null; dayMB: number | null }> = {
@@ -342,81 +334,71 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   };
 
   // 개별 다운로드 — 저장 위치 지정
+  /**
+   * 브라우저 기본 다운로드 폴더로 바로 저장한다.
+   *
+   * 예전에는 File System Access API(showSaveFilePicker / showDirectoryPicker)로
+   * 저장 위치를 고르게 했지만, 브라우저가 폴더 쓰기 권한을 기억하지 않아
+   * 다운로드할 때마다 권한 팝업이 떠서 불편했다. 일반 사이트와 동일한 방식으로 바꿨다.
+   * (저장 위치는 크롬 설정 → 다운로드에서 사용자가 직접 지정할 수 있다)
+   */
+  const saveBlob = (blob: Blob, fileName: string) => {
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 즉시 해제하면 일부 브라우저에서 저장이 취소되므로 잠시 뒤에 정리한다
+    setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+  };
+
   const downloadPhoto = async (photo: PhotoMeta) => {
     setDownloading(photo.id);
     try {
       const url = await getFreshSignedUrl(photo.file_path);
       const blob = await fetchBlob(url);
-      const ext = photo.file_name.split('.').pop() ?? 'jpg';
-      const mimeType = blob.type || (ext === 'png' ? 'image/png' : 'application/octet-stream');
-
-      if (window.showSaveFilePicker) {
-        // File System Access API — 저장 위치 직접 지정
-        const handle = await window.showSaveFilePicker({
-          suggestedName: photo.file_name,
-          types: [{ description: '이미지', accept: { [mimeType]: [`.${ext}`] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-      } else {
-        // 폴백: 브라우저 기본 다운로드 폴더
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objUrl; a.download = photo.file_name;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(objUrl);
-      }
+      saveBlob(blob, photo.file_name);
     } catch (e: any) {
-      if (e?.name !== 'AbortError') alert(`다운로드 실패: ${e.message}`);
+      alert(`다운로드 실패: ${e.message}`);
     } finally {
       setDownloading(null);
     }
   };
 
-  // 전체 다운로드 — 폴더 지정 후 일괄 저장
-  const downloadAll = async () => {
-    if (photos.length === 0) return;
+  /** 여러 장을 순서대로 낱개 저장 */
+  const downloadMany = async (list: PhotoMeta[]) => {
+    if (list.length === 0) return;
     setDownloadingAll(true);
     setDownloadProgress('');
     try {
-      if (window.showDirectoryPicker) {
-        // File System Access API — 폴더 선택
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' } as object);
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          setDownloadProgress(`저장 중... (${i + 1}/${photos.length})`);
-          try {
-            const url = await getFreshSignedUrl(photo.file_path);
-            const blob = await fetchBlob(url);
-            const fileHandle = await dirHandle.getFileHandle(photo.file_name, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-          } catch {
-            // 개별 실패는 스킵
-          }
+      let saved = 0;
+      for (let i = 0; i < list.length; i++) {
+        const photo = list[i];
+        setDownloadProgress(`다운로드 중... (${i + 1}/${list.length})`);
+        try {
+          const url = await getFreshSignedUrl(photo.file_path);
+          const blob = await fetchBlob(url);
+          saveBlob(blob, photo.file_name);
+          saved++;
+        } catch {
+          // 개별 실패는 건너뛴다
         }
-        setDownloadProgress(`완료! ${photos.length}장 저장됨`);
-        setTimeout(() => setDownloadProgress(''), 3000);
-      } else {
-        // 폴백: 순차 브라우저 다운로드
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          setDownloadProgress(`다운로드 중... (${i + 1}/${photos.length})`);
-          await downloadPhoto(photo);
-          await new Promise(r => setTimeout(r, 400));
-        }
-        setDownloadProgress('');
+        // 연속 저장 시 브라우저가 일부를 무시하는 경우가 있어 간격을 둔다
+        await new Promise(r => setTimeout(r, 350));
       }
+      setDownloadProgress(`완료! ${saved}장 저장됨`);
+      setTimeout(() => setDownloadProgress(''), 3000);
     } catch (e: any) {
-      if (e?.name !== 'AbortError') alert(`전체 다운로드 실패: ${e.message}`);
+      alert(`다운로드 실패: ${e.message}`);
       setDownloadProgress('');
     } finally {
       setDownloadingAll(false);
     }
   };
+
+  const downloadAll = () => downloadMany(photos);
 
   const deleteAll = async () => {
     if (photos.length === 0) return;
@@ -456,46 +438,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   const clearSelection = () => setSelectedIds(new Set());
   const selectedPhotos = photos.filter(p => selectedIds.has(p.id));
 
-  // 선택 항목만 다운로드 — 전체 다운로드와 동일한 방식(폴더 선택 or 순차 다운로드)
-  const downloadSelected = async () => {
-    if (selectedPhotos.length === 0) return;
-    setDownloadingAll(true);
-    setDownloadProgress('');
-    try {
-      if (window.showDirectoryPicker) {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' } as object);
-        for (let i = 0; i < selectedPhotos.length; i++) {
-          const photo = selectedPhotos[i];
-          setDownloadProgress(`저장 중... (${i + 1}/${selectedPhotos.length})`);
-          try {
-            const url = await getFreshSignedUrl(photo.file_path);
-            const blob = await fetchBlob(url);
-            const fileHandle = await dirHandle.getFileHandle(photo.file_name, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-          } catch {
-            // 개별 실패는 스킵
-          }
-        }
-        setDownloadProgress(`완료! ${selectedPhotos.length}장 저장됨`);
-        setTimeout(() => setDownloadProgress(''), 3000);
-      } else {
-        for (let i = 0; i < selectedPhotos.length; i++) {
-          const photo = selectedPhotos[i];
-          setDownloadProgress(`다운로드 중... (${i + 1}/${selectedPhotos.length})`);
-          await downloadPhoto(photo);
-          await new Promise(r => setTimeout(r, 400));
-        }
-        setDownloadProgress('');
-      }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') alert(`선택 다운로드 실패: ${e.message}`);
-      setDownloadProgress('');
-    } finally {
-      setDownloadingAll(false);
-    }
-  };
+  const downloadSelected = () => downloadMany(selectedPhotos);
 
   // 선택 항목만 삭제 — 소프트 삭제(스토리지는 3일간 유지)
   const deleteSelected = async () => {
