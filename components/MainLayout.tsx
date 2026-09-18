@@ -206,6 +206,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onRenameTopic={store.renameTodoTopic}
                   onDeleteTopic={store.deleteTodoTopic}
                   onReorderTopics={store.reorderTodoTopics}
+                  onReorder={store.reorderTodos}
                 />
               )}
               {currentTab === 'budget' && (

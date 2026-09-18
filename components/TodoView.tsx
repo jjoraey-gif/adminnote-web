@@ -14,6 +14,8 @@ interface Props {
   onRenameTopic: (id: string, name: string) => void;
   onDeleteTopic: (id: string) => void;
   onReorderTopics: (ids: string[]) => void;
+  /** 오늘 목록 드래그 순서 변경 */
+  onReorder: (ids: string[]) => void;
 }
 
 type MainTab = 'today' | 'upcoming' | 'recent';
@@ -191,14 +193,55 @@ function iconBtnStyle(disabled: boolean, color = '#6B7280'): React.CSSProperties
   };
 }
 
-function TodoRow({ todo, onToggle, onEdit, onDelete }: { todo: TodoItem; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
+function TodoRow({
+  todo, onToggle, onEdit, onDelete,
+  drag,
+}: {
+  todo: TodoItem;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  /** 순서 변경(드래그)을 쓰는 목록에서만 전달한다 */
+  drag?: {
+    isDragging: boolean;
+    isOver: boolean;
+    onDragStart: () => void;
+    onDragEnter: () => void;
+    onDrop: () => void;
+    onDragEnd: () => void;
+  };
+}) {
+  const dragEnabled = !!drag && !todo.isCompleted;
+
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '14px 16px', background: '#fff',
-      border: '1px solid #E5E7EB', borderRadius: 12,
-      opacity: todo.isCompleted ? 0.6 : 1,
-    }}>
+    <div
+      draggable={dragEnabled}
+      onDragStart={dragEnabled ? drag!.onDragStart : undefined}
+      onDragEnter={dragEnabled ? drag!.onDragEnter : undefined}
+      onDragOver={dragEnabled ? (e => e.preventDefault()) : undefined}
+      onDrop={dragEnabled ? (e => { e.preventDefault(); drag!.onDrop(); }) : undefined}
+      onDragEnd={dragEnabled ? drag!.onDragEnd : undefined}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px', background: '#fff',
+        border: `1px solid ${drag?.isOver ? '#2563EB' : '#E5E7EB'}`,
+        borderRadius: 12,
+        opacity: todo.isCompleted ? 0.6 : (drag?.isDragging ? 0.4 : 1),
+        boxShadow: drag?.isOver ? '0 0 0 3px rgba(37,99,235,0.15)' : 'none',
+        transition: 'border-color 0.12s, box-shadow 0.12s',
+      }}
+    >
+      {drag && (
+        <span
+          title={todo.isCompleted ? '완료된 항목은 순서를 바꿀 수 없습니다' : '드래그해서 순서 변경'}
+          style={{
+            color: todo.isCompleted ? '#E5E7EB' : '#C7C7CC',
+            fontSize: 15, lineHeight: 1, flexShrink: 0,
+            cursor: dragEnabled ? 'grab' : 'default',
+            userSelect: 'none',
+          }}
+        >⠿</span>
+      )}
       <button
         onClick={onToggle}
         style={{
@@ -223,8 +266,11 @@ function TodoRow({ todo, onToggle, onEdit, onDelete }: { todo: TodoItem; onToggl
   );
 }
 
-export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onDelete, onAddTopic, onRenameTopic, onDeleteTopic, onReorderTopics }: Props) {
+export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onDelete, onAddTopic, onRenameTopic, onDeleteTopic, onReorderTopics, onReorder }: Props) {
   const [mainTab, setMainTab] = useState<MainTab>('today');
+  // 드래그 중인 항목 / 현재 올려둔 위치
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('today');
   const [input, setInput] = useState('');
   const [editing, setEditing] = useState<TodoItem | null>(null);
@@ -262,6 +308,25 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
     if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
     return a.sortOrder - b.sortOrder;
   });
+
+  /**
+   * 드래그한 항목을 놓은 자리로 옮기고 전체 순서를 저장한다.
+   * 완료 항목은 항상 아래로 정렬되므로 드래그 대상에서 제외돼 있다.
+   */
+  const handleDrop = useCallback((targetId: string) => {
+    const sourceId = dragId;
+    setDragId(null);
+    setOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+
+    const ids = filtered.map(t => t.id);
+    const from = ids.indexOf(sourceId);
+    const to = ids.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    onReorder(ids);
+  }, [dragId, filtered, onReorder]);
 
   const todayCount = topicTodos.filter(isTodayItem).length;
   const todayDone = topicTodos.filter(t => isTodayItem(t) && t.isCompleted).length;
@@ -441,6 +506,11 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {filtered.some(t => !t.isCompleted) && (
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 2 }}>
+                  ⠿ 손잡이를 끌어서 순서를 바꿀 수 있습니다
+                </div>
+              )}
               {filtered.map(todo => (
                 <TodoRow
                   key={todo.id}
@@ -448,6 +518,14 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
                   onToggle={() => onToggle(todo.id)}
                   onEdit={() => setEditing(todo)}
                   onDelete={() => onDelete(todo.id)}
+                  drag={{
+                    isDragging: dragId === todo.id,
+                    isOver: overId === todo.id && dragId !== todo.id,
+                    onDragStart: () => setDragId(todo.id),
+                    onDragEnter: () => setOverId(todo.id),
+                    onDrop: () => handleDrop(todo.id),
+                    onDragEnd: () => { setDragId(null); setOverId(null); },
+                  }}
                 />
               ))}
             </div>
