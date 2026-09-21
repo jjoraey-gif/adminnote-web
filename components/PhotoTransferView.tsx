@@ -581,7 +581,9 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         flexWrap: 'wrap', gap: 8, maxWidth: '90%',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>📱⇄💻</span>
+          {/* 일반 등급은 휴대폰 → 컴퓨터만 가능하고,
+              업로드 권한이 있는 등급(VIP/VVIP/관리자)만 양방향으로 표시한다 */}
+          <span style={{ fontSize: 20 }}>{canUpload ? '📱⇄💻' : '📱→💻'}</span>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
