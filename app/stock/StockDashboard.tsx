@@ -67,6 +67,8 @@ export default function StockDashboard({ email }: { email: string }) {
   const [msg, setMsg] = useState('');
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [check, setCheck] = useState<{ name: string; ok: boolean; detail: unknown }[] | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     const { data: s, error } = await sb.from('settings').select('*').eq('id', 1).maybeSingle();
@@ -130,6 +132,18 @@ export default function StockDashboard({ email }: { email: string }) {
     setSaving(false);
     setMsg(error ? `저장 실패: ${error.message}` : '설정을 저장했습니다. 다음 실행(1분 이내)부터 적용됩니다.');
     setForm({});
+    load();
+  };
+
+  const runCheck = async () => {
+    setChecking(true);
+    setCheck(null);
+    const { data, error } = await sb.functions.invoke('kis-check', { method: 'POST' });
+    setChecking(false);
+    if (error) return setCheck([{ name: '점검 함수 호출', ok: false, detail: error.message }]);
+    setCheck((data as { steps?: { name: string; ok: boolean; detail: unknown }[]; error?: string }).steps ?? [
+      { name: '점검', ok: false, detail: (data as { error?: string }).error ?? '알 수 없는 응답' },
+    ]);
     load();
   };
 
@@ -288,6 +302,31 @@ where id = 1;`}
             {!logs.length && <li className="py-2 text-gray-400">없음</li>}
           </ul>
         </div>
+      </section>
+
+      {/* 증권사 연결 점검 */}
+      <section className={card}>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">증권사 연결 점검</h2>
+            <p className="text-xs text-gray-500 mt-0.5">조회만 합니다. 주문은 내지 않습니다.</p>
+          </div>
+          <button onClick={runCheck} disabled={checking} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-60">
+            {checking ? '점검 중…' : '연결 점검'}
+          </button>
+        </div>
+        {check && (
+          <ul className="mt-3 space-y-2 text-sm">
+            {check.map((c) => (
+              <li key={c.name}>
+                <p className={c.ok ? 'text-green-700' : 'text-red-600'}>{c.ok ? '✅' : '❌'} {c.name}</p>
+                <pre className="mt-1 text-xs bg-gray-50 rounded-lg p-2 overflow-x-auto whitespace-pre-wrap break-all">
+                  {typeof c.detail === 'string' || typeof c.detail === 'number' ? String(c.detail) : JSON.stringify(c.detail, null, 2)}
+                </pre>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* 내보내기 */}
