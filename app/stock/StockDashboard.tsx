@@ -30,13 +30,22 @@ type Fill = { id: number; side: string; qty: number; amt: number; price: number;
 type Log = { id: number; level: string; message: string; created_at: string };
 
 // 설정 폼: [키, 라벨, 단위, 화면↔DB 배율]
-const FIELDS: { key: keyof Settings; label: string; unit: string; scale: number; step: string }[] = [
-  { key: 'tier_krw', label: '티어당 금액', unit: '원', scale: 1, step: '10000' },
+// 세 자리마다 쉼표 (입력값 보존: 소수점 입력 중인 상태도 유지)
+const withComma = (v: string) => {
+  const clean = v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+  const [int, dec] = clean.split('.');
+  const intFmt = int ? Number(int).toLocaleString('en-US') : '';
+  return dec !== undefined ? `${intFmt || '0'}.${dec}` : intFmt;
+};
+const unComma = (v: string) => v.replace(/,/g, '');
+
+const FIELDS: { key: keyof Settings; label: string; unit: string; scale: number; step: string; comma?: boolean }[] = [
+  { key: 'tier_krw', label: '티어당 금액', unit: '원', scale: 1, step: '10000', comma: true },
   { key: 'step_pct', label: '매수·매도 간격', unit: '%', scale: 100, step: '0.1' },
   { key: 'max_tiers', label: '최대 티어 수', unit: '개', scale: 1, step: '1' },
   { key: 'fee_rate', label: '수수료율', unit: '%', scale: 100, step: '0.01' },
   { key: 'entry_buffer_pct', label: '진입 매수 여유폭', unit: '%', scale: 100, step: '0.1' },
-  { key: 'fx_fallback', label: '예비 환율 (조회 실패 시)', unit: '원/$', scale: 1, step: '1' },
+  { key: 'fx_fallback', label: '예비 환율 (조회 실패 시)', unit: '원/$', scale: 1, step: '1', comma: true },
   { key: 'max_orders_per_day', label: '하루 최대 주문 수', unit: '건', scale: 1, step: '1' },
 ];
 
@@ -111,7 +120,7 @@ export default function StockDashboard({ email }: { email: string }) {
   useEffect(() => {
     if (!settings) return;
     setForm((prev) =>
-      Object.keys(prev).length ? prev : Object.fromEntries(FIELDS.map((f) => [f.key, String(+(Number(settings[f.key]) * f.scale).toFixed(4))])),
+      Object.keys(prev).length ? prev : Object.fromEntries(FIELDS.map((f) => { const v = String(+(Number(settings[f.key]) * f.scale).toFixed(4)); return [f.key, f.comma ? withComma(v) : v]; })),
     );
   }, [settings]);
 
@@ -147,7 +156,7 @@ export default function StockDashboard({ email }: { email: string }) {
   const save = async () => {
     const patch: Record<string, number | string> = { updated_at: new Date().toISOString() };
     for (const f of FIELDS) {
-      const v = Number(form[f.key]);
+      const v = Number(unComma(form[f.key] ?? ''));
       if (!Number.isFinite(v) || v <= 0) return setMsg(`${f.label} 값을 확인해 주세요.`);
       patch[f.key] = f.scale === 1 ? v : v / f.scale;
     }
@@ -276,10 +285,11 @@ where id = 1;`}
               <span className="text-gray-600">{f.label}</span>
               <div className="flex items-center gap-2 mt-1">
                 <input
-                  type="number"
-                  step={f.step}
+                  type={f.comma ? 'text' : 'number'}
+                  inputMode={f.comma ? 'decimal' : undefined}
+                  step={f.comma ? undefined : f.step}
                   value={form[f.key] ?? ''}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  onChange={(e) => setForm({ ...form, [f.key]: f.comma ? withComma(e.target.value) : e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-blue-500 tabular-nums"
                 />
                 <span className="text-gray-500 w-10">{f.unit}</span>
