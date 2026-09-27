@@ -6,6 +6,7 @@ import TierLadder, { type Market } from './TierLadder';
 
 type Settings = {
   enabled: boolean;
+  dry_run: boolean;
   mode: 'paper' | 'live';
   symbol: string;
   step_pct: number;
@@ -66,6 +67,7 @@ export default function StockDashboard({ email }: { email: string }) {
   const [fills, setFills] = useState<Fill[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [market, setMarket] = useState<Market>({ price: null, fx: null, price_at: null });
+  const [runner, setRunner] = useState<{ last_run_at: string | null; backoff_until: string | null; last_error: string | null } | null>(null);
   const [msg, setMsg] = useState('');
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -79,14 +81,16 @@ export default function StockDashboard({ email }: { email: string }) {
     setLoadError('');
     setSettings(s as Settings);
     const mode = (s as Settings).mode;
-    const [t, c, o, f, l, m] = await Promise.all([
+    const [t, c, o, f, l, m, rs] = await Promise.all([
       sb.from('tier_pnl').select('*').eq('mode', mode).eq('status', 'OPEN').order('grid_price', { ascending: false }),
       sb.from('tier_pnl').select('realized_pnl_usd').eq('mode', mode).eq('status', 'CLOSED'),
       sb.from('orders').select('*').eq('mode', mode).in('status', ['SUBMITTING', 'OPEN', 'CANCEL_REQUESTED']).order('limit_price', { ascending: false }),
       sb.from('fills').select('*').order('created_at', { ascending: false }).limit(30),
       sb.from('logs').select('*').order('created_at', { ascending: false }).limit(30),
       sb.from('market_snapshot').select('price, fx, price_at').eq('id', 1).maybeSingle(),
+      sb.from('runner_state').select('last_run_at, backoff_until, last_error').eq('id', 1).maybeSingle(),
     ]);
+    if (rs.data) setRunner(rs.data);
     if (m.data) setMarket(m.data as Market);
     setTiers((t.data ?? []) as Tier[]);
     const closed = (c.data ?? []) as { realized_pnl_usd: number }[];
@@ -117,9 +121,26 @@ export default function StockDashboard({ email }: { email: string }) {
   const toggle = async () => {
     if (!settings) return;
     const next = !settings.enabled;
-    if (next && !confirm(`${settings.mode === 'live' ? '⚠️ 실전 계좌' : '모의투자'}로 자동매매를 시작할까요?`)) return;
+    if (
+      next &&
+      !confirm(
+        settings.dry_run
+          ? '드라이런으로 시작할까요? (주문은 보내지 않고 로그만 남깁니다)'
+          : `${settings.mode === 'live' ? '⚠️ 실전 계좌' : '모의투자'}로 실제 주문을 시작할까요?`,
+      )
+    )
+      return;
     const { error } = await sb.from('settings').update({ enabled: next, updated_at: new Date().toISOString() }).eq('id', 1);
     setMsg(error ? `변경 실패: ${error.message}` : next ? '자동매매를 켰습니다.' : '자동매매를 정지했습니다. 다음 실행에서 미체결 주문을 취소합니다.');
+    load();
+  };
+
+  const toggleDryRun = async () => {
+    if (!settings) return;
+    const next = !settings.dry_run;
+    if (!next && !confirm(`⚠️ 실제 주문 모드로 바꿀까요?\n자동매매가 켜져 있으면 다음 실행(1분 이내)부터 ${settings.mode === 'live' ? '실전 계좌로' : ''} 주문이 나갑니다.`)) return;
+    const { error } = await sb.from('settings').update({ dry_run: next, updated_at: new Date().toISOString() }).eq('id', 1);
+    setMsg(error ? `변경 실패: ${error.message}` : next ? '드라이런으로 바꿨습니다. 주문을 보내지 않습니다.' : '실제 주문 모드로 바꿨습니다.');
     load();
   };
 
@@ -183,16 +204,30 @@ where id = 1;`}
             {settings.mode === 'live' ? '실전' : '모의투자'}
           </span>
           <span className="font-semibold">{settings.symbol}</span>
+          {settings.dry_run && <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700">드라이런</span>}
           <span className={`text-sm ${settings.enabled ? 'text-green-600' : 'text-gray-500'}`}>
-            ● {settings.enabled ? '자동매매 실행 중' : '정지됨'}
+            ● {settings.enabled ? (settings.dry_run ? '드라이런 실행 중 (주문 없음)' : '자동매매 실행 중') : '정지됨'}
           </span>
         </div>
-        <button
-          onClick={toggle}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold text-white ${settings.enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-        >
-          {settings.enabled ? '긴급 정지' : '자동매매 시작'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleDryRun} className="px-3 py-2 rounded-lg text-sm border border-gray-200 hover:bg-gray-50">
+            {settings.dry_run ? '실제 주문으로 전환' : '드라이런으로 전환'}
+          </button>
+          <button
+            onClick={toggle}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold text-white ${settings.enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+          >
+            {settings.enabled ? '긴급 정지' : '자동매매 시작'}
+          </button>
+        </div>
+        <p className="w-full text-xs text-gray-500">
+          마지막 실행: {runner?.last_run_at ? new Date(runner.last_run_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '아직 없음'}
+          {runner?.backoff_until && new Date(runner.backoff_until) > new Date() && (
+            <span className="text-red-600">
+              {' '}· 오류로 {new Date(runner.backoff_until).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}까지 대기 중{runner.last_error ? ` (${runner.last_error})` : ''}
+            </span>
+          )}
+        </p>
       </section>
 
       {msg && <p className="text-sm text-blue-700 bg-blue-50 rounded-lg px-4 py-2">{msg}</p>}
