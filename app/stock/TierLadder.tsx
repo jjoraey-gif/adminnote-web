@@ -10,6 +10,7 @@ export type LadderTier = {
   bought_amt: number;
   sold_qty: number;
   buy_done: boolean;
+  is_entry?: boolean;
   created_at: string;
 };
 export type LadderSettings = {
@@ -60,9 +61,10 @@ export default function TierLadder({ tiers, s, market }: { tiers: LadderTier[]; 
     const sorted = [...tiers].sort((a, b) => b.grid_price - a.grid_price);
     const out: Row[] = [];
     for (const t of sorted) {
-      const g = Number(t.grid_price);
       const held = t.bought_qty - t.sold_qty;
       const kind: Kind = t.bought_qty === 0 ? '매수 대기' : !t.buy_done && t.bought_qty < t.target_qty ? '일부 매수' : '보유';
+      // 체결 전 진입 주문: 한도가가 아니라 현재가 부근에서 체결되므로 현재가 기준으로 표시
+      const g = t.bought_qty === 0 && t.is_entry && price ? price : Number(t.grid_price);
       out.push({
         n: out.length + 1,
         kind,
@@ -77,8 +79,10 @@ export default function TierLadder({ tiers, s, market }: { tiers: LadderTier[]; 
     // 앞으로 사게 될 티어 (예상)
     let last: number | null = out.length ? out[out.length - 1].buy : null;
     if (last === null && price) {
-      last = floorCent(price * (1 + Number(s.entry_buffer_pct)));
-      out.push({ n: 1, kind: '진입 예정', buy: last, sell: ceilCent(last * (1 + step)), held: 0, target: qtyFor(last), cost: last * qtyFor(last), avg: null });
+      // 진입은 현재가 부근에서 체결되므로 현재가 기준으로 표시 (수량은 주문 한도가 기준 = 예산 초과 방지)
+      const q = qtyFor(floorCent(price * (1 + Number(s.entry_buffer_pct))));
+      last = price;
+      out.push({ n: 1, kind: '진입 예정', buy: price, sell: ceilCent(price * (1 + step)), held: 0, target: q, cost: price * q, avg: null });
     }
     while (last !== null && out.length < Number(s.max_tiers)) {
       last = floorCent(last * (1 - step));
@@ -192,7 +196,7 @@ export default function TierLadder({ tiers, s, market }: { tiers: LadderTier[]; 
         <Stat label="남은 티어 매수 예상 금액" value={usd(remainingNeed)} sub={krw(remainingNeed * fx)} />
       </div>
       <p className="text-[11px] text-gray-400 mt-2">
-        회색 행은 아직 주문하지 않은 예상치입니다. 예상 수량·금액은 현재 환율과 설정 기준이며 실제와 다를 수 있습니다. 목표까지: 보유 티어는 매도 목표가, 나머지는 매수가까지의 거리.
+        진입 매수는 현재가 부근에서 체결되며, 실제 체결가가 T1 기준가가 됩니다. 회색 행은 아직 주문하지 않은 예상치입니다. 예상 수량·금액은 현재 환율과 설정 기준이며 실제와 다를 수 있습니다. 목표까지: 보유 티어는 매도 목표가, 나머지는 매수가까지의 거리.
       </p>
     </div>
   );
