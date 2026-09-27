@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { stockSupabase } from '@/lib/stock-supabase';
+import TierLadder, { type Market } from './TierLadder';
 
 type Settings = {
   enabled: boolean;
@@ -18,7 +19,7 @@ type Settings = {
 };
 type Tier = {
   id: string; mode: string; grid_price: number; target_qty: number; bought_qty: number; bought_amt: number;
-  sold_qty: number; sold_amt: number; status: string; created_at: string; closed_at: string | null; realized_pnl_usd: number;
+  sold_qty: number; sold_amt: number; buy_done: boolean; status: string; created_at: string; closed_at: string | null; realized_pnl_usd: number;
 };
 type Order = {
   id: string; tier_id: string; side: 'BUY' | 'SELL'; qty: number; limit_price: number; filled_qty: number;
@@ -64,6 +65,7 @@ export default function StockDashboard({ email }: { email: string }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
+  const [market, setMarket] = useState<Market>({ price: null, fx: null, price_at: null });
   const [msg, setMsg] = useState('');
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -77,13 +79,15 @@ export default function StockDashboard({ email }: { email: string }) {
     setLoadError('');
     setSettings(s as Settings);
     const mode = (s as Settings).mode;
-    const [t, c, o, f, l] = await Promise.all([
+    const [t, c, o, f, l, m] = await Promise.all([
       sb.from('tier_pnl').select('*').eq('mode', mode).eq('status', 'OPEN').order('grid_price', { ascending: false }),
       sb.from('tier_pnl').select('realized_pnl_usd').eq('mode', mode).eq('status', 'CLOSED'),
       sb.from('orders').select('*').eq('mode', mode).in('status', ['SUBMITTING', 'OPEN', 'CANCEL_REQUESTED']).order('limit_price', { ascending: false }),
       sb.from('fills').select('*').order('created_at', { ascending: false }).limit(30),
       sb.from('logs').select('*').order('created_at', { ascending: false }).limit(30),
+      sb.from('market_snapshot').select('price, fx, price_at').eq('id', 1).maybeSingle(),
     ]);
+    if (m.data) setMarket(m.data as Market);
     setTiers((t.data ?? []) as Tier[]);
     const closed = (c.data ?? []) as { realized_pnl_usd: number }[];
     setClosedPnl(closed.reduce((a, r) => a + Number(r.realized_pnl_usd), 0));
@@ -208,31 +212,9 @@ where id = 1;`}
         ))}
       </section>
 
-      {/* 티어 */}
+      {/* 티어 현황 */}
       <section className={card}>
-        <h2 className="font-semibold mb-3">보유 티어</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm tabular-nums">
-            <thead className="text-gray-500 text-xs">
-              <tr className="text-left">
-                <th className="py-1">#</th><th>기준가</th><th>매도 목표</th><th>보유/목표</th><th>평균단가</th><th>시작</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tiers.map((t, i) => (
-                <tr key={t.id} className="border-t border-gray-100">
-                  <td className="py-1.5">T{i + 1}</td>
-                  <td>{usd(t.grid_price)}</td>
-                  <td>{usd(Math.ceil(t.grid_price * (1 + Number(settings.step_pct)) * 100 - 1e-6) / 100)}</td>
-                  <td>{t.bought_qty - t.sold_qty} / {t.target_qty}</td>
-                  <td>{t.bought_qty ? usd(t.bought_amt / t.bought_qty) : '-'}</td>
-                  <td>{dt(t.created_at)}</td>
-                </tr>
-              ))}
-              {!tiers.length && <tr><td colSpan={6} className="py-3 text-gray-400">보유 티어 없음</td></tr>}
-            </tbody>
-          </table>
-        </div>
+        <TierLadder tiers={tiers} s={settings} market={market} />
       </section>
 
       {/* 미체결 주문 */}
