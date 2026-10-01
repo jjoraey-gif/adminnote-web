@@ -439,6 +439,8 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [selectedUser, setSelectedUser] = useState<PersonalUser | null>(null);
   const [personalPage, setPersonalPage] = useState(1);
+  // 개인회원 검색 — 이메일/닉네임으로 거른다 (등급 변경 대상을 빨리 찾기 위함)
+  const [personalQuery, setPersonalQuery] = useState('');
   const [photoPage, setPhotoPage] = useState(1);
   const PHOTO_PAGE_SIZE = 20; // 이미지 전송량을 줄이기 위해 한 페이지 표시 수를 축소
 
@@ -928,13 +930,47 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
 
         {/* 개인회원 */}
         {(() => {
-          const totalPages = Math.ceil(data.personal.length / PAGE_SIZE);
-          const paged = data.personal.slice((personalPage - 1) * PAGE_SIZE, personalPage * PAGE_SIZE);
+          const q = personalQuery.trim().toLowerCase();
+          const list = q
+            ? data.personal.filter(u =>
+                (u.email ?? '').toLowerCase().includes(q) ||
+                (u.nickname ?? '').toLowerCase().includes(q))
+            : data.personal;
+          const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+          // 검색 결과가 줄어 현재 페이지가 범위를 벗어나면 마지막 페이지로 맞춘다
+          const curPage = Math.min(personalPage, totalPages);
+          const paged = list.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
           return (
             <div style={{ ...card, marginBottom: 24 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px' }}>
-                개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>{data.personalCount}명</span>
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 0 16px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                  개인회원 <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 400 }}>
+                    {q ? `${list.length}명 / 전체 ${data.personalCount}명` : `${data.personalCount}명`}
+                  </span>
+                </h2>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={personalQuery}
+                    onChange={e => { setPersonalQuery(e.target.value); setPersonalPage(1); }}
+                    placeholder="이메일 또는 닉네임 검색"
+                    style={{
+                      width: 260, padding: '7px 30px 7px 12px', fontSize: 13,
+                      border: '1px solid #E5E7EB', borderRadius: 8, outline: 'none',
+                    }}
+                  />
+                  {personalQuery && (
+                    <button
+                      onClick={() => { setPersonalQuery(''); setPersonalPage(1); }}
+                      title="검색어 지우기"
+                      style={{
+                        position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: '#9CA3AF', fontSize: 14, lineHeight: 1, padding: 0,
+                      }}
+                    >✕</button>
+                  )}
+                </div>
+              </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead><tr style={{ background: '#F9FAFB' }}>
@@ -943,7 +979,9 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                   </tr></thead>
                   <tbody>
                     {paged.length === 0
-                      ? <tr><td colSpan={6} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>없음</td></tr>
+                      ? <tr><td colSpan={6} style={{ ...td, color: '#9CA3AF', textAlign: 'center', padding: '24px 0' }}>
+                          {q ? `"${personalQuery.trim()}" 검색 결과가 없습니다` : '없음'}
+                        </td></tr>
                       : paged.map((u, i) => {
                           // 번호(#)는 가입일 오름차순 기준 고정 번호(no) — 목록 표시 순서(최신순)와 무관
                           const currentGrade = grades[u.id] ?? 'normal';
@@ -997,15 +1035,15 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
               {totalPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 16 }}>
                   <button
-                    onClick={() => setPersonalPage(p => Math.max(1, p - 1))}
-                    disabled={personalPage === 1}
-                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === 1 ? 'default' : 'pointer', opacity: personalPage === 1 ? 0.4 : 1 }}
+                    onClick={() => setPersonalPage(Math.max(1, curPage - 1))}
+                    disabled={curPage === 1}
+                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: curPage === 1 ? 'default' : 'pointer', opacity: curPage === 1 ? 0.4 : 1 }}
                   >‹</button>
                   {(() => {
                     // 페이지 번호는 최대 10개까지만 보이고, 나머지는 ‹ › 로 넘긴다
                     const PAGE_WINDOW = 10;
-                    let startPage = Math.max(1, personalPage - Math.floor(PAGE_WINDOW / 2));
-                    let endPage = Math.min(totalPages, startPage + PAGE_WINDOW - 1);
+                    let startPage = Math.max(1, curPage - Math.floor(PAGE_WINDOW / 2));
+                    const endPage = Math.min(totalPages, startPage + PAGE_WINDOW - 1);
                     startPage = Math.max(1, endPage - PAGE_WINDOW + 1);
                     return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
                       <button
@@ -1013,18 +1051,18 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
                         onClick={() => setPersonalPage(page)}
                         style={{
                           padding: '5px 10px', fontSize: 13, borderRadius: 6, cursor: 'pointer',
-                          border: page === personalPage ? '1px solid #2563EB' : '1px solid #E5E7EB',
-                          background: page === personalPage ? '#2563EB' : '#fff',
-                          color: page === personalPage ? '#fff' : '#374151',
-                          fontWeight: page === personalPage ? 700 : 400,
+                          border: page === curPage ? '1px solid #2563EB' : '1px solid #E5E7EB',
+                          background: page === curPage ? '#2563EB' : '#fff',
+                          color: page === curPage ? '#fff' : '#374151',
+                          fontWeight: page === curPage ? 700 : 400,
                         }}
                       >{page}</button>
                     ));
                   })()}
                   <button
-                    onClick={() => setPersonalPage(p => Math.min(totalPages, p + 1))}
-                    disabled={personalPage === totalPages}
-                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: personalPage === totalPages ? 'default' : 'pointer', opacity: personalPage === totalPages ? 0.4 : 1 }}
+                    onClick={() => setPersonalPage(Math.min(totalPages, curPage + 1))}
+                    disabled={curPage === totalPages}
+                    style={{ padding: '5px 10px', fontSize: 13, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', cursor: curPage === totalPages ? 'default' : 'pointer', opacity: curPage === totalPages ? 0.4 : 1 }}
                   >›</button>
                 </div>
               )}
