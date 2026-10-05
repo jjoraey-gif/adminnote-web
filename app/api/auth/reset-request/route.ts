@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { listAllAuthUsers } from '@/lib/admin-fetch';
 
 /**
  * 비밀번호 초기화 요청 접수 (로그인 화면 → "비밀번호 초기화 요청하기")
@@ -40,10 +41,11 @@ export async function POST(request: NextRequest) {
 
   try {
     // 가입된 계정인지 확인 — 없으면 기록하지 않고 조용히 성공 응답
-    const { data: listData, error: listErr } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
-    if (listErr) throw listErr;
+    // 1000명을 넘으면 뒤쪽 가입자가 조회되지 않아 요청이 조용히 묻히던 문제가 있어 전체를 가져온다
+    const { users, error: listErr } = await listAllAuthUsers(adminSupabase);
+    if (listErr) throw new Error(listErr);
 
-    const exists = (listData?.users ?? []).some(u => (u.email ?? '').toLowerCase() === cleanEmail);
+    const exists = users.some(u => (u.email ?? '').toLowerCase() === cleanEmail);
     if (!exists) return NextResponse.json({ success: true });
 
     // 최근 24시간 내 같은 이메일의 미처리 요청이 있으면 중복 기록하지 않는다

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAdminAuthed } from '@/lib/admin-auth';
+import { listAllAuthUsers, selectAllRows } from '@/lib/admin-fetch';
 
 export async function GET() {
   if (!await isAdminAuthed()) {
@@ -12,17 +13,22 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const [{ data: snapshots }, { data: profiles }, { data: authData }] = await Promise.all([
-    adminSupabase.from('user_snapshots').select('user_id, data, updated_at'),
-    adminSupabase.from('profiles').select('id, email, nickname, org_name'),
-    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
+  // 1000건 한도를 넘기지 않도록 전체를 페이지 단위로 가져온다
+  const [{ rows: snapshots }, { rows: profiles }, { users: authUsers }] = await Promise.all([
+    selectAllRows<{ user_id: string; data: unknown; updated_at: string }>(
+      adminSupabase, 'user_snapshots', 'user_id, data, updated_at',
+    ),
+    selectAllRows<{ id: string; email: string | null; nickname: string | null; org_name: string | null }>(
+      adminSupabase, 'profiles', 'id, email, nickname, org_name',
+    ),
+    listAllAuthUsers(adminSupabase),
   ]);
 
   // auth.users 이메일 / 가입일 / 메타데이터 맵
   const authEmailMap: Record<string, string> = {};
   const authCreatedMap: Record<string, string> = {};
   const authMetaMap: Record<string, any> = {};
-  (authData?.users ?? []).forEach((u: any) => {
+  authUsers.forEach((u: any) => {
     if (u.email) authEmailMap[u.id] = u.email;
     if (u.created_at) authCreatedMap[u.id] = u.created_at;
     authMetaMap[u.id] = u.user_metadata ?? {};
@@ -45,7 +51,7 @@ export async function GET() {
     };
   });
   // profiles에 없는 유저도 auth 정보로 보완
-  (authData?.users ?? []).forEach((u: any) => {
+  authUsers.forEach((u: any) => {
     if (!profileMap[u.id]) {
       profileMap[u.id] = { email: u.email ?? '-', nickname: resolveNickname(u.id, null, null) };
     }

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { listAllAuthUsers, selectAllRows } from '@/lib/admin-fetch';
 import AdminLoginPage from './LoginPage';
 import AdminDashboard from './Dashboard';
 import { isAdminAuthed } from '@/lib/admin-auth';
@@ -38,8 +39,10 @@ async function getAdminData() {
     { count: totalVisitCount },
     { count: todayVisitCount },
   ] = await Promise.all([
-    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
-    adminSupabase.from('profiles').select('*'),
+    // 1000건 한도 때문에 회원 수가 1000에서 멈추고 닉네임이 '-'로 보이던 문제가 있어
+    // 페이지를 넘겨가며 전체를 가져온다 (lib/admin-fetch.ts)
+    listAllAuthUsers(adminSupabase).then(r => ({ data: { users: r.users }, error: r.error ? { message: r.error } : null })),
+    selectAllRows(adminSupabase, 'profiles', '*').then(r => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     adminSupabase.from('photo_transfers').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
     adminSupabase.from('notices').select('id, title, content, category, is_published, created_at').order('created_at', { ascending: false }),
     adminSupabase.from('suggestions').select('id, user_email, user_nickname, content, is_read, created_at').order('created_at', { ascending: false }).limit(200),

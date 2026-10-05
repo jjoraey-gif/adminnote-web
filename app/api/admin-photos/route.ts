@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAdminAuthed } from '@/lib/admin-auth';
+import { listAllAuthUsers, selectAllRows } from '@/lib/admin-fetch';
 
 const BUCKET = 'photo-transfers';
 
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest) {
   // 최근 업로드 상위 N건만 가져오면, 오래전에 올렸다가 "지금" 삭제한 사진은 순위 밖으로 밀려나
   // 그레이스 기간 안인데도 목록에서 통째로 빠지는 문제가 있었다.
   // → ①최근 업로드 상위 N건 ②삭제 후 그레이스 기간 안인 모든 건을 각각 조회해 합친다.
-  const [{ data: recentRows, error }, { data: gracePeriodRows, error: graceErr }, { data: profiles }, { data: authData }] = await Promise.all([
+  // profiles/auth.users는 1000건 한도가 있어 전체를 나눠 가져온다
+  // (한도에 걸리면 1000번째 이후 가입자의 닉네임·이메일이 비어 보인다)
+  const [{ data: recentRows, error }, { data: gracePeriodRows, error: graceErr }, { rows: profiles }, { users: authUsers }] = await Promise.all([
     adminSupabase
       .from('photo_transfers')
       .select(SELECT_COLS)
@@ -48,8 +51,10 @@ export async function GET(request: NextRequest) {
       .from('photo_transfers')
       .select(SELECT_COLS)
       .gt('deleted_at', graceThresholdIso),
-    adminSupabase.from('profiles').select('id, nickname, org_name'),
-    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
+    selectAllRows<{ id: string; nickname: string | null; org_name: string | null }>(
+      adminSupabase, 'profiles', 'id, nickname, org_name',
+    ),
+    listAllAuthUsers(adminSupabase),
   ]);
 
   if (error || graceErr) {
@@ -69,10 +74,10 @@ export async function GET(request: NextRequest) {
   });
 
   const emailMap: Record<string, string> = {};
-  (authData?.users ?? []).forEach((u: any) => { if (u.email) emailMap[u.id] = u.email; });
+  authUsers.forEach((u) => { if (u.email) emailMap[u.id] = u.email; });
 
-  const profileMap: Record<string, any> = {};
-  (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+  const profileMap: Record<string, { id: string; nickname: string | null; org_name: string | null }> = {};
+  profiles.forEach((p) => { profileMap[p.id] = p; });
 
   // 화면에 표시할 대상(삭제 후 그레이스 기간 내 포함) 전체에 대해 URL을 발급한다.
   // 그리드에는 업로드 시 저장해 둔 thumb_path(축소 이미지)를 쓰고, 원본은 확대 보기에만 쓴다.

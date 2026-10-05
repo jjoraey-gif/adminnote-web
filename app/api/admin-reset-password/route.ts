@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { isAdminAuthed } from '@/lib/admin-auth';
+import { listAllAuthUsers, selectAllRows } from '@/lib/admin-fetch';
 
 // 검색 결과 최대 건수 — 화면이 무한정 길어지는 것을 방지
 const MAX_RESULTS = 20;
@@ -27,9 +28,12 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const [{ data: authData, error: authErr }, { data: profiles }] = await Promise.all([
-    adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
-    adminSupabase.from('profiles').select('id, account_type, nickname, org_name, user_id'),
+  // 1000건 한도에 걸리지 않도록 전체를 페이지 단위로 가져온다
+  const [{ users: authUsers, error: authErr }, { rows: profiles }] = await Promise.all([
+    listAllAuthUsers(adminSupabase),
+    selectAllRows<{ id: string; account_type: string; nickname: string | null; org_name: string | null; user_id: string | null }>(
+      adminSupabase, 'profiles', 'id, account_type, nickname, org_name, user_id',
+    ),
   ]);
 
   if (authErr) {
@@ -38,9 +42,9 @@ export async function GET(request: NextRequest) {
   }
 
   const profileMap: Record<string, { account_type: string; nickname: string | null; org_name: string | null; user_id: string | null }> = {};
-  (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+  profiles.forEach((p) => { profileMap[p.id] = p; });
 
-  const matches = (authData?.users ?? [])
+  const matches = authUsers
     .filter((u: any) => {
       const prof = profileMap[u.id];
       const haystack = [u.email, prof?.nickname, prof?.org_name, prof?.user_id]
