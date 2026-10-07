@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import { ScheduleEvent, TodoItem, TodoTopic, SubProject, SnapshotData } from './useSnapshot';
+import { OvertimeSettings, DEFAULT_SETTINGS as DEFAULT_OVERTIME, SNAPSHOT_KEY as OVERTIME_KEY, normalizeSettings } from './overtime';
 
 export interface PromotionRecord { id: string; grade: string; date: string; note: string; }
 export interface AssignmentRecord { id: string; department: string; date: string; }
@@ -65,6 +66,7 @@ export function useWebStore(userId: string | undefined) {
   const [pastPerformanceRatings, setPastPerformanceRatings] = useState<PerformanceRating[]>([]);
   const [sameGradePromotions, setSameGradePromotions] = useState<SameGradePromotion[]>([]);
   const [orgDepartments, setOrgDepartments] = useState<OrgDepartment[]>([]);
+  const [overtimeSettings, setOvertimeSettings] = useState<OvertimeSettings>(DEFAULT_OVERTIME);
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,6 +98,10 @@ export function useWebStore(userId: string | undefined) {
   useEffect(() => {
     dataRef.current = { ...dataRef.current, orgDepartments };
   }, [orgDepartments]);
+
+  useEffect(() => {
+    dataRef.current = { ...dataRef.current, [OVERTIME_KEY]: overtimeSettings };
+  }, [overtimeSettings]);
 
   // 초기 로드
   useEffect(() => {
@@ -134,6 +140,7 @@ export function useWebStore(userId: string | undefined) {
           setAwards(aw);
           setCareerInfo(ci);
           const od = (d.orgDepartments as OrgDepartment[]) ?? [];
+          setOvertimeSettings(normalizeSettings(d[OVERTIME_KEY]));
           setPerformanceRatings(prf);
           setPastPerformanceRatings(pprf);
           setSameGradePromotions(sgp);
@@ -237,6 +244,7 @@ export function useWebStore(userId: string | undefined) {
           setPastPerformanceRatings((d.pastPerformanceRatings as PerformanceRating[]) ?? []);
           setSameGradePromotions((d.sameGradePromotions as SameGradePromotion[]) ?? []);
           setOrgDepartments((d.orgDepartments as OrgDepartment[]) ?? []);
+          setOvertimeSettings(normalizeSettings(d[OVERTIME_KEY]));
           // 초기 로드와 같은 이유로 원본 d를 먼저 펼쳐 앱 전용 키를 보존한다
           dataRef.current = { ...d, events: ev, todos: td, todoTopics: tt, subProjects: sp, externalContacts: (d.externalContacts as ExternalContact[]) ?? [], contactGroups: (d.contactGroups as ContactGroup[]) ?? [], promotions: (d.promotions as PromotionRecord[]) ?? [], assignments: (d.assignments as AssignmentRecord[]) ?? [], awards: (d.awards as AwardRecord[]) ?? [], careerInfo: (d.careerInfo as CareerInfo) ?? defaultCareerInfo(), performanceRatings: (d.performanceRatings as PerformanceRating[]) ?? [], pastPerformanceRatings: (d.pastPerformanceRatings as PerformanceRating[]) ?? [], sameGradePromotions: (d.sameGradePromotions as SameGradePromotion[]) ?? [], orgDepartments: (d.orgDepartments as OrgDepartment[]) ?? [] };
         },
@@ -589,10 +597,17 @@ export function useWebStore(userId: string | undefined) {
     push({ ...dataRef.current, careerInfo: ci });
   }, [push]);
 
+  // 초과근무 기록알람 — 앱과 같은 키로 저장해서 양쪽이 같은 시간을 본다
+  const updateOvertimeSettings = useCallback((s: OvertimeSettings) => {
+    setOvertimeSettings(s);
+    push({ ...dataRef.current, [OVERTIME_KEY]: s });
+  }, [push]);
+
   return {
     events, todos, todoTopics, subProjects, externalContacts, contactGroups,
     promotions, assignments, awards, careerInfo,
-    performanceRatings, pastPerformanceRatings, sameGradePromotions, orgDepartments, loading,
+    performanceRatings, pastPerformanceRatings, sameGradePromotions, orgDepartments,
+    overtimeSettings, updateOvertimeSettings, loading,
     addEvent, updateEvent, deleteEvent, toggleEvent,
     addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
     addTodoTopic, renameTodoTopic, deleteTodoTopic, reorderTodoTopics,

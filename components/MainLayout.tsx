@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { useWebStore } from '@/lib/useWebStore';
+import { useOvertimeAlarm, loadSoundPref, saveSoundPref, primeAudio } from '@/lib/overtime';
 import ScheduleView from './ScheduleView';
 import TodoView from './TodoView';
 import BudgetView from './BudgetView';
@@ -15,6 +16,7 @@ import MyPageView from './MyPageView';
 import HistoryView from './HistoryView';
 import PromotionRankView from './PromotionRankView';
 import OrgChartView from './OrgChartView';
+import OvertimeView from './OvertimeView';
 
 const MAIN_TABS = [
   { key: 'photo',    label: '사진전송' },
@@ -29,6 +31,7 @@ const MORE_TABS = [
   { key: 'promotion', label: '승진순위관리' },
   { key: 'org',       label: '부서조직도' },
   { key: 'contacts',  label: '외부연락처' },
+  { key: 'overtime',  label: '초과근무 기록알람' },
   { key: 'about',     label: '앱 소개' },
 ];
 
@@ -46,6 +49,18 @@ export default function MainLayout({ user, onLogout }: Props) {
   const currentTab = activeTab === 'more' ? activeMoreTab : activeTab;
   const supabase = createClient();
   const store = useWebStore(user.id);
+
+  // 초과근무 알람은 어느 탭을 보고 있든 계속 돌아야 하므로 레이아웃에서 구동한다
+  const [soundOn, setSoundOn] = useState(true);
+  useEffect(() => { setSoundOn(loadSoundPref()); }, []);
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    saveSoundPref(next);
+    // 브라우저는 사용자 조작 없이 소리를 못 내므로 이 클릭에서 오디오를 열어둔다
+    if (next) primeAudio();
+  };
+  const { lastFired } = useOvertimeAlarm(store.overtimeSettings, soundOn);
 
   const displayName =
     user.user_metadata?.full_name ??
@@ -267,6 +282,15 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onClearSameGradePromotions={store.clearSameGradePromotions}
                   onClearPromotionRankData={store.clearPromotionRankData}
                   onAddPromotion={store.addPromotion}
+                />
+              )}
+              {currentTab === 'overtime' && (
+                <OvertimeView
+                  settings={store.overtimeSettings}
+                  onSave={store.updateOvertimeSettings}
+                  soundOn={soundOn}
+                  onToggleSound={toggleSound}
+                  lastFired={lastFired}
                 />
               )}
               {currentTab === 'org' && (
