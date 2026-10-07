@@ -22,16 +22,16 @@ const MAIN_TABS = [
   { key: 'photo',    label: '사진전송' },
   { key: 'schedule', label: '업무일정' },
   { key: 'todo',     label: '오늘 할 일' },
-  { key: 'budget',   label: '예산관리' },
+  { key: 'overtime', label: '초과알람' },
   { key: 'more',     label: '더보기' },
 ];
 
 const MORE_TABS = [
   { key: 'history',   label: '이력관리' },
+  { key: 'budget',    label: '예산관리' },
   { key: 'promotion', label: '승진순위관리' },
   { key: 'org',       label: '부서조직도' },
   { key: 'contacts',  label: '외부연락처' },
-  { key: 'overtime',  label: '초과근무 기록알람' },
   { key: 'about',     label: '앱 소개' },
 ];
 
