@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   OvertimeSettings, OvertimeMode,
   WEEKDAY_START, WEEKDAY_END_OPTIONS,
@@ -25,12 +25,13 @@ interface Props {
 }
 
 export default function OvertimeView({ settings, onSave, soundOn, onToggleSound, lastFired }: Props) {
-  // 서버에서 내려온 값을 편집용 로컬 상태로 둔다 (저장 버튼을 눌러야 반영)
+  // 화면에 보여줄 값. 바꾸는 즉시 저장되므로 서버 값과 거의 같다.
   const [s, setS] = useState<OvertimeSettings>(settings);
   const [perm, setPerm] = useState<PermissionState>('default');
   const [savedMsg, setSavedMsg] = useState('');
+  const [status, setStatus] = useState<'idle' | 'saved'>('idle');
 
-  // 앱이나 다른 기기에서 바뀌면 편집 중이 아닐 때 따라간다
+  // 앱이나 다른 기기에서 바뀌면 따라간다
   useEffect(() => { setS(settings); }, [settings]);
 
   useEffect(() => { setPerm(notificationPermission()); }, []);
@@ -47,38 +48,67 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
     [s.holidayStartHour],
   );
 
-  const setMode = (mode: OvertimeMode) => setS(p => ({ ...p, mode }));
+  // ── 자동 저장 ──
+  //
+  // 앱과 동일하게 저장 버튼을 두지 않는다. 특히 "껐는데 저장을 안 눌러서
+  // 알림이 계속 오는" 상황을 없애는 게 핵심이다.
+  // 드롭다운은 바로 저장해도 되지만, 호출을 겹치지 않게 살짝 묶어둔다.
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSaveRef = useRef(onSave);
+  useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
+
+  const flash = useCallback(() => {
+    setStatus('saved');
+    if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
+    msgTimerRef.current = setTimeout(() => setStatus('idle'), 2000);
+  }, []);
+
+  /** 설정 변경 — immediate면 기다리지 않고 바로 저장한다 */
+  const update = useCallback((next: OvertimeSettings, immediate = false) => {
+    setS(next);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const run = () => { onSaveRef.current(next); flash(); };
+    if (immediate) run();
+    else timerRef.current = setTimeout(run, 400);
+  }, [flash]);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
+  }, []);
+
+  const setMode = (mode: OvertimeMode) => update({ ...s, mode }, true);
 
   const setHolidayStart = (h: number) =>
-    setS(p => ({
-      ...p,
+    update({
+      ...s,
       holidayStartHour: h,
-      holidayEndHour: p.holidayEndHour <= h ? Math.min(h + 1, HOLIDAY_END_MAX) : p.holidayEndHour,
-    }));
+      holidayEndHour: s.holidayEndHour <= h ? Math.min(h + 1, HOLIDAY_END_MAX) : s.holidayEndHour,
+    });
 
-  const handleSave = async () => {
-    if (s.enabled && hours.length === 0) {
-      setSavedMsg('종료 시각이 시작 시각보다 뒤여야 합니다.');
+  /** 알림 사용 토글 — 끄기는 즉시, 켜기는 권한을 먼저 받는다 */
+  const onToggleEnabled = async () => {
+    setSavedMsg('');
+    if (s.enabled) {
+      update({ ...s, enabled: false }, true);
       return;
     }
+    // 소리는 사용자 조작 시점에 열어둬야 나중에 울린다
     if (soundOn) primeAudio();
 
-    if (s.enabled) {
-      const result = await requestNotificationPermission();
-      setPerm(result);
-      if (result !== 'granted') {
-        setSavedMsg(
-          result === 'denied'
-            ? '브라우저에서 알림이 차단돼 있습니다. 주소창 왼쪽 자물쇠 → 알림을 허용으로 바꿔주세요.'
-            : '알림을 허용해야 알려드릴 수 있습니다.',
-        );
-        return;
-      }
+    const result = await requestNotificationPermission();
+    setPerm(result);
+    if (result !== 'granted') {
+      setSavedMsg(
+        result === 'denied'
+          ? '브라우저에서 알림이 차단돼 있습니다. 주소창 왼쪽 자물쇠 → 알림을 허용으로 바꿔주세요.'
+          : '알림을 허용해야 알려드릴 수 있습니다.',
+      );
+      return; // 권한이 없으면 켜지 않는다
     }
-
-    onSave(s);
-    setSavedMsg(s.enabled ? '저장했습니다. 이 탭이 열려 있는 동안 알려드립니다.' : '알림을 껐습니다.');
-    setTimeout(() => setSavedMsg(''), 6000);
+    update({ ...s, enabled: true }, true);
   };
 
   const unsupported = perm === 'unsupported';
@@ -111,7 +141,7 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 
       <Card>
         <Row label="알림 사용">
-          <Switch on={s.enabled} onToggle={() => setS(p => ({ ...p, enabled: !p.enabled }))} disabled={unsupported} />
+          <Switch on={s.enabled} onToggle={onToggleEnabled} disabled={unsupported} />
         </Row>
       </Card>
 
@@ -145,7 +175,7 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
                 <Select
                   value={s.weekdayEndHour}
                   options={WEEKDAY_END_OPTIONS.map(h => ({ value: h, label: hourLabel(h) }))}
-                  onChange={(v) => setS(p => ({ ...p, weekdayEndHour: v }))}
+                  onChange={(v) => update({ ...s, weekdayEndHour: v })}
                 />
               </Field>
             </>
@@ -162,7 +192,7 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
                 <Select
                   value={s.holidayEndHour}
                   options={holidayEnds.map(h => ({ value: h, label: hourLabel(h) }))}
-                  onChange={(v) => setS(p => ({ ...p, holidayEndHour: v }))}
+                  onChange={(v) => update({ ...s, holidayEndHour: v })}
                 />
               </Field>
             </>
@@ -171,7 +201,7 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
             <Select
               value={s.minute}
               options={MINUTE_OPTIONS.map(m => ({ value: m, label: minuteLabel(m) }))}
-              onChange={(v) => setS(p => ({ ...p, minute: v }))}
+              onChange={(v) => update({ ...s, minute: v })}
               accent
             />
           </Field>
@@ -228,17 +258,20 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
         </div>
       )}
 
-      <button
-        onClick={handleSave}
-        disabled={unsupported}
-        style={{
-          width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
-          background: unsupported ? '#D1D5DB' : BLUE, color: '#fff',
-          fontSize: 16, fontWeight: 700, cursor: unsupported ? 'default' : 'pointer',
-        }}
-      >
-        저장
-      </button>
+      {/* 저장 버튼 없이 바로 반영된다 — 그 사실을 알 수 있게 상태만 보여준다.
+          자리를 고정해 떴다 사라질 때 화면이 흔들리지 않게 한다. */}
+      <div style={{
+        height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 6, fontSize: 13, fontWeight: 600,
+        color: '#16A34A', opacity: status === 'saved' ? 1 : 0,
+        transition: 'opacity 0.2s',
+      }}>
+        저장됨
+      </div>
+
+      <p style={{ fontSize: 12, color: GRAY, textAlign: 'center', margin: '4px 0 0' }}>
+        바꾸는 즉시 저장됩니다.
+      </p>
     </div>
   );
 }
