@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   OvertimeSettings, OvertimeMode,
-  WEEKDAY_START, WEEKDAY_END_OPTIONS,
+  WEEKDAY_START_OPTIONS, weekdayEndOptions,
   HOLIDAY_START_MIN, HOLIDAY_START_MAX, HOLIDAY_END_MAX,
   MINUTE_OPTIONS, hourLabel, minuteLabel, slotHours,
   primeAudio,
@@ -37,6 +37,8 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
   useEffect(() => { setPerm(notificationPermission()); }, []);
 
   const hours = useMemo(() => slotHours(s), [s]);
+
+  const weekdayEnds = useMemo(() => weekdayEndOptions(s.weekdayStartHour), [s.weekdayStartHour]);
 
   const holidayStarts = useMemo(
     () => Array.from({ length: HOLIDAY_START_MAX - HOLIDAY_START_MIN + 1 }, (_, i) => HOLIDAY_START_MIN + i),
@@ -80,6 +82,16 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
   }, []);
 
   const setMode = (mode: OvertimeMode) => update({ ...s, mode }, true);
+
+  /** 평일 시작을 바꾸면 그보다 뒤인 종료만 남는다 */
+  const setWeekdayStart = (h: number) => {
+    const options = weekdayEndOptions(h);
+    update({
+      ...s,
+      weekdayStartHour: h,
+      weekdayEndHour: options.includes(s.weekdayEndHour) ? s.weekdayEndHour : options[0],
+    });
+  };
 
   const setHolidayStart = (h: number) =>
     update({
@@ -169,12 +181,16 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
           {s.mode === 'weekday' ? (
             <>
               <Field label="시작 시간대">
-                <FixedValue>{hourLabel(WEEKDAY_START)}</FixedValue>
+                <Select
+                  value={s.weekdayStartHour}
+                  options={WEEKDAY_START_OPTIONS.map(h => ({ value: h, label: hourLabel(h) }))}
+                  onChange={setWeekdayStart}
+                />
               </Field>
               <Field label="종료 시간대">
                 <Select
                   value={s.weekdayEndHour}
-                  options={WEEKDAY_END_OPTIONS.map(h => ({ value: h, label: hourLabel(h) }))}
+                  options={weekdayEnds.map(h => ({ value: h, label: hourLabel(h) }))}
                   onChange={(v) => update({ ...s, weekdayEndHour: v })}
                 />
               </Field>
@@ -303,17 +319,6 @@ function Field({ label, accent, children }: { label: string; accent?: boolean; c
       <div style={{ fontSize: 13, fontWeight: 600, color: accent ? RED : '#374151', marginBottom: 6 }}>
         {label}
       </div>
-      {children}
-    </div>
-  );
-}
-
-function FixedValue({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB',
-      background: '#F9FAFB', fontSize: 15, color: GRAY,
-    }}>
       {children}
     </div>
   );

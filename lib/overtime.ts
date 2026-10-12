@@ -21,10 +21,31 @@ export const SNAPSHOT_KEY = 'an_overtime_settings';
 
 export type OvertimeMode = 'weekday' | 'holiday';
 
-/** 평일 초과근무 시작 시각 (오후 6시 고정) */
+/**
+ * 평일에 고를 수 있는 시작 시각
+ *
+ * 오전 5·6·7시는 출근 전 초과근무, 오후 6시는 퇴근 후 초과근무다.
+ * 오전 9시 ~ 오후 6시는 정규 업무시간이라 알림이 필요 없어 선택지에서 뺐다.
+ */
+export const WEEKDAY_START_OPTIONS = [5, 6, 7, 18];
+/** 평일 기본 시작 시각 (오후 6시) */
 export const WEEKDAY_START = 18;
-/** 평일에 고를 수 있는 종료 시각 — 오후 7시 ~ 밤 12시 */
-export const WEEKDAY_END_OPTIONS = [19, 20, 21, 22, 23, 24];
+/** 평일에 고를 수 있는 종료 시각 — 오후 6시 ~ 밤 12시 */
+export const WEEKDAY_END_OPTIONS = [18, 19, 20, 21, 22, 23, 24];
+
+/** 정규 업무시간 — 이 사이에는 알림을 보내지 않는다 */
+export const WORK_HOURS_START = 9;
+export const WORK_HOURS_END = 18;
+
+/**
+ * 시작 시각에 따라 고를 수 있는 종료 시각
+ *
+ * 아침 일찍 나오면 저녁까지 이어 일하는 경우가 많아 오전 시작이어도 오후를 고를 수 있다.
+ * 오전 시작 + 종료 오후 6시 = 야근 없이 정시 퇴근(오전 알림만).
+ */
+export function weekdayEndOptions(start: number): number[] {
+  return WEEKDAY_END_OPTIONS.filter(h => h > start);
+}
 /** 휴일 시작 시각 범위 — 오전 6시 ~ 밤 11시 */
 export const HOLIDAY_START_MIN = 6;
 export const HOLIDAY_START_MAX = 23;
@@ -36,6 +57,9 @@ export const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => i * 5);
 export interface OvertimeSettings {
   enabled: boolean;
   mode: OvertimeMode;
+  /** 평일 시작 시각 */
+  weekdayStartHour: number;
+  /** 평일 오후 시작일 때의 종료 시각 (오전 시작이면 쓰이지 않는다) */
   weekdayEndHour: number;
   holidayStartHour: number;
   holidayEndHour: number;
@@ -45,6 +69,7 @@ export interface OvertimeSettings {
 export const DEFAULT_SETTINGS: OvertimeSettings = {
   enabled: false,
   mode: 'weekday',
+  weekdayStartHour: WEEKDAY_START,
   weekdayEndHour: 22,
   holidayStartHour: 9,
   holidayEndHour: 18,
@@ -79,6 +104,9 @@ export function normalizeSettings(raw: unknown): OvertimeSettings {
   return {
     enabled: !!p.enabled,
     mode,
+    weekdayStartHour: WEEKDAY_START_OPTIONS.includes(p.weekdayStartHour as number)
+      ? (p.weekdayStartHour as number)
+      : DEFAULT_SETTINGS.weekdayStartHour,
     weekdayEndHour: WEEKDAY_END_OPTIONS.includes(p.weekdayEndHour as number)
       ? (p.weekdayEndHour as number)
       : DEFAULT_SETTINGS.weekdayEndHour,
@@ -96,7 +124,7 @@ export function normalizeSettings(raw: unknown): OvertimeSettings {
 /** 설정에 따른 시작·종료 시각 */
 export function rangeOf(s: OvertimeSettings): { start: number; end: number } {
   return s.mode === 'weekday'
-    ? { start: WEEKDAY_START, end: s.weekdayEndHour }
+    ? { start: s.weekdayStartHour, end: s.weekdayEndHour }
     : { start: s.holidayStartHour, end: s.holidayEndHour };
 }
 
@@ -104,7 +132,11 @@ export function rangeOf(s: OvertimeSettings): { start: number; end: number } {
 export function slotHours(s: OvertimeSettings): number[] {
   const { start, end } = rangeOf(s);
   if (end <= start) return [];
-  return Array.from({ length: end - start }, (_, i) => start + i);
+  const all = Array.from({ length: end - start }, (_, i) => start + i);
+  if (s.mode !== 'weekday') return all;
+  // 평일은 정규 업무시간(오전 9시~오후 6시)을 건너뛴다.
+  // 오전 5시 출근 → 밤 10시 퇴근이면 5·6·7·8시와 18·19·20·21시에만 알림이 간다.
+  return all.filter(h => h < WORK_HOURS_START || h >= WORK_HOURS_END);
 }
 
 // ── 소리 설정 (브라우저마다 다른 취향이라 이 기기에만 저장) ──────────────────
