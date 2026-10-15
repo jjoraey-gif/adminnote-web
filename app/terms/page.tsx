@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ContactEmail from '@/components/ContactEmail';
 
 export default function TermsPage() {
   return (
@@ -161,7 +162,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">문의</h2>
             <p>
               운영자: 김창현<br />
-              이용약관 관련 문의: <a href="mailto:jjoraey@gmail.com" className="text-blue-600">jjoraey@gmail.com</a>
+              이용약관 관련 문의: <ContactEmail />
             </p>
           </section>
 

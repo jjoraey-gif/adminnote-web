@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ContactEmail from '@/components/ContactEmail';
 
 export default function PrivacyPage() {
   return (
@@ -26,7 +27,7 @@ export default function PrivacyPage() {
               <br />
               개발자: <strong>김창현</strong> (개인 개발자)
               <br />
-              문의 이메일: <a href="mailto:jjoraey@gmail.com" className="text-blue-600">jjoraey@gmail.com</a>
+              문의 이메일: <ContactEmail />
               <br />
               Google Play 스토어 등록명: <strong>공무원 업무수첩</strong>
               <br />
@@ -246,7 +247,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">문의</h2>
             <p>
               개인정보 보호 책임자: 김창현<br />
-              이메일: <a href="mailto:jjoraey@gmail.com" className="text-blue-600">jjoraey@gmail.com</a>
+              이메일: <ContactEmail />
             </p>
             <p className="mt-2 text-gray-600">
               개인정보 침해에 대한 신고나 상담이 필요한 경우 아래 기관에 문의하실 수 있습니다.

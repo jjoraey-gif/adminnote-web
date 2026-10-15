@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ContactEmail from '@/components/ContactEmail';
 
 export default function AccountDeletePage() {
   return (
@@ -47,9 +48,9 @@ export default function AccountDeletePage() {
             <p className="text-sm text-gray-600">
               탈퇴에 어려움이 있으시면 아래 이메일로 문의해 주세요.
             </p>
-            <a href="mailto:jjoraey@gmail.com" className="inline-block mt-2 text-blue-600 font-medium text-sm hover:underline">
-              jjoraey@gmail.com
-            </a>
+            <div className="mt-2">
+              <ContactEmail className="text-blue-600 font-medium text-sm hover:underline" />
+            </div>
           </section>
 
         </div>
