@@ -16,6 +16,18 @@ const THUMB_MAX = 320;
 //  10분 간격일 때보다 배치 크기를 늘렸다)
 const BATCH_SIZE = 40;
 
+/**
+ * 썸네일을 만들 실제 이미지 형식
+ *
+ * 파일 확장자는 업로더가 정하는 값이라 신뢰할 수 없다(악성 SVG를 evil.jpg로 올릴 수 있다).
+ * 그래서 내용을 읽어 판별한 실제 형식이 이 목록에 있을 때만 변환한다.
+ * SVG는 렌더링 과정에서 외부 자원을 참조할 수 있어 제외한다.
+ */
+const ALLOWED_FORMATS = ['jpeg', 'png', 'webp', 'heif', 'gif', 'tiff'];
+
+/** 디코딩을 허용할 최대 픽셀 수 — 작은 파일이 거대한 이미지로 풀리는 공격을 막는다 */
+const MAX_INPUT_PIXELS = 50_000_000; // 약 5천만 픽셀
+
 function isImageFile(fileName: string): boolean {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
   return IMAGE_EXTS.includes(ext);
@@ -95,7 +107,16 @@ export async function GET(request: Request) {
       }
 
       const originalBuffer = Buffer.from(await fileBlob.arrayBuffer());
-      const thumbBuffer = await sharp(originalBuffer)
+
+      // 파일 내용으로 실제 형식을 먼저 확인한다 — 확장자만 믿고 디코딩하지 않는다
+      const image = sharp(originalBuffer, { limitInputPixels: MAX_INPUT_PIXELS, failOn: 'error' });
+      const meta = await image.metadata();
+      if (!meta.format || !ALLOWED_FORMATS.includes(meta.format)) {
+        skipped++;
+        continue;
+      }
+
+      const thumbBuffer = await image
         .resize(THUMB_MAX, THUMB_MAX, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 70 })
         .toBuffer();
