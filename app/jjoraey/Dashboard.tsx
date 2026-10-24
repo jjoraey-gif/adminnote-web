@@ -79,12 +79,16 @@ const GRADE_OPTIONS = [
 interface FeatureStat {
   key: string; label: string; users: number; ratio: number; total: number; avg: number;
 }
+interface MediaStat {
+  users: number; ratio: number; recent30: number; files: number; gb: number;
+}
 interface StatsData {
   totalUsers: number;
   active7: number;
   active30: number;
   features: FeatureStat[];
-  photoTransfer: { users: number; files: number };
+  photoTransfer: MediaStat;
+  silentCamera: MediaStat;
 }
 
 function UsageStatsSection({ card }: { card: React.CSSProperties }) {
@@ -146,6 +150,23 @@ function UsageStatsSection({ card }: { card: React.CSSProperties }) {
             ))}
           </div>
 
+          {/* 사진 기능 — 건수·용량이 함께 의미가 있어 따로 보여준다 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }}>
+            {([
+              ['사진전송 (직접 업로드)', stats.photoTransfer],
+              ['무음카메라 (자동 전송)', stats.silentCamera],
+            ] as const).map(([label, m]) => (
+              <div key={label} style={{ border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E', marginBottom: 8 }}>{label}</div>
+                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.8 }}>
+                  누적 이용자 <b>{m.users.toLocaleString()}명</b> ({m.ratio}%)<br />
+                  최근 30일 <b>{m.recent30.toLocaleString()}명</b><br />
+                  누적 <b>{m.files.toLocaleString()}건</b> · {m.gb}GB
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {stats.features.map(f => (
               <div key={f.key}>
@@ -168,8 +189,9 @@ function UsageStatsSection({ card }: { card: React.CSSProperties }) {
 
           <p style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.7, marginTop: 18, marginBottom: 0 }}>
             · 해당 기능에 데이터를 1건 이상 등록한 회원 수입니다. 알림 기능은 켜둔 회원 수입니다.<br />
-            · 사진전송은 보관기간(3일)이 지나면 기록이 삭제되므로 최근 이용자만 집계됩니다.<br />
-            · 무음카메라·업무사진관리·문서스캔보관함은 기기에만 저장되어 집계할 수 없습니다.
+            · 사진 기능은 보관기간이 지나 파일을 지울 때 건수만 따로 적립해 누적값을 유지합니다.<br />
+            · 무음카메라는 자동 전송을 켠 경우만 집계됩니다. 꺼두고 쓰면 기기에만 남아 알 수 없습니다.<br />
+            · 업무사진관리·문서스캔보관함은 서버로 전송되지 않아 집계할 수 없습니다.
           </p>
         </>
       )}

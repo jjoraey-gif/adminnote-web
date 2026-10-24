@@ -18,8 +18,12 @@ const PAGE = 1000;
 
 interface PhotoRow {
   id: string;
+  user_id: string;
   file_path: string;
   thumb_path: string | null;
+  file_size: number | null;
+  /** 업로드 경로 — 'silent_camera' 또는 null(직접 업로드) */
+  source: string | null;
   expires_at: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -42,7 +46,7 @@ async function fetchCandidates(supabase: SupabaseClient, nowIso: string): Promis
   for (let from = 0; from < MAX_PER_RUN * 3; from += PAGE) {
     const { data, error } = await supabase
       .from('photo_transfers')
-      .select('id, file_path, thumb_path, expires_at, deleted_at, created_at')
+      .select('id, user_id, file_path, thumb_path, file_size, source, expires_at, deleted_at, created_at')
       // expires_at이 비어 있는 레코드(구버전 앱 업로드분)도 후보에 포함해야 한다
       .or(`expires_at.is.null,expires_at.lt.${nowIso},deleted_at.not.is.null`)
       .order('created_at', { ascending: true })
@@ -114,6 +118,38 @@ export async function GET(request: Request) {
   for (const paths of chunk(filePaths, CHUNK)) {
     const { error: storageErr } = await adminSupabase.storage.from('photo-transfers').remove(paths);
     if (storageErr) console.error('[cleanup-photos] Storage 삭제 실패:', storageErr.message);
+  }
+
+  /**
+   * 지우기 전에 이용 건수만 따로 모아둔다.
+   *
+   * 사진 자체는 보관기간이 지나면 없애야 하지만, "이 사람이 사진전송을 몇 번 썼는가"는
+   * 남겨둬야 누적 통계를 낼 수 있다. 파일명·경로는 넘기지 않고 숫자만 더한다.
+   */
+  type Bucket = { count: number; bytes: number; last: string };
+  const buckets = new Map<string, Bucket>();
+  for (const r of expired) {
+    if (!r.user_id) continue;
+    const feature = r.source === 'silent_camera' ? 'silent_camera' : 'photo_transfer';
+    const key = `${r.user_id}|${feature}`;
+    const b = buckets.get(key) ?? { count: 0, bytes: 0, last: r.created_at };
+    b.count += 1;
+    b.bytes += r.file_size ?? 0;
+    if (r.created_at > b.last) b.last = r.created_at;
+    buckets.set(key, b);
+  }
+
+  for (const [key, b] of buckets) {
+    const [userId, feature] = key.split('|');
+    const { error: bumpErr } = await adminSupabase.rpc('bump_usage_counter', {
+      p_user_id: userId,
+      p_feature: feature,
+      p_count: b.count,
+      p_bytes: b.bytes,
+      p_last_used_at: b.last,
+    });
+    // 집계 실패가 사진 정리를 막아서는 안 된다
+    if (bumpErr) console.error('[cleanup-photos] 이용 집계 실패:', bumpErr.message);
   }
 
   // DB 레코드 삭제

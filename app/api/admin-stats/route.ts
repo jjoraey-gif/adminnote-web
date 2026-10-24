@@ -109,18 +109,60 @@ export async function GET() {
     };
   }).sort((a, b) => b.users - a.users);
 
-  // 사진전송 — 보관기간(3일)이 지나면 레코드가 지워지므로 '최근 사용' 지표로만 쓴다
-  const { rows: photos } = await selectAllRows<{ user_id: string; created_at: string }>(
-    adminSupabase, 'photo_transfers', 'user_id, created_at',
+  /**
+   * 사진전송·무음카메라
+   *
+   * 사진 기록은 보관기간이 지나면 지워지므로, 정리 작업이 지우기 직전에
+   * usage_counters에 건수를 적립해둔다. 현재 보관 중인 건수와 합쳐야 누적값이 된다.
+   */
+  const { rows: live } = await selectAllRows<{ user_id: string; file_size: number | null; source: string | null }>(
+    adminSupabase, 'photo_transfers', 'user_id, file_size, source',
   );
-  const photoUsers = new Set(photos.map(p => p.user_id)).size;
+  const { rows: counters } = await selectAllRows<{
+    user_id: string; feature: string; count: number; bytes: number; last_used_at: string | null;
+  }>(adminSupabase, 'usage_counters', 'user_id, feature, count, bytes, last_used_at');
+
+  const media: Record<string, { users: Set<string>; files: number; bytes: number; recent30: Set<string> }> = {
+    photo_transfer: { users: new Set(), files: 0, bytes: 0, recent30: new Set() },
+    silent_camera:  { users: new Set(), files: 0, bytes: 0, recent30: new Set() },
+  };
+
+  // 아직 보관 중인 사진
+  for (const r of live) {
+    const f = r.source === 'silent_camera' ? 'silent_camera' : 'photo_transfer';
+    media[f].users.add(r.user_id);
+    media[f].recent30.add(r.user_id);
+    media[f].files += 1;
+    media[f].bytes += r.file_size ?? 0;
+  }
+  // 이미 지워진 뒤 적립된 집계
+  for (const c of counters) {
+    const m = media[c.feature];
+    if (!m) continue;
+    m.users.add(c.user_id);
+    m.files += Number(c.count) || 0;
+    m.bytes += Number(c.bytes) || 0;
+    if (c.last_used_at && now - Date.parse(c.last_used_at) <= 30 * DAY) m.recent30.add(c.user_id);
+  }
+
+  const mediaStat = (key: string) => {
+    const m = media[key];
+    return {
+      users: m.users.size,
+      ratio: ratio(m.users.size),
+      recent30: m.recent30.size,
+      files: m.files,
+      gb: Math.round((m.bytes / 1024 / 1024 / 1024) * 100) / 100,
+    };
+  };
 
   return NextResponse.json({
     totalUsers,
     active7,
     active30,
     features,
-    photoTransfer: { users: photoUsers, files: photos.length },
+    photoTransfer: mediaStat('photo_transfer'),
+    silentCamera: mediaStat('silent_camera'),
     generatedAt: new Date().toISOString(),
   });
 }
