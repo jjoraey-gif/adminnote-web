@@ -70,6 +70,113 @@ const GRADE_OPTIONS = [
   { value: 'vvip',   label: 'VVIP', bg: '#EDE9FE', color: '#7C3AED' },
 ];
 
+
+// ── 기능별 이용 통계 ─────────────────────────────────────────────────────────
+//
+// 별도의 사용 기록을 수집하지 않고, 이미 동기화된 데이터에 값이 들어 있는지만 센다.
+// 개별 내용은 서버에서도 숫자로만 집계해 내려오므로 이 화면에서 볼 수 없다.
+
+interface FeatureStat {
+  key: string; label: string; users: number; ratio: number; total: number; avg: number;
+}
+interface StatsData {
+  totalUsers: number;
+  active7: number;
+  active30: number;
+  features: FeatureStat[];
+  photoTransfer: { users: number; files: number };
+}
+
+function UsageStatsSection({ card }: { card: React.CSSProperties }) {
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin-stats');
+      const body = await res.json();
+      setStats(res.ok ? body : null);
+    } catch { setStats(null); }
+    setLoading(false);
+    setLoaded(true);
+  };
+
+  const max = stats ? Math.max(1, ...stats.features.map(f => f.users)) : 1;
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>기능별 이용 통계</h2>
+        <button
+          onClick={load}
+          disabled={loading}
+          style={{
+            padding: '8px 14px', borderRadius: 8, border: '1px solid #E5E7EB',
+            background: loading ? '#F3F4F6' : '#fff', fontSize: 13, fontWeight: 600,
+            cursor: loading ? 'default' : 'pointer', color: '#374151',
+          }}
+        >{loading ? '집계 중...' : loaded ? '다시 집계' : '집계하기'}</button>
+      </div>
+
+      {!loaded && !loading && (
+        <p style={{ fontSize: 13, color: '#9CA3AF', margin: 0 }}>
+          전체 회원 데이터를 훑어 집계합니다. 회원 수에 따라 몇 초 걸릴 수 있습니다.
+        </p>
+      )}
+
+      {loaded && !stats && (
+        <p style={{ fontSize: 13, color: '#DC2626', margin: 0 }}>집계에 실패했습니다.</p>
+      )}
+
+      {stats && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+            {[
+              ['데이터 보유 회원', `${stats.totalUsers.toLocaleString()}명`],
+              ['최근 7일 활동', `${stats.active7.toLocaleString()}명`],
+              ['최근 30일 활동', `${stats.active30.toLocaleString()}명`],
+              ['사진전송 이용', `${stats.photoTransfer.users.toLocaleString()}명`],
+            ].map(([label, value]) => (
+              <div key={label} style={{ border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {stats.features.map(f => (
+              <div key={f.key}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#1C1C1E' }}>{f.label}</span>
+                  <span style={{ fontSize: 13, color: '#6B7280', fontVariantNumeric: 'tabular-nums' }}>
+                    {f.users.toLocaleString()}명 ({f.ratio}%)
+                    {f.avg > 1 && <span style={{ color: '#9CA3AF' }}> · 1인당 {f.avg}건</span>}
+                  </span>
+                </div>
+                <div style={{ height: 8, borderRadius: 999, background: '#F3F4F6', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${(f.users / max) * 100}%`, height: '100%',
+                    borderRadius: 999, background: '#2563EB',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.7, marginTop: 18, marginBottom: 0 }}>
+            · 해당 기능에 데이터를 1건 이상 등록한 회원 수입니다. 알림 기능은 켜둔 회원 수입니다.<br />
+            · 사진전송은 보관기간(3일)이 지나면 기록이 삭제되므로 최근 이용자만 집계됩니다.<br />
+            · 무음카메라·업무사진관리·문서스캔보관함은 기기에만 저장되어 집계할 수 없습니다.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard({ data }: { data: AdminData }) {
   const router = useRouter();
   // 인증은 httpOnly 쿠키(path: '/')로 자동 전송됨 — 토큰을 클라이언트에 두지 않는다
@@ -1080,6 +1187,9 @@ export default function AdminDashboard({ data }: { data: AdminData }) {
             </div>
           )}
         </div>
+
+        {/* 기능별 이용 통계 */}
+        <UsageStatsSection card={card} />
 
         {/* 앱 버전 관리 */}
         <div style={card}>
