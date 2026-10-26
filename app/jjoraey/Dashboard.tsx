@@ -110,7 +110,7 @@ function UsageStatsSection({ card }: { card: React.CSSProperties }) {
   const max = stats ? Math.max(1, ...stats.features.map(f => f.users)) : 1;
 
   return (
-    <div style={card}>
+    <div style={{ ...card, marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>기능별 이용 통계</h2>
         <button
