@@ -25,12 +25,16 @@ export default function AccountDeletePage() {
           <section className="bg-blue-50 rounded-2xl p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">공무원 업무수첩 앱에서 계정 삭제하기</h2>
             <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>AdminNote 앱을 실행합니다.</li>
-              <li>하단 탭에서 <strong>더보기</strong>를 탭합니다.</li>
-              <li><strong>마이페이지</strong>를 탭합니다.</li>
-              <li>하단의 <strong>회원탈퇴</strong>를 탭합니다.</li>
+              <li>공무원 업무수첩 앱을 실행합니다.</li>
+              <li>화면 <strong>좌측 상단의 메뉴 버튼(☰)</strong>을 탭합니다.</li>
+              <li>메뉴에서 <strong>마이페이지</strong>를 탭합니다.</li>
+              <li>맨 아래 <strong>계정 관리</strong>에서 <strong>회원 탈퇴</strong>를 탭합니다.</li>
               <li>안내에 따라 탈퇴를 완료합니다.</li>
             </ol>
+            <p className="mt-4 text-sm text-gray-600">
+              웹사이트(adminnote.co.kr)에서는 우측 상단의 <strong>설정(⚙️)</strong> 버튼을 눌러
+              마이페이지로 들어가신 뒤 같은 방법으로 탈퇴하실 수 있습니다.
+            </p>
           </section>
 
           <section>
