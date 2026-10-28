@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScheduleEvent, colorHex } from '@/lib/useSnapshot';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -26,14 +26,13 @@ const KOREAN_HOLIDAYS: Record<string, string> = {
   '2027-12-25': '성탄절', '2027-12-27': '대체휴일',
 };
 
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
-function getFirstDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 1).getDay();
-}
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** "YYYY-MM-DD"를 기기 로컬 자정 기준 Date로 (new Date(str)은 UTC로 읽혀 하루 밀린다) */
+function fromDateStr(s: string) {
+  return new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
 }
 
 interface Props {
@@ -82,16 +81,12 @@ interface WeekEventSlot {
 }
 
 function layoutWeekEvents(
-  week: (number | null)[],
+  weekDateStrs: string[],
   allEvents: ScheduleEvent[],
-  year: number,
-  month: number,
 ): WeekEventSlot[] {
-  const weekDateStrs = week.map(d => (d ? toDateStr(year, month, d) : null));
-  const validDates = weekDateStrs.filter(Boolean) as string[];
-  if (!validDates.length) return [];
-  const wStart = validDates[0];
-  const wEnd = validDates[validDates.length - 1];
+  if (!weekDateStrs.length) return [];
+  const wStart = weekDateStrs[0];
+  const wEnd = weekDateStrs[weekDateStrs.length - 1];
 
   const relevant = allEvents
     .filter(e => {
@@ -113,7 +108,6 @@ function layoutWeekEvents(
     let colStart = -1, colEnd = -1;
     for (let i = 0; i < 7; i++) {
       const d = weekDateStrs[i];
-      if (!d) continue;
       if (colStart === -1 && d >= event.date) colStart = i;
       if (d <= eEnd) colEnd = i;
     }
@@ -134,47 +128,58 @@ function layoutWeekEvents(
 
 export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle }: Props) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
+  const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+  // 달력을 월이 아니라 "연속된 주"로 본다. 앞뒤 주가 늘 함께 보이도록.
+  const [anchor, setAnchor] = useState<string>(todayStr);
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm(toDateStr(today.getFullYear(), today.getMonth(), today.getDate())));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState | null>(null);
 
-  const daysInMonth = getDaysInMonth(year, month);
-  const firstDay = getFirstDayOfMonth(year, month);
-  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-  while (cells.length % 7 !== 0) cells.push(null);
-  const weeks: (number | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  // 기준일이 속한 주의 일요일에서 한 주 앞으로 물러난 지점부터 WEEK_COUNT주를 그린다.
+  // 그래서 화면에는 늘 "지난 주 + 이번 주 + 다음 주들"이 함께 보인다.
+  const WEEK_COUNT = 6;
+  const weeks: string[][] = useMemo(() => {
+    const base = fromDateStr(anchor);
+    base.setDate(base.getDate() - base.getDay() - 7);
+    const out: string[][] = [];
+    for (let w = 0; w < WEEK_COUNT; w++) {
+      const row: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + w * 7 + i);
+        row.push(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
+      }
+      out.push(row);
+    }
+    return out;
+  }, [anchor]);
 
-  const prevMonth = () => {
-    if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1);
-    setSelectedDay(null);
-  };
-  const nextMonth = () => {
-    if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1);
-    setSelectedDay(null);
-  };
+  // 화면에 가장 많이 걸친 달을 제목으로 쓴다
+  const focusMonth = weeks[Math.floor(WEEK_COUNT / 2)]?.[3] ?? anchor;
+  const focusY = Number(focusMonth.slice(0, 4));
+  const focusM = Number(focusMonth.slice(5, 7)) - 1;
 
-  const eventsOn = (day: number | null): ScheduleEvent[] => {
-    if (!day) return [];
-    const dateStr = toDateStr(year, month, day);
+  const shiftWeek = (delta: number) => {
+    const d = fromDateStr(anchor);
+    d.setDate(d.getDate() + delta * 7);
+    setAnchor(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
+  };
+  const goToday = () => { setAnchor(todayStr); setSelectedDate(todayStr); };
+
+  const eventsOn = (dateStr: string | null): ScheduleEvent[] => {
+    if (!dateStr) return [];
     return events.filter(e => {
       const end = e.endDate || e.date;
       return e.date <= dateStr && dateStr <= end;
     }).sort((a, b) => a.sortOrder - b.sortOrder);
   };
 
-  const isToday = (day: number | null) =>
-    day !== null && day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+  const selectedEvents = eventsOn(selectedDate);
 
-  const selectedEvents = selectedDay ? eventsOn(selectedDay) : [];
-
-  const handleDayClick = (day: number) => {
-    setSelectedDay(day);
-    setForm(emptyForm(toDateStr(year, month, day)));
+  const handleDayClick = (dateStr: string) => {
+    setSelectedDate(dateStr);
+    setForm(emptyForm(dateStr));
     setShowForm(false);
     setEditingId(null);
     setEditForm(null);
@@ -221,15 +226,21 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-      <div style={{ flex: '0 0 58%', minWidth: 0 }}>
+    <div style={{ maxWidth: 1560, margin: '0 auto', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
       {/* 월 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <button onClick={prevMonth} style={navBtn}>‹</button>
-        <h2 style={{ fontSize: 23, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
-          {year}년 {month + 1}월
-        </h2>
-        <button onClick={nextMonth} style={navBtn}>›</button>
+        <button onClick={() => shiftWeek(-1)} style={navBtn} title="이전 주">‹</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h2 style={{ fontSize: 23, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
+            {focusY}년 {focusM + 1}월
+          </h2>
+          <button onClick={goToday} style={{
+            padding: '6px 14px', border: '1px solid #E5E7EB', borderRadius: 8,
+            background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer',
+          }}>오늘</button>
+        </div>
+        <button onClick={() => shiftWeek(1)} style={navBtn} title="다음 주">›</button>
       </div>
 
       {/* 달력 */}
@@ -243,44 +254,50 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
 
         {/* 주(week) 렌더링 */}
         {weeks.map((week, wi) => {
-          const slots = layoutWeekEvents(week, events, year, month);
+          const slots = layoutWeekEvents(week, events);
 
           return (
             <div key={wi} style={{ position: 'relative', borderBottom: wi < weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
               {/* 날짜 셀 — 원래 높이(120px) 유지 */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                {week.map((day, di) => {
-                  const selected = day !== null && day === selectedDay;
-                  const todayCell = isToday(day);
+                {week.map((dateStr, di) => {
+                  const day = Number(dateStr.slice(8, 10));
+                  const inFocus = Number(dateStr.slice(5, 7)) - 1 === focusM;
+                  const selected = dateStr === selectedDate;
+                  const todayCell = dateStr === todayStr;
                   const isSun = di === 0, isSat = di === 6;
-                  const dateStr = day ? toDateStr(year, month, day) : '';
-                  const holiday = dateStr ? KOREAN_HOLIDAYS[dateStr] : undefined;
+                  const holiday = KOREAN_HOLIDAYS[dateStr];
                   const isRed = isSun || !!holiday;
+                  const isFirst = day === 1;   // 달이 바뀌는 날은 표시해준다
                   return (
-                    <div key={di} onClick={() => day && handleDayClick(day)} style={{
+                    <div key={dateStr} onClick={() => handleDayClick(dateStr)} style={{
                       minHeight: 120,
                       padding: '8px 10px',
-                      cursor: day ? 'pointer' : 'default',
-                      background: selected && !todayCell ? '#EFF6FF' : '#fff',
+                      cursor: 'pointer',
+                      background: selected && !todayCell ? '#EFF6FF' : inFocus ? '#fff' : '#FAFAFB',
                       borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
                     }}>
-                      {day && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: '50%',
-                            background: todayCell ? '#2563EB' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                            fontSize: 15, fontWeight: 700,
-                            color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
-                          }}>{day}</div>
-                          {holiday && (
-                            <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, lineHeight: 1.2, wordBreak: 'keep-all' }}>
-                              {holiday}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap',
+                                    opacity: inFocus ? 1 : 0.45 }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: '50%',
+                          background: todayCell ? '#2563EB' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                          fontSize: 15, fontWeight: 700,
+                          color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                        }}>{day}</div>
+                        {isFirst && !todayCell && (
+                          <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 700 }}>
+                            {Number(dateStr.slice(5, 7))}월
+                          </span>
+                        )}
+                        {holiday && (
+                          <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                            {holiday}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -302,7 +319,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                   return (
                     <div
                       key={`${event.id}-w${wi}`}
-                      onClick={() => { const d = week[colStart]; if (d) handleDayClick(d); }}
+                      onClick={() => handleDayClick(week[colStart])}
                       style={{
                         position: 'absolute',
                         left: `calc(${leftPct}% + ${padL}px)`,
@@ -350,18 +367,18 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           내부에 별도 스크롤 영역(overflow-y:auto)을 두지 않는다 — 중첩 스크롤 컨테이너가 있으면
           패널 위에서 마우스 휠을 굴렸을 때 페이지가 아니라 패널 내부만 스크롤되어 버튼이
           화면 스크롤과 함께 움직이지 않는 것처럼 보이는 문제가 있었다. */}
-      <div style={{ flex: 1, minWidth: 0, position: 'sticky', top: 116, alignSelf: 'flex-start' }}>
-      {selectedDay ? (
+      <div style={{ flex: '0 0 380px', minWidth: 0, position: 'sticky', top: 116, alignSelf: 'flex-start' }}>
+      {selectedDate ? (
         <div>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             paddingTop: 14, paddingBottom: 10, marginBottom: 6,
           }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
-              {month + 1}월 {selectedDay}일 일정
-              {KOREAN_HOLIDAYS[toDateStr(year, month, selectedDay)] && (
+              {Number(selectedDate.slice(5, 7))}월 {Number(selectedDate.slice(8, 10))}일 일정
+              {KOREAN_HOLIDAYS[selectedDate] && (
                 <span style={{ fontSize: 13, color: '#EF4444', fontWeight: 600, marginLeft: 8 }}>
-                  · {KOREAN_HOLIDAYS[toDateStr(year, month, selectedDay)]}
+                  · {KOREAN_HOLIDAYS[selectedDate]}
                 </span>
               )}
             </div>

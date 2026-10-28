@@ -193,7 +193,8 @@ export default function MainLayout({ user, onLogout }: Props) {
         </main>
       ) : (
         <main style={{ flex: 1, padding: '32px', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 1000 }}>
+          {/* 업무일정은 달력을 좌우로 넓게 쓰는 편이 보기 좋아 폭을 더 준다 */}
+          <div style={{ width: '100%', maxWidth: currentTab === 'schedule' ? 1480 : 1000 }}>
           {store.loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
               데이터 불러오는 중...
