@@ -165,7 +165,6 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
     d.setDate(d.getDate() + delta * 7);
     setAnchor(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
   };
-  const goToday = () => { setAnchor(todayStr); setSelectedDate(todayStr); };
 
   const eventsOn = (dateStr: string | null): ScheduleEvent[] => {
     if (!dateStr) return [];
@@ -229,18 +228,15 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
     <div style={{ maxWidth: 1560, margin: '0 auto', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
       <div style={{ flex: '1 1 auto', minWidth: 0 }}>
       {/* 월 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <button onClick={() => shiftWeek(-1)} style={navBtn} title="이전 주">‹</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h2 style={{ fontSize: 23, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
-            {focusY}년 {focusM + 1}월
-          </h2>
-          <button onClick={goToday} style={{
-            padding: '6px 14px', border: '1px solid #E5E7EB', borderRadius: 8,
-            background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer',
-          }}>오늘</button>
-        </div>
-        <button onClick={() => shiftWeek(1)} style={navBtn} title="다음 주">›</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 20 }}>
+        <button onClick={() => shiftWeek(-1)} style={navBtn} title="이전 주" aria-label="이전 주">‹</button>
+        <h2 style={{
+          fontSize: 26, fontWeight: 700, color: '#1C1C1E', margin: 0,
+          minWidth: 190, textAlign: 'center', whiteSpace: 'nowrap',
+        }}>
+          {focusY}년 {focusM + 1}월
+        </h2>
+        <button onClick={() => shiftWeek(1)} style={navBtn} title="다음 주" aria-label="다음 주">›</button>
       </div>
 
       {/* 달력 */}
@@ -559,14 +555,20 @@ function EventForm({
 }
 
 const navBtn: React.CSSProperties = {
+  width: 48,
+  height: 48,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   background: 'none',
   border: 'none',
-  padding: '0 8px',
+  borderRadius: '50%',
   cursor: 'pointer',
-  fontSize: 36,
-  fontWeight: 300,
+  fontSize: 44,
+  fontWeight: 500,
   color: '#1C1C1E',
   lineHeight: 1,
+  paddingBottom: 6,   // ‹ › 글리프가 위로 떠 보여 시각적 중앙을 맞춘다
 };
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, padding: '0 12px', border: '1px solid #E5E7EB',
