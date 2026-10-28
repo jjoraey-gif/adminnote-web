@@ -363,11 +363,14 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       </div>
 
       {/* 선택 날짜 패널 */}
-      {/* top은 상단 헤더(높이 100px, sticky)에 가리지 않도록 헤더 높이보다 아래로 잡는다.
+      {/* 상단에 고정된 바가 두 개다 — 헤더(0~100px)와 메인 탭바(100~160px).
+          둘을 합친 높이보다 아래에 붙여야 패널 윗부분이 탭바에 가려지지 않는다.
+          (예전에는 헤더 높이만 계산해 116으로 잡혀 있어 날짜와 추가 버튼이 잘려 보였다)
+
           내부에 별도 스크롤 영역(overflow-y:auto)을 두지 않는다 — 중첩 스크롤 컨테이너가 있으면
           패널 위에서 마우스 휠을 굴렸을 때 페이지가 아니라 패널 내부만 스크롤되어 버튼이
           화면 스크롤과 함께 움직이지 않는 것처럼 보이는 문제가 있었다. */}
-      <div style={{ flex: '0 0 380px', minWidth: 0, position: 'sticky', top: 116, alignSelf: 'flex-start' }}>
+      <div style={{ flex: '0 0 380px', minWidth: 0, position: 'sticky', top: 176, alignSelf: 'flex-start' }}>
       {selectedDate ? (
         <div>
           <div style={{
