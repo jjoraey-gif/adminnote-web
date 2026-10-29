@@ -81,12 +81,13 @@ interface WeekEventSlot {
 }
 
 function layoutWeekEvents(
-  weekDateStrs: string[],
+  weekDateStrs: (string | null)[],
   allEvents: ScheduleEvent[],
 ): WeekEventSlot[] {
-  if (!weekDateStrs.length) return [];
-  const wStart = weekDateStrs[0];
-  const wEnd = weekDateStrs[weekDateStrs.length - 1];
+  const valid = weekDateStrs.filter(Boolean) as string[];
+  if (!valid.length) return [];
+  const wStart = valid[0];
+  const wEnd = valid[valid.length - 1];
 
   const relevant = allEvents
     .filter(e => {
@@ -108,6 +109,7 @@ function layoutWeekEvents(
     let colStart = -1, colEnd = -1;
     for (let i = 0; i < 7; i++) {
       const d = weekDateStrs[i];
+      if (!d) continue;
       if (colStart === -1 && d >= event.date) colStart = i;
       if (d <= eEnd) colEnd = i;
     }
@@ -155,15 +157,24 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
     return out;
   }, [anchor]);
 
-  // 달이 바뀌는 지점에서 끊어 월별 묶음으로 만든다.
-  // 묶음 사이에 여백을 줘서 달의 경계가 자연스럽게 드러나게 한다.
-  const blocks = useMemo(() => {
-    const out: { key: string; weeks: string[][] }[] = [];
+  /**
+   * 달이 걸쳐 있는 주는 두 줄로 쪼갠다.
+   *
+   * 9/27~10/3 같은 주를 한 줄에 그리면 두 달이 섞여 경계가 보이지 않는다.
+   * 9월 줄에는 9월 날짜만, 10월 줄에는 10월 날짜만 두고 나머지는 빈칸으로 비운다.
+   * (쪼개진 두 줄의 빈칸을 합치면 정확히 7칸이 된다)
+   */
+  const rows = useMemo(() => {
+    const out: { key: string; month: string; cells: (string | null)[] }[] = [];
     for (const w of weeks) {
-      const key = w[0].slice(0, 7);           // 그 주가 시작하는 달
-      const last = out[out.length - 1];
-      if (last && last.key === key) last.weeks.push(w);
-      else out.push({ key, weeks: [w] });
+      const months = Array.from(new Set(w.map(d => d.slice(0, 7))));
+      for (const m of months) {
+        out.push({
+          key: `${w[0]}_${m}`,
+          month: m,
+          cells: w.map(d => (d.slice(0, 7) === m ? d : null)),
+        });
+      }
     }
     return out;
   }, [weeks]);
@@ -300,25 +311,36 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           ))}
         </div>
 
-        {/* 월별 묶음 — 묶음 사이의 여백이 달의 경계가 된다 */}
-        {blocks.map((block, bi) => (
-        <div key={block.key} style={{
-          border: '1px solid #E5E7EB',
-          borderTop: bi === 0 ? 'none' : '1px solid #E5E7EB',
-          borderRadius: bi === 0 ? '0 0 16px 16px' : 16,
-          overflow: 'hidden',
-          background: '#fff',
-          marginTop: bi === 0 ? 0 : 16,
+        {/* 줄 단위 렌더 — 달이 바뀌는 줄 위에는 여백 띠를 넣어 경계를 만든다 */}
+        <div style={{
+          border: '1px solid #E5E7EB', borderTop: 'none',
+          borderRadius: '0 0 16px 16px', overflow: 'hidden', background: '#fff',
         }}>
-        {block.weeks.map((week, wi) => {
+        {rows.map((row, wi) => {
+          const week = row.cells;
           const slots = layoutWeekEvents(week, events);
+          const monthChanged = wi > 0 && rows[wi - 1].month !== row.month;
 
           return (
-            // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫주로 흘러넘치지 않게 잘라낸다
-            <div key={wi} style={{ position: 'relative', overflow: 'hidden', borderBottom: wi < block.weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+            // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫줄로 흘러넘치지 않게 잘라낸다
+            <div key={row.key} style={{
+              position: 'relative', overflow: 'hidden',
+              borderTop: monthChanged ? '12px solid #F3F4F6' : 'none',
+              borderBottom: wi < rows.length - 1 && !(rows[wi + 1]?.month !== row.month) ? '1px solid #E5E7EB' : 'none',
+            }}>
               {/* 날짜 셀 */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
                 {week.map((dateStr, di) => {
+                  // 달이 걸친 줄에서 다른 달 자리는 빈칸으로 비운다
+                  if (!dateStr) {
+                    return (
+                      <div key={`empty-${di}`} style={{
+                        minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
+                        borderRight: di < 6 ? '1px solid #F3F4F6' : 'none',
+                        background: '#fff',
+                      }} />
+                    );
+                  }
                   const day = Number(dateStr.slice(8, 10));
                   const selected = dateStr === selectedDate;
                   const todayCell = dateStr === todayStr;
@@ -377,7 +399,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                   return (
                     <div
                       key={`${event.id}-w${wi}`}
-                      onClick={() => handleDayClick(week[colStart])}
+                      onClick={() => { const d = week[colStart]; if (d) handleDayClick(d); }}
                       style={{
                         position: 'absolute',
                         left: `calc(${leftPct}% + ${padL}px)`,
@@ -418,7 +440,6 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           );
         })}
         </div>
-        ))}
       </div>
       </div>
 
