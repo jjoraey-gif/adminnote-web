@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScheduleEvent, colorHex } from '@/lib/useSnapshot';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -139,7 +139,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
 
   // 기준일이 속한 주의 일요일에서 한 주 앞으로 물러난 지점부터 WEEK_COUNT주를 그린다.
   // 그래서 화면에는 늘 "지난 주 + 이번 주 + 다음 주들"이 함께 보인다.
-  const WEEK_COUNT = 6;
+  const WEEK_COUNT = 5;
   const weeks: string[][] = useMemo(() => {
     const base = fromDateStr(anchor);
     base.setDate(base.getDate() - base.getDay() - 7);
@@ -160,11 +160,47 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
   const focusY = Number(focusMonth.slice(0, 4));
   const focusM = Number(focusMonth.slice(5, 7)) - 1;
 
+  /**
+   * 달력 위에서 마우스 휠을 굴리면 주 단위로 넘긴다.
+   *
+   * React의 onWheel은 기본이 passive라 preventDefault가 먹지 않는다.
+   * 페이지가 같이 스크롤되지 않게 하려면 직접 passive:false로 붙여야 한다.
+   */
+  const calRef = useRef<HTMLDivElement | null>(null);
+  const shiftRef = useRef<(d: number) => void>(() => {});
+
+  useEffect(() => {
+    const el = calRef.current;
+    if (!el) return;
+    let acc = 0;
+    let last = 0;
+
+    const onWheel = (e: WheelEvent) => {
+      // 트랙패드 좌우 스크롤은 건드리지 않는다
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      const now = Date.now();
+      if (now - last < 120) return;      // 한 번 굴림에 여러 주가 넘어가지 않게
+      acc += e.deltaY;
+      if (Math.abs(acc) >= 50) {
+        shiftRef.current(acc > 0 ? 1 : -1);
+        acc = 0;
+        last = now;
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const shiftWeek = (delta: number) => {
     const d = fromDateStr(anchor);
     d.setDate(d.getDate() + delta * 7);
     setAnchor(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
   };
+
+  // 휠 핸들러가 최초 렌더의 함수만 기억하지 않도록 최신 것을 넘겨둔다
+  useEffect(() => { shiftRef.current = shiftWeek; });
 
   const eventsOn = (dateStr: string | null): ScheduleEvent[] => {
     if (!dateStr) return [];
@@ -240,7 +276,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       </div>
 
       {/* 달력 */}
-      <div style={{ border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+      <div ref={calRef} style={{ border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
         {/* 요일 헤더 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
           {WEEKDAYS.map((d, i) => (
@@ -253,8 +289,9 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           const slots = layoutWeekEvents(week, events);
 
           return (
-            <div key={wi} style={{ position: 'relative', borderBottom: wi < weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
-              {/* 날짜 셀 — 원래 높이(120px) 유지 */}
+            // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫주로 흘러넘치지 않게 잘라낸다
+            <div key={wi} style={{ position: 'relative', overflow: 'hidden', borderBottom: wi < weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+              {/* 날짜 셀 */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
                 {week.map((dateStr, di) => {
                   const day = Number(dateStr.slice(8, 10));
@@ -267,7 +304,9 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                   const isFirst = day === 1;   // 달이 바뀌는 날은 표시해준다
                   return (
                     <div key={dateStr} onClick={() => handleDayClick(dateStr)} style={{
-                      minHeight: 120,
+                      // 배율 100%에서도 달력 전체가 한 화면에 들어오도록 화면 높이에 맞춰 늘린다.
+                      // (너무 납작하거나 과하게 길어지지 않게 위아래 한계를 둔다)
+                      minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
                       padding: '8px 10px',
                       cursor: 'pointer',
                       background: selected && !todayCell ? '#EFF6FF' : inFocus ? '#fff' : '#FAFAFB',
