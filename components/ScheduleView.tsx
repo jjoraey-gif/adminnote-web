@@ -155,6 +155,19 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
     return out;
   }, [anchor]);
 
+  // 달이 바뀌는 지점에서 끊어 월별 묶음으로 만든다.
+  // 묶음 사이에 여백을 줘서 달의 경계가 자연스럽게 드러나게 한다.
+  const blocks = useMemo(() => {
+    const out: { key: string; weeks: string[][] }[] = [];
+    for (const w of weeks) {
+      const key = w[0].slice(0, 7);           // 그 주가 시작하는 달
+      const last = out[out.length - 1];
+      if (last && last.key === key) last.weeks.push(w);
+      else out.push({ key, weeks: [w] });
+    }
+    return out;
+  }, [weeks]);
+
   // 화면에 가장 많이 걸친 달을 제목으로 쓴다
   const focusMonth = weeks[Math.floor(WEEK_COUNT / 2)]?.[3] ?? anchor;
   const focusY = Number(focusMonth.slice(0, 4));
@@ -276,26 +289,37 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       </div>
 
       {/* 달력 */}
-      <div ref={calRef} style={{ border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+      <div ref={calRef}>
         {/* 요일 헤더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB',
+          border: '1px solid #E5E7EB', borderRadius: '12px 12px 0 0',
+        }}>
           {WEEKDAYS.map((d, i) => (
             <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: 700, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#1C1C1E' }}>{d}</div>
           ))}
         </div>
 
-        {/* 주(week) 렌더링 */}
-        {weeks.map((week, wi) => {
+        {/* 월별 묶음 — 묶음 사이의 여백이 달의 경계가 된다 */}
+        {blocks.map((block, bi) => (
+        <div key={block.key} style={{
+          border: '1px solid #E5E7EB',
+          borderTop: bi === 0 ? 'none' : '1px solid #E5E7EB',
+          borderRadius: bi === 0 ? '0 0 16px 16px' : 16,
+          overflow: 'hidden',
+          background: '#fff',
+          marginTop: bi === 0 ? 0 : 16,
+        }}>
+        {block.weeks.map((week, wi) => {
           const slots = layoutWeekEvents(week, events);
 
           return (
             // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫주로 흘러넘치지 않게 잘라낸다
-            <div key={wi} style={{ position: 'relative', overflow: 'hidden', borderBottom: wi < weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+            <div key={wi} style={{ position: 'relative', overflow: 'hidden', borderBottom: wi < block.weeks.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
               {/* 날짜 셀 */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
                 {week.map((dateStr, di) => {
                   const day = Number(dateStr.slice(8, 10));
-                  const inFocus = Number(dateStr.slice(5, 7)) - 1 === focusM;
                   const selected = dateStr === selectedDate;
                   const todayCell = dateStr === todayStr;
                   const isSun = di === 0, isSat = di === 6;
@@ -309,11 +333,10 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
                       padding: '8px 10px',
                       cursor: 'pointer',
-                      background: selected && !todayCell ? '#EFF6FF' : inFocus ? '#fff' : '#EDEFF3',
+                      background: selected && !todayCell ? '#EFF6FF' : '#fff',
                       borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap',
-                                    opacity: inFocus ? 1 : 0.4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                         <div style={{
                           width: 30, height: 30, borderRadius: '50%',
                           background: todayCell ? '#2563EB' : 'transparent',
@@ -394,6 +417,8 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             </div>
           );
         })}
+        </div>
+        ))}
       </div>
       </div>
 
