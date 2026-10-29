@@ -325,7 +325,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫줄로 흘러넘치지 않게 잘라낸다
             <div key={row.key} style={{
               position: 'relative', overflow: 'hidden',
-              borderTop: monthChanged ? '12px solid #F3F4F6' : 'none',
+              borderTop: monthChanged ? '20px solid #DFE3EA' : 'none',
               borderBottom: wi < rows.length - 1 && !(rows[wi + 1]?.month !== row.month) ? '1px solid #E5E7EB' : 'none',
             }}>
               {/* 날짜 셀 */}
