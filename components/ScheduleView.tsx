@@ -132,57 +132,81 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
   const today = new Date();
   const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
   // 달력을 월이 아니라 "연속된 주"로 본다. 앞뒤 주가 늘 함께 보이도록.
-  const [anchor, setAnchor] = useState<string>(todayStr);
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm(toDateStr(today.getFullYear(), today.getMonth(), today.getDate())));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState | null>(null);
 
-  // 기준일이 속한 주의 일요일에서 한 주 앞으로 물러난 지점부터 WEEK_COUNT주를 그린다.
-  // 그래서 화면에는 늘 "지난 주 + 이번 주 + 다음 주들"이 함께 보인다.
-  const WEEK_COUNT = 5;
-  const weeks: string[][] = useMemo(() => {
-    const base = fromDateStr(anchor);
-    base.setDate(base.getDate() - base.getDay() - 7);
-    const out: string[][] = [];
-    for (let w = 0; w < WEEK_COUNT; w++) {
-      const row: string[] = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + w * 7 + i);
-        row.push(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
-      }
-      out.push(row);
-    }
-    return out;
-  }, [anchor]);
-
   /**
-   * 달이 걸쳐 있는 주는 두 줄로 쪼갠다.
+   * 화면에 그릴 줄 목록
    *
-   * 9/27~10/3 같은 주를 한 줄에 그리면 두 달이 섞여 경계가 보이지 않는다.
-   * 9월 줄에는 9월 날짜만, 10월 줄에는 10월 날짜만 두고 나머지는 빈칸으로 비운다.
-   * (쪼개진 두 줄의 빈칸을 합치면 정확히 7칸이 된다)
+   * 달이 걸친 주는 두 줄로 쪼갠다. 9월 줄에는 9월 날짜만, 10월 줄에는 10월 날짜만
+   * 두고 나머지는 빈칸으로 비운다. (쪼갠 두 줄의 빈칸을 합치면 정확히 7칸)
+   *
+   * 이동 단위는 "주"가 아니라 "줄"이다. 주 단위로 움직이면 월 경계의 주가
+   * 두 줄이라 한 번에 두 줄이 지나가 버린다. 그래서 위치를
+   * (시작 주, 그 주에서 건너뛸 줄 수)로 들고 있는다.
    */
-  const rows = useMemo(() => {
-    const out: { key: string; month: string; cells: (string | null)[] }[] = [];
-    for (const w of weeks) {
-      const months = Array.from(new Set(w.map(d => d.slice(0, 7))));
-      for (const m of months) {
-        out.push({
-          key: `${w[0]}_${m}`,
-          month: m,
-          cells: w.map(d => (d.slice(0, 7) === m ? d : null)),
-        });
-      }
-    }
-    return out;
-  }, [weeks]);
+  const rowsOfWeek = (sunday: string) => {
+    const base = fromDateStr(sunday);
+    const week = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+    });
+    const months = Array.from(new Set(week.map(d => d.slice(0, 7))));
+    return months.map(m => ({
+      key: `${week[0]}_${m}`,
+      month: m,
+      cells: week.map(d => (d.slice(0, 7) === m ? d : null)) as (string | null)[],
+    }));
+  };
 
-  // 화면에 가장 많이 걸친 달을 제목으로 쓴다
-  const focusMonth = weeks[Math.floor(WEEK_COUNT / 2)]?.[3] ?? anchor;
+  const addDays = (s: string, n: number) => {
+    const d = fromDateStr(s);
+    d.setDate(d.getDate() + n);
+    return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
+  const ROW_COUNT = 5;
+  const [weekStart, setWeekStart] = useState<string>(() => {
+    const d = fromDateStr(todayStr);
+    d.setDate(d.getDate() - d.getDay() - 7);   // 지난 주부터 보이게
+    return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+  });
+  const [skip, setSkip] = useState(0);
+
+  const rows = useMemo(() => {
+    const all: ReturnType<typeof rowsOfWeek> = [];
+    let ws = weekStart;
+    while (all.length < skip + ROW_COUNT) {
+      all.push(...rowsOfWeek(ws));
+      ws = addDays(ws, 7);
+    }
+    return all.slice(skip, skip + ROW_COUNT);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStart, skip]);
+
+  // 화면 가운데 줄이 속한 달을 제목으로 쓴다
+  const focusMonth = rows[Math.floor(ROW_COUNT / 2)]?.month ?? todayStr.slice(0, 7);
   const focusY = Number(focusMonth.slice(0, 4));
   const focusM = Number(focusMonth.slice(5, 7)) - 1;
+
+  /** 한 줄씩 이동 — 월 경계에서도 건너뛰지 않는다 */
+  const shiftRow = (delta: number) => {
+    if (delta > 0) {
+      const len = rowsOfWeek(weekStart).length;
+      if (skip + 1 < len) setSkip(skip + 1);
+      else { setWeekStart(addDays(weekStart, 7)); setSkip(0); }
+    } else {
+      if (skip > 0) setSkip(skip - 1);
+      else {
+        const prev = addDays(weekStart, -7);
+        setWeekStart(prev);
+        setSkip(rowsOfWeek(prev).length - 1);
+      }
+    }
+  };
 
   /**
    * 달력 위에서 마우스 휠을 굴리면 주 단위로 넘긴다.
@@ -217,14 +241,9 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  const shiftWeek = (delta: number) => {
-    const d = fromDateStr(anchor);
-    d.setDate(d.getDate() + delta * 7);
-    setAnchor(toDateStr(d.getFullYear(), d.getMonth(), d.getDate()));
-  };
 
   // 휠 핸들러가 최초 렌더의 함수만 기억하지 않도록 최신 것을 넘겨둔다
-  useEffect(() => { shiftRef.current = shiftWeek; });
+  useEffect(() => { shiftRef.current = shiftRow; });
 
   const eventsOn = (dateStr: string | null): ScheduleEvent[] => {
     if (!dateStr) return [];
@@ -289,14 +308,14 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       <div style={{ flex: '1 1 auto', minWidth: 0 }}>
       {/* 월 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 20 }}>
-        <button onClick={() => shiftWeek(-1)} style={navBtn} title="이전 주" aria-label="이전 주">‹</button>
+        <button onClick={() => shiftRow(-1)} style={navBtn} title="이전" aria-label="이전">‹</button>
         <h2 style={{
           fontSize: 26, fontWeight: 700, color: '#1C1C1E', margin: 0,
           minWidth: 190, textAlign: 'center', whiteSpace: 'nowrap',
         }}>
           {focusY}년 {focusM + 1}월
         </h2>
-        <button onClick={() => shiftWeek(1)} style={navBtn} title="다음 주" aria-label="다음 주">›</button>
+        <button onClick={() => shiftRow(1)} style={navBtn} title="다음" aria-label="다음">›</button>
       </div>
 
       {/* 달력 */}
@@ -335,7 +354,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                   if (!dateStr) {
                     return (
                       <div key={`empty-${di}`} style={{
-                        minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
+                        minHeight: `clamp(82px, calc((100vh - 350px) / ${ROW_COUNT}), 150px)`,
                         borderRight: di < 6 ? '1px solid #F3F4F6' : 'none',
                         background: '#fff',
                       }} />
@@ -352,7 +371,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                     <div key={dateStr} onClick={() => handleDayClick(dateStr)} style={{
                       // 배율 100%에서도 달력 전체가 한 화면에 들어오도록 화면 높이에 맞춰 늘린다.
                       // (너무 납작하거나 과하게 길어지지 않게 위아래 한계를 둔다)
-                      minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
+                      minHeight: `clamp(82px, calc((100vh - 350px) / ${ROW_COUNT}), 150px)`,
                       padding: '8px 10px',
                       cursor: 'pointer',
                       background: selected && !todayCell ? '#EFF6FF' : '#fff',
