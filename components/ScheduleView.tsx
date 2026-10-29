@@ -309,11 +309,11 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       minHeight: `clamp(82px, calc((100vh - 350px) / ${WEEK_COUNT}), 150px)`,
                       padding: '8px 10px',
                       cursor: 'pointer',
-                      background: selected && !todayCell ? '#EFF6FF' : inFocus ? '#fff' : '#FAFAFB',
+                      background: selected && !todayCell ? '#EFF6FF' : inFocus ? '#fff' : '#EDEFF3',
                       borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap',
-                                    opacity: inFocus ? 1 : 0.45 }}>
+                                    opacity: inFocus ? 1 : 0.4 }}>
                         <div style={{
                           width: 30, height: 30, borderRadius: '50%',
                           background: todayCell ? '#2563EB' : 'transparent',
