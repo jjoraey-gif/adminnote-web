@@ -10,10 +10,8 @@ import {
   notificationPermission, requestNotificationPermission,
   PermissionState,
 } from '@/lib/overtime';
+import { font, palette, radius, weight } from '@/lib/theme';
 
-const BLUE = '#2563EB';
-const RED = '#DC2626';
-const GRAY = '#6B7280';
 
 interface Props {
   settings: OvertimeSettings;
@@ -127,15 +125,15 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '8px 0 40px' }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px' }}>초과근무 기록알람</h2>
-      <p style={{ fontSize: 14, color: GRAY, lineHeight: 1.6, margin: '0 0 20px' }}>
+      <h2 style={{ fontSize: font['3xl'], fontWeight: weight.bold, margin: '0 0 6px' }}>초과근무 기록알람</h2>
+      <p style={{ fontSize: font.base, color: palette.textSub, lineHeight: 1.6, margin: '0 0 20px' }}>
         설정한 시간대마다 한 번씩 알려드립니다. 인사랑에서 초과기록 확인을 누르는 걸 놓치지 않도록요.
       </p>
 
       {/* 탭을 닫으면 안 온다는 점은 분명히 알려야 한다 */}
       <div style={{
-        background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
-        padding: '12px 14px', fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 20,
+        background: palette.warnTint, border: '1px solid #FDE68A', borderRadius: radius.md,
+        padding: '12px 14px', fontSize: font.sm, color: '#92400E', lineHeight: 1.6, marginBottom: 20,
       }}>
         웹 알림은 <strong>이 탭이 열려 있는 동안만</strong> 울립니다. 다른 탭을 보고 있는 건 괜찮지만,
         탭을 닫거나 브라우저를 종료하면 멈춥니다. 브라우저를 꺼도 받으려면 <strong>앱</strong>에서
@@ -144,8 +142,8 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 
       {unsupported && (
         <div style={{
-          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
-          padding: '12px 14px', fontSize: 13, color: '#991B1B', marginBottom: 20,
+          background: palette.dangerTint, border: '1px solid #FECACA', borderRadius: radius.md,
+          padding: '12px 14px', fontSize: font.sm, color: '#991B1B', marginBottom: 20,
         }}>
           이 브라우저는 알림을 지원하지 않습니다. 최신 Chrome이나 Edge에서 사용해 주세요.
         </div>
@@ -158,18 +156,18 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
       </Card>
 
       <Card>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>근무 구분</div>
+        <div style={{ fontSize: font.base, fontWeight: weight.semibold, marginBottom: 10 }}>근무 구분</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {(['weekday', 'holiday'] as OvertimeMode[]).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
               style={{
-                flex: 1, padding: '12px 0', borderRadius: 10, fontSize: 15, fontWeight: 600,
+                flex: 1, padding: '12px 0', borderRadius: radius.md, fontSize: font.md, fontWeight: weight.semibold,
                 cursor: 'pointer',
-                border: `1px solid ${s.mode === m ? BLUE : '#E5E7EB'}`,
-                background: s.mode === m ? '#EFF6FF' : '#fff',
-                color: s.mode === m ? BLUE : '#374151',
+                border: `1px solid ${s.mode === m ? palette.primary : palette.border}`,
+                background: s.mode === m ? palette.primaryTint : '#fff',
+                color: s.mode === m ? palette.primary : palette.textBody,
               }}
             >
               {m === 'weekday' ? '평일' : '휴일'}
@@ -228,28 +226,28 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
         <Row label="알림음">
           <Switch on={soundOn} onToggle={onToggleSound} />
         </Row>
-        <p style={{ fontSize: 12, color: GRAY, margin: '8px 0 0' }}>
+        <p style={{ fontSize: font.xs, color: palette.textSub, margin: '8px 0 0' }}>
           알림창과 함께 짧은 소리를 냅니다. 이 설정은 이 브라우저에만 저장됩니다.
         </p>
       </Card>
 
       <Card>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>알림 예정 시각</div>
+        <div style={{ fontSize: font.base, fontWeight: weight.semibold, marginBottom: 10 }}>알림 예정 시각</div>
         {hours.length === 0 ? (
-          <p style={{ fontSize: 14, color: RED, margin: 0 }}>종료 시각이 시작 시각보다 뒤여야 합니다.</p>
+          <p style={{ fontSize: font.base, color: palette.dangerStrong, margin: 0 }}>종료 시각이 시작 시각보다 뒤여야 합니다.</p>
         ) : (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {hours.map(h => (
               <span key={h} style={{
-                padding: '6px 10px', borderRadius: 999, background: '#F3F4F6',
-                fontSize: 13, color: '#374151', fontVariantNumeric: 'tabular-nums',
+                padding: '6px 10px', borderRadius: radius.full, background: palette.borderSubtle,
+                fontSize: font.sm, color: palette.textBody, fontVariantNumeric: 'tabular-nums',
               }}>
                 {hourLabel(h)} {minuteLabel(s.minute)}
               </span>
             ))}
           </div>
         )}
-        <p style={{ fontSize: 12, color: GRAY, margin: '10px 0 0' }}>
+        <p style={{ fontSize: font.xs, color: palette.textSub, margin: '10px 0 0' }}>
           종료 시각에는 울리지 않습니다. 평일·휴일은 시간대를 고르는 방식만 다를 뿐,
           알림은 설정한 시간에 매일 울립니다.
         </p>
@@ -257,8 +255,8 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 
       {lastFired && (
         <div style={{
-          background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 10,
-          padding: '12px 14px', fontSize: 13, color: '#065F46', marginBottom: 16,
+          background: palette.successTint, border: '1px solid #A7F3D0', borderRadius: radius.md,
+          padding: '12px 14px', fontSize: font.sm, color: '#065F46', marginBottom: 16,
         }}>
           {hourLabel(lastFired.hour)} 시간대 알림을 보냈습니다
           ({lastFired.at.getHours()}:{String(lastFired.at.getMinutes()).padStart(2, '0')}).
@@ -267,8 +265,8 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 
       {savedMsg && (
         <div style={{
-          background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10,
-          padding: '12px 14px', fontSize: 13, color: '#1E40AF', marginBottom: 16, lineHeight: 1.6,
+          background: palette.primaryTint, border: `1px solid ${palette.primaryTintBorder}`, borderRadius: radius.md,
+          padding: '12px 14px', fontSize: font.sm, color: '#1E40AF', marginBottom: 16, lineHeight: 1.6,
         }}>
           {savedMsg}
         </div>
@@ -278,14 +276,14 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
           자리를 고정해 떴다 사라질 때 화면이 흔들리지 않게 한다. */}
       <div style={{
         height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 6, fontSize: 13, fontWeight: 600,
-        color: '#16A34A', opacity: status === 'saved' ? 1 : 0,
+        gap: 6, fontSize: font.sm, fontWeight: weight.semibold,
+        color: palette.success, opacity: status === 'saved' ? 1 : 0,
         transition: 'opacity 0.2s',
       }}>
         저장됨
       </div>
 
-      <p style={{ fontSize: 12, color: GRAY, textAlign: 'center', margin: '4px 0 0' }}>
+      <p style={{ fontSize: font.xs, color: palette.textSub, textAlign: 'center', margin: '4px 0 0' }}>
         바꾸는 즉시 저장됩니다.
       </p>
     </div>
@@ -297,7 +295,7 @@ export default function OvertimeView({ settings, onSave, soundOn, onToggleSound,
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16, background: '#fff',
+      border: `1px solid ${palette.border}`, borderRadius: radius.md, padding: 16, marginBottom: 16, background: '#fff',
     }}>
       {children}
     </div>
@@ -307,7 +305,7 @@ function Card({ children }: { children: React.ReactNode }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 15, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: font.md, fontWeight: weight.semibold }}>{label}</span>
       {children}
     </div>
   );
@@ -316,7 +314,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Field({ label, accent, children }: { label: string; accent?: boolean; children: React.ReactNode }) {
   return (
     <div style={{ flex: '1 1 160px', minWidth: 140 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: accent ? RED : '#374151', marginBottom: 6 }}>
+      <div style={{ fontSize: font.sm, fontWeight: weight.semibold, color: accent ? palette.dangerStrong : palette.textBody, marginBottom: 6 }}>
         {label}
       </div>
       {children}
@@ -335,10 +333,10 @@ function Select({ value, options, onChange, accent }: {
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
       style={{
-        width: '100%', padding: '10px 12px', borderRadius: 10,
-        border: `1px solid ${accent ? '#FCA5A5' : '#E5E7EB'}`,
-        background: '#fff', fontSize: 15, fontWeight: 600,
-        color: accent ? RED : '#111827', cursor: 'pointer',
+        width: '100%', padding: '10px 12px', borderRadius: radius.md,
+        border: `1px solid ${accent ? '#FCA5A5' : palette.border}`,
+        background: '#fff', fontSize: font.md, fontWeight: weight.semibold,
+        color: accent ? palette.dangerStrong : palette.text, cursor: 'pointer',
       }}
     >
       {options.map(o => (
@@ -355,8 +353,8 @@ function Switch({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       disabled={disabled}
       aria-pressed={on}
       style={{
-        width: 52, height: 30, borderRadius: 999, border: 'none', padding: 3,
-        background: disabled ? '#E5E7EB' : on ? BLUE : '#D1D5DB',
+        width: 52, height: 30, borderRadius: radius.full, border: 'none', padding: 3,
+        background: disabled ? palette.border : on ? palette.primary : palette.borderStrong,
         cursor: disabled ? 'default' : 'pointer', transition: 'background 0.15s',
         display: 'flex', justifyContent: on ? 'flex-end' : 'flex-start', alignItems: 'center',
       }}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ExternalContact, ContactGroup } from '@/lib/useWebStore';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -92,34 +93,34 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="업체명, 이름, 관련업무 검색..."
-          style={{ flex: 1, padding: '10px 14px', fontSize: 14, border: '1px solid #E5E7EB', borderRadius: 10, outline: 'none', background: '#F9FAFB' }}
+          style={{ flex: 1, padding: '10px 14px', fontSize: font.base, border: `1px solid ${palette.border}`, borderRadius: radius.md, outline: 'none', background: palette.surfaceSunken }}
         />
         <button
           onClick={() => setShowAddGroup(true)}
-          style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, border: '1px solid #E5E7EB', borderRadius: 10, background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', color: '#374151' }}
+          style={{ padding: '10px 16px', fontSize: font.sm, fontWeight: weight.semibold, border: `1px solid ${palette.border}`, borderRadius: radius.md, background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', color: palette.textBody }}
         >
           + 그룹
         </button>
         <button
           onClick={() => setShowAddContact(true)}
-          style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 10, background: '#2563EB', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          style={{ padding: '10px 18px', fontSize: font.sm, fontWeight: weight.semibold, border: 'none', borderRadius: radius.md, background: palette.primary, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
           + 연락처
         </button>
       </div>
 
       {contacts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
+        <div style={{ textAlign: 'center', padding: '80px 0', color: palette.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>외부연락처가 없습니다</p>
-          <p style={{ fontSize: 13, margin: 0 }}>오른쪽 상단의 + 연락처 버튼으로 추가하세요.</p>
+          <p style={{ fontSize: font.lg, fontWeight: weight.semibold, color: palette.textBody, margin: '0 0 6px' }}>외부연락처가 없습니다</p>
+          <p style={{ fontSize: font.sm, margin: 0 }}>오른쪽 상단의 + 연락처 버튼으로 추가하세요.</p>
         </div>
       ) : (
         <>
           {/* 미분류 */}
           {ungrouped.length > 0 && (
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 10, letterSpacing: 1 }}>미분류</div>
+              <div style={{ fontSize: font.xs, fontWeight: weight.semibold, color: palette.textMuted, marginBottom: 10, letterSpacing: 1 }}>미분류</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
                 {ungrouped.map(c => (
                   <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />
@@ -136,19 +137,19 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
               <div key={g.id} style={{ marginBottom: 28 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 19, fontWeight: 700, color: '#1C1C1E' }}>{g.name}</span>
-                    <span style={{ fontSize: 12, color: '#9CA3AF' }}>({gc.length})</span>
+                    <span style={{ fontSize: font.xl, fontWeight: weight.bold, color: palette.text }}>{g.name}</span>
+                    <span style={{ fontSize: font.xs, color: palette.textMuted }}>({gc.length})</span>
                   </div>
                   <div style={{ position: 'relative' }}>
                     <button
                       onClick={() => setMenuGroup(menuGroup?.id === g.id ? null : g)}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 18, padding: '0 4px' }}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: palette.textMuted, fontSize: font.xl, padding: '0 4px' }}
                     >⋯</button>
                     {/* 그룹 드롭다운 메뉴 */}
                     {menuGroup?.id === g.id && (
-                      <div style={{ position: 'absolute', right: 0, top: 28, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 200, padding: 8 }}>
+                      <div style={{ position: 'absolute', right: 0, top: 28, background: '#fff', border: `1px solid ${palette.border}`, borderRadius: radius.md, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 200, padding: 8 }}>
                         {/* 색상 선택 */}
-                        <div style={{ padding: '8px 12px 4px', fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>그룹 색상</div>
+                        <div style={{ padding: '8px 12px 4px', fontSize: font['2xs'], color: palette.textMuted, fontWeight: weight.semibold }}>그룹 색상</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '4px 12px 12px' }}>
                           {GROUP_COLOR_PALETTE.map(color => (
                             <button
@@ -160,22 +161,22 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                               }}
                             >
-                              {hColor === color && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+                              {hColor === color && <span style={{ color: '#fff', fontSize: font.xs, fontWeight: weight.bold }}>✓</span>}
                             </button>
                           ))}
                         </div>
-                        <div style={{ height: 1, background: '#F3F4F6', margin: '0 4px 4px' }} />
+                        <div style={{ height: 1, background: palette.borderSubtle, margin: '0 4px 4px' }} />
                         {/* 삭제 */}
                         <button
                           onClick={() => { if (confirm(`'${g.name}' 그룹을 삭제할까요? 연락처는 미분류로 이동합니다.`)) { onDeleteGroup(g.id); setMenuGroup(null); } }}
-                          style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'none', fontSize: 14, color: '#EF4444', cursor: 'pointer', borderRadius: 8 }}
+                          style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'none', fontSize: font.base, color: palette.danger, cursor: 'pointer', borderRadius: radius.sm }}
                         >🗑 그룹 삭제</button>
                       </div>
                     )}
                   </div>
                 </div>
                 {gc.length === 0
-                  ? <div style={{ fontSize: 13, color: '#C7C7CC', paddingLeft: 4 }}>비어 있음</div>
+                  ? <div style={{ fontSize: font.sm, color: palette.textFaint, paddingLeft: 4 }}>비어 있음</div>
                   : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
                       {gc.map(c => <ContactRow key={c.id} c={c} groups={groups} onMenu={() => setMenuContact(c)} onEdit={() => setEditingContact(c)} />)}
                     </div>
@@ -185,7 +186,7 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
           })}
 
           {filtered.length === 0 && search && (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', fontSize: 14 }}>검색 결과가 없습니다.</div>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: palette.textMuted, fontSize: font.base }}>검색 결과가 없습니다.</div>
           )}
         </>
       )}
@@ -207,22 +208,22 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
       {/* 그룹 추가 모달 */}
       {showAddGroup && (
         <Overlay onClose={() => { setShowAddGroup(false); setGroupName(''); }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: 340, maxWidth: '90vw' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700 }}>그룹 추가</h3>
+          <div style={{ background: '#fff', borderRadius: radius.lg, padding: 24, width: 340, maxWidth: '90vw' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: font.lg, fontWeight: weight.bold }}>그룹 추가</h3>
             <input
               autoFocus
               value={groupName}
               onChange={e => setGroupName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && groupName.trim()) { onAddGroup({ id: uuid(), name: groupName.trim() }); setGroupName(''); setShowAddGroup(false); } }}
               placeholder="그룹 이름"
-              style={{ width: '100%', padding: '10px 12px', fontSize: 15, border: '1px solid #E5E7EB', borderRadius: 10, outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 12px', fontSize: font.md, border: `1px solid ${palette.border}`, borderRadius: radius.md, outline: 'none', boxSizing: 'border-box' }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
-              <button onClick={() => { setShowAddGroup(false); setGroupName(''); }} style={{ border: 'none', background: 'none', fontSize: 15, color: '#6B7280', cursor: 'pointer' }}>취소</button>
+              <button onClick={() => { setShowAddGroup(false); setGroupName(''); }} style={{ border: 'none', background: 'none', fontSize: font.md, color: palette.textSub, cursor: 'pointer' }}>취소</button>
               <button
                 onClick={() => { if (groupName.trim()) { onAddGroup({ id: uuid(), name: groupName.trim() }); setGroupName(''); setShowAddGroup(false); } }}
                 disabled={!groupName.trim()}
-                style={{ border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 15, fontWeight: 600, background: groupName.trim() ? '#2563EB' : '#D1D5DB', color: '#fff', cursor: groupName.trim() ? 'pointer' : 'default' }}
+                style={{ border: 'none', borderRadius: radius.sm, padding: '8px 20px', fontSize: font.md, fontWeight: weight.semibold, background: groupName.trim() ? palette.primary : palette.borderStrong, color: '#fff', cursor: groupName.trim() ? 'pointer' : 'default' }}
               >추가</button>
             </div>
           </div>
@@ -232,8 +233,8 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
       {/* 연락처 액션 메뉴 */}
       {menuContact && (
         <Overlay onClose={() => setMenuContact(null)}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 8, width: 240, maxWidth: '90vw' }}>
-            <div style={{ padding: '10px 16px', fontSize: 13, color: '#9CA3AF', borderBottom: '1px solid #F3F4F6' }}>
+          <div style={{ background: '#fff', borderRadius: radius.lg, padding: 8, width: 240, maxWidth: '90vw' }}>
+            <div style={{ padding: '10px 16px', fontSize: font.sm, color: palette.textMuted, borderBottom: `1px solid ${palette.borderSubtle}` }}>
               {menuContact.companyName} {menuContact.personName}
             </div>
             <MenuBtn label="수정" onClick={() => { setEditingContact(menuContact); setMenuContact(null); }} />
@@ -254,8 +255,8 @@ export default function ExternalContactView({ contacts, groups, onAdd, onUpdate,
       {/* 그룹 이동 */}
       {movingContact && (
         <Overlay onClose={() => setMovingContact(null)}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 8, width: 260, maxWidth: '90vw' }}>
-            <div style={{ padding: '10px 16px', fontSize: 13, color: '#9CA3AF', borderBottom: '1px solid #F3F4F6' }}>그룹 이동</div>
+          <div style={{ background: '#fff', borderRadius: radius.lg, padding: 8, width: 260, maxWidth: '90vw' }}>
+            <div style={{ padding: '10px 16px', fontSize: font.sm, color: palette.textMuted, borderBottom: `1px solid ${palette.borderSubtle}` }}>그룹 이동</div>
             <MenuBtn label="미분류" onClick={() => { onUpdate({ ...movingContact, groupId: null }); setMovingContact(null); }} />
             {groups.map(g => (
               <MenuBtn key={g.id} label={g.name} onClick={() => { onUpdate({ ...movingContact, groupId: g.id }); setMovingContact(null); }} />
@@ -271,32 +272,32 @@ function ContactRow({ c, groups, onMenu, onEdit }: { c: ExternalContact; groups:
   const col = contactColor(c, groups);
   const initial = c.personName?.[0] ?? c.companyName?.[0] ?? '?';
   return (
-    <div style={{ display: 'flex', borderRadius: 0, overflow: 'hidden', border: '1px solid #E5E7EB', background: '#fff' }}>
+    <div style={{ display: 'flex', borderRadius: 0, overflow: 'hidden', border: `1px solid ${palette.border}`, background: '#fff' }}>
       <div style={{ width: 5, background: col.bar, flexShrink: 0 }} />
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 6, background: col.avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: col.avatarFg, flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: radius.sm, background: col.avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: font.lg, fontWeight: weight.bold, color: col.avatarFg, flexShrink: 0 }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{c.personName || c.companyName}</span>
-            {c.personName && c.companyName && <span style={{ fontSize: 12, color: '#9CA3AF' }}>{c.companyName}</span>}
+            <span style={{ fontSize: font.md, fontWeight: weight.semibold, color: palette.text }}>{c.personName || c.companyName}</span>
+            {c.personName && c.companyName && <span style={{ fontSize: font.xs, color: palette.textMuted }}>{c.companyName}</span>}
           </div>
           {(c.department || c.position) && (
-            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{[c.department, c.position].filter(Boolean).join(' · ')}</div>
+            <div style={{ fontSize: font.xs, color: palette.textSub, marginTop: 2 }}>{[c.department, c.position].filter(Boolean).join(' · ')}</div>
           )}
-          {c.relatedWork && <div style={{ fontSize: 12, color: '#7C3AED', marginTop: 2 }}>{c.relatedWork}</div>}
+          {c.relatedWork && <div style={{ fontSize: font.xs, color: palette.accent, marginTop: 2 }}>{c.relatedWork}</div>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {c.phone && (
-            <a href={`tel:${c.phone.replace(/-/g, '')}`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 16 }}>
+            <a href={`tel:${c.phone.replace(/-/g, '')}`} style={{ width: 32, height: 32, borderRadius: '50%', background: palette.borderSubtle, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: font.lg }}>
               📞
             </a>
           )}
-          <button onClick={onEdit} title="수정" style={{ width: 32, height: 32, borderRadius: '50%', background: '#EFF6FF', border: 'none', cursor: 'pointer', fontSize: 15, color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onEdit} title="수정" style={{ width: 32, height: 32, borderRadius: '50%', background: palette.primaryTint, border: 'none', cursor: 'pointer', fontSize: font.md, color: palette.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ✏️
           </button>
-          <button onClick={onMenu} style={{ width: 32, height: 32, borderRadius: '50%', background: '#F3F4F6', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onMenu} style={{ width: 32, height: 32, borderRadius: '50%', background: palette.borderSubtle, border: 'none', cursor: 'pointer', fontSize: font.xl, color: palette.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ⋯
           </button>
         </div>
@@ -339,10 +340,10 @@ function ContactModal({ contact, groups, onClose, onSave }: {
 
   return (
     <Overlay onClose={onClose}>
-      <div style={{ background: '#F9FAFB', borderRadius: 20, width: 480, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px', borderBottom: '1px solid #E5E7EB', background: '#fff' }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{contact ? '연락처 수정' : '연락처 추가'}</h3>
-          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>✕</button>
+      <div style={{ background: palette.surfaceSunken, borderRadius: radius.xl, width: 480, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px', borderBottom: `1px solid ${palette.border}`, background: '#fff' }}>
+          <h3 style={{ margin: 0, fontSize: font.xl, fontWeight: weight.bold }}>{contact ? '연락처 수정' : '연락처 추가'}</h3>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: font['2xl'], cursor: 'pointer', color: palette.textMuted }}>✕</button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Field label="업체명" value={company} onChange={setCompany} />
@@ -353,18 +354,18 @@ function ContactModal({ contact, groups, onClose, onSave }: {
           <Field label="이메일" value={email} onChange={setEmail} type="email" />
           <Field label="관련업무" value={work} onChange={setWork} />
           <div>
-            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>그룹</div>
+            <div style={{ fontSize: font.xs, color: palette.textSub, marginBottom: 8 }}>그룹</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               <Chip label="미분류" active={groupId === null} onPress={() => setGroupId(null)} />
               {groups.map(g => <Chip key={g.id} label={g.name} active={groupId === g.id} onPress={() => setGroupId(g.id)} />)}
             </div>
           </div>
         </div>
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #E5E7EB', background: '#fff' }}>
+        <div style={{ padding: '12px 20px', borderTop: `1px solid ${palette.border}`, background: '#fff' }}>
           <button
             onClick={handleSave}
             disabled={!canSave}
-            style={{ width: '100%', padding: '14px', fontSize: 16, fontWeight: 600, border: 'none', borderRadius: 12, background: canSave ? '#2563EB' : '#D1D5DB', color: '#fff', cursor: canSave ? 'pointer' : 'default' }}
+            style={{ width: '100%', padding: '14px', fontSize: font.lg, fontWeight: weight.semibold, border: 'none', borderRadius: radius.md, background: canSave ? palette.primary : palette.borderStrong, color: '#fff', cursor: canSave ? 'pointer' : 'default' }}
           >저장</button>
         </div>
       </div>
@@ -375,12 +376,12 @@ function ContactModal({ contact, groups, onClose, onSave }: {
 function Field({ label, value, onChange, type }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
   return (
     <div>
-      <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: font.xs, color: palette.textSub, marginBottom: 4 }}>{label}</div>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', padding: '10px 12px', fontSize: 15, border: '1px solid #E5E7EB', borderRadius: 10, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '10px 12px', fontSize: font.md, border: `1px solid ${palette.border}`, borderRadius: radius.md, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
       />
     </div>
   );
@@ -390,7 +391,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
   return (
     <button
       onClick={onPress}
-      style={{ padding: '7px 14px', borderRadius: 20, border: `1px solid ${active ? '#7C3AED' : '#E5E7EB'}`, background: active ? '#7C3AED' : '#fff', color: active ? '#fff' : '#374151', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }}
+      style={{ padding: '7px 14px', borderRadius: radius.xl, border: `1px solid ${active ? palette.accent : palette.border}`, background: active ? palette.accent : '#fff', color: active ? '#fff' : palette.textBody, fontSize: font.sm, cursor: 'pointer', fontWeight: active ? weight.semibold : weight.regular }}
     >{label}</button>
   );
 }
@@ -399,7 +400,7 @@ function MenuBtn({ label, onClick, danger }: { label: string; onClick: () => voi
   return (
     <button
       onClick={onClick}
-      style={{ width: '100%', padding: '13px 16px', textAlign: 'left', border: 'none', background: 'none', fontSize: 15, color: danger ? '#EF4444' : '#111827', cursor: 'pointer', borderTop: '1px solid #F3F4F6' }}
+      style={{ width: '100%', padding: '13px 16px', textAlign: 'left', border: 'none', background: 'none', fontSize: font.md, color: danger ? palette.danger : palette.text, cursor: 'pointer', borderTop: `1px solid ${palette.borderSubtle}` }}
     >{label}</button>
   );
 }

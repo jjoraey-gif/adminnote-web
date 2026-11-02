@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { OrgDepartment, OrgTeam, OrgMember } from '@/lib/useWebStore';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 // ── 색상 팔레트 ────────────────────────────────────────────────────────────────
 const DEPT_COLORS = ['#185FA5', '#D97706', '#059669', '#9333EA', '#DC2626', '#0891B2', '#B45309'];
@@ -16,7 +17,6 @@ const avatarColor = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 
 const POSITION_PRESETS = ['과장', '팀장', '주무관', '기타'];
 const BLUE = '#185FA5';
-const GRAY = '#9CA3AF';
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
 function uuid() {
@@ -76,22 +76,22 @@ export default function OrgChartView({ orgDepartments: depts, onSetDepartments, 
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         {depts.length > 0 && (
-          <span style={{ fontSize: 12, color: GRAY }}>{depts.length}개 과 · 구성원 {totalMembers}명</span>
+          <span style={{ fontSize: font.xs, color: palette.textMuted }}>{depts.length}개 과 · 구성원 {totalMembers}명</span>
         )}
         <div style={{ marginLeft: 'auto' }}>
           <button
             onClick={() => setAddingDept(true)}
-            style={{ padding: '9px 18px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '9px 18px', borderRadius: radius.md, border: `1px solid ${palette.border}`, background: '#fff', fontSize: font.md, fontWeight: weight.semibold, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >＋ 과 추가</button>
         </div>
       </div>
 
       {/* 빈 상태 */}
       {depts.length === 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 10, color: GRAY }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 10, color: palette.textMuted }}>
           <div style={{ fontSize: 48 }}>🏢</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: '#374151' }}>조직도가 없습니다</div>
-          <div style={{ fontSize: 13 }}>과 추가 버튼으로 시작하세요</div>
+          <div style={{ fontSize: font.lg, fontWeight: weight.medium, color: palette.textBody }}>조직도가 없습니다</div>
+          <div style={{ fontSize: font.sm }}>과 추가 버튼으로 시작하세요</div>
         </div>
       )}
 
@@ -165,7 +165,7 @@ function DeptCard({ dept, allDepts, color, isFirst, isLast, onMoveUp, onMoveDown
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: 14, marginBottom: 10, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', border: '1px solid #E5E7EB' }}>
+    <div style={{ background: '#fff', borderRadius: radius.lg, marginBottom: 10, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', border: `1px solid ${palette.border}` }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 50 }}>
         <div style={{ width: 4, background: color, flexShrink: 0 }} />
@@ -173,22 +173,22 @@ function DeptCard({ dept, allDepts, color, isFirst, isLast, onMoveUp, onMoveDown
           style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '10px 14px', gap: 8, cursor: 'pointer' }}
           onClick={() => !showMenu && setExpanded(v => !v)}
         >
-          <span style={{ fontSize: 16 }}>🏛</span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>{dept.name}</span>
+          <span style={{ fontSize: font.lg }}>🏛</span>
+          <span style={{ flex: 1, fontSize: font.md, fontWeight: weight.semibold, color: palette.text }}>{dept.name}</span>
 
           {showMenu ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F3F4F6', borderRadius: 10, padding: '4px 8px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: palette.borderSubtle, borderRadius: radius.md, padding: '4px 8px' }} onClick={e => e.stopPropagation()}>
               <InlineBtn color={BLUE} onClick={() => { setEditName(dept.name); setEditing(true); setShowMenu(false); }}>수정</InlineBtn>
               {!isFirst && <InlineBtn color={BLUE} onClick={() => { onMoveUp(); setShowMenu(false); }}>↑</InlineBtn>}
               {!isLast && <InlineBtn color={BLUE} onClick={() => { onMoveDown(); setShowMenu(false); }}>↓</InlineBtn>}
-              <InlineBtn color="#EF4444" onClick={() => { setShowMenu(false); onDelete(); }}>삭제</InlineBtn>
-              <InlineBtn color={GRAY} onClick={() => setShowMenu(false)}>✕</InlineBtn>
+              <InlineBtn color={palette.danger} onClick={() => { setShowMenu(false); onDelete(); }}>삭제</InlineBtn>
+              <InlineBtn color={palette.textMuted} onClick={() => setShowMenu(false)}>✕</InlineBtn>
             </div>
           ) : (
             <>
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: color + '22', color }}>{totalMembers}명</span>
-              <button onClick={e => { e.stopPropagation(); setShowMenu(true); }} style={{ background: 'none', border: 'none', fontSize: 16, color: GRAY, cursor: 'pointer', padding: '2px 4px' }}>···</button>
-              <span style={{ fontSize: 12, color: '#C7C7CC' }}>{expanded ? '▾' : '▸'}</span>
+              <span style={{ fontSize: font['2xs'], fontWeight: weight.semibold, padding: '2px 8px', borderRadius: radius.md, background: color + '22', color }}>{totalMembers}명</span>
+              <button onClick={e => { e.stopPropagation(); setShowMenu(true); }} style={{ background: 'none', border: 'none', fontSize: font.lg, color: palette.textMuted, cursor: 'pointer', padding: '2px 4px' }}>···</button>
+              <span style={{ fontSize: font.xs, color: palette.textFaint }}>{expanded ? '▾' : '▸'}</span>
             </>
           )}
         </div>
@@ -196,7 +196,7 @@ function DeptCard({ dept, allDepts, color, isFirst, isLast, onMoveUp, onMoveDown
 
       {/* 바디 */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #E5E7EB', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ borderTop: `1px solid ${palette.border}`, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {dept.teams.map((team, ti) => (
             <TeamSection
               key={team.id}
@@ -215,7 +215,7 @@ function DeptCard({ dept, allDepts, color, isFirst, isLast, onMoveUp, onMoveDown
           ))}
           <button
             onClick={() => setAddTeam(true)}
-            style={{ padding: '9px 0', borderRadius: 10, border: '1px dashed #D1D5DB', background: 'none', color: GRAY, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+            style={{ padding: '9px 0', borderRadius: radius.md, border: `1px dashed ${palette.borderStrong}`, background: 'none', color: palette.textMuted, fontSize: font.sm, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
           >＋ 팀 추가</button>
         </div>
       )}
@@ -261,23 +261,23 @@ function TeamSection({ dept, team, allDepts, avatarOffset, isFirstTeam, isLastTe
   }, [allDepts, team.id]);
 
   return (
-    <div style={{ background: '#F9FAFB', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+    <div style={{ background: palette.surfaceSunken, borderRadius: radius.md, border: `1px solid ${palette.border}`, overflow: 'hidden' }}>
       {/* 팀 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '9px 12px', gap: 8 }}>
-        <span style={{ fontSize: 13 }}>👥</span>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#4B5563' }}>{team.name}</span>
+        <span style={{ fontSize: font.sm }}>👥</span>
+        <span style={{ flex: 1, fontSize: font.sm, fontWeight: weight.semibold, color: palette.textBody }}>{team.name}</span>
         {showMenu ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#E5E7EB', borderRadius: 8, padding: '3px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: palette.border, borderRadius: radius.sm, padding: '3px 6px' }}>
             <InlineBtn color={BLUE} onClick={() => { setEditName(team.name); setEditingTeam(true); setShowMenu(false); }}>수정</InlineBtn>
             {!isFirstTeam && <InlineBtn color={BLUE} onClick={() => { onMoveTeamUp(); setShowMenu(false); }}>↑</InlineBtn>}
             {!isLastTeam && <InlineBtn color={BLUE} onClick={() => { onMoveTeamDown(); setShowMenu(false); }}>↓</InlineBtn>}
-            <InlineBtn color="#EF4444" onClick={() => { setShowMenu(false); onDeleteTeam(); }}>삭제</InlineBtn>
-            <InlineBtn color={GRAY} onClick={() => setShowMenu(false)}>✕</InlineBtn>
+            <InlineBtn color={palette.danger} onClick={() => { setShowMenu(false); onDeleteTeam(); }}>삭제</InlineBtn>
+            <InlineBtn color={palette.textMuted} onClick={() => setShowMenu(false)}>✕</InlineBtn>
           </div>
         ) : (
           <>
-            <span style={{ fontSize: 11, color: GRAY }}>{team.members.length}명</span>
-            <button onClick={() => setShowMenu(true)} style={{ background: 'none', border: 'none', fontSize: 15, color: '#C7C7CC', cursor: 'pointer', padding: '2px 4px' }}>⋯</button>
+            <span style={{ fontSize: font['2xs'], color: palette.textMuted }}>{team.members.length}명</span>
+            <button onClick={() => setShowMenu(true)} style={{ background: 'none', border: 'none', fontSize: font.md, color: palette.textFaint, cursor: 'pointer', padding: '2px 4px' }}>⋯</button>
           </>
         )}
       </div>
@@ -292,7 +292,7 @@ function TeamSection({ dept, team, allDepts, avatarOffset, isFirstTeam, isLastTe
       })}
 
       {/* 팀원 추가 버튼 */}
-      <button onClick={() => setAddMember(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', width: '100%', background: 'none', border: 'none', borderTop: '1px solid #E5E7EB', color: GRAY, fontSize: 12, cursor: 'pointer' }}>
+      <button onClick={() => setAddMember(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', width: '100%', background: 'none', border: 'none', borderTop: `1px solid ${palette.border}`, color: palette.textMuted, fontSize: font.xs, cursor: 'pointer' }}>
         ＋ 팀원 추가
       </button>
 
@@ -334,24 +334,24 @@ function MemberRow({ member, avatarBg, avatarFg, onClick }: { member: OrgMember;
   return (
     <div
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 10, borderTop: '1px solid #E5E7EB', cursor: 'pointer', transition: 'background 0.1s' }}
-      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#F0F4FF'}
+      style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 10, borderTop: `1px solid ${palette.border}`, cursor: 'pointer', transition: 'background 0.1s' }}
+      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = palette.primaryTint}
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
     >
-      <div style={{ width: 34, height: 34, borderRadius: 17, background: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: avatarFg }}>{initials(member.name)}</span>
+      <div style={{ width: 34, height: 34, borderRadius: radius.lg, background: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span style={{ fontSize: font.xs, fontWeight: weight.semibold, color: avatarFg }}>{initials(member.name)}</span>
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>{member.name}</div>
+        <div style={{ fontSize: font.base, fontWeight: weight.medium, color: palette.text }}>{member.name}</div>
         {(member.position || member.mobilePhone || member.officePhone) && (
-          <div style={{ fontSize: 11, color: GRAY, marginTop: 1 }}>
+          <div style={{ fontSize: font['2xs'], color: palette.textMuted, marginTop: 1 }}>
             {[member.position, member.mobilePhone || member.officePhone].filter(Boolean).join(' · ')}
           </div>
         )}
       </div>
       {member.mobilePhone && (
         <a href={`tel:${member.mobilePhone.replace(/-/g, '')}`} onClick={e => e.stopPropagation()}
-          style={{ width: 32, height: 32, borderRadius: 16, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 15 }}>
+          style={{ width: 32, height: 32, borderRadius: radius.lg, background: palette.borderSubtle, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: font.md }}>
           📞
         </a>
       )}
@@ -381,11 +381,11 @@ function MemberModal({ member, onClose, onSave, onDelete, onMove }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.38)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 420 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: radius.lg, padding: 24, width: '100%', maxWidth: 420 }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ flex: 1, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>{member ? '구성원 수정' : '구성원 추가'}</span>
+          <span style={{ flex: 1, fontSize: font.lg, fontWeight: weight.semibold, color: palette.text }}>{member ? '구성원 수정' : '구성원 추가'}</span>
           {member && onDelete && (
-            <button onClick={onDelete} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', padding: 4 }} title="삭제">🗑</button>
+            <button onClick={onDelete} style={{ background: 'none', border: 'none', fontSize: font.xl, cursor: 'pointer', padding: 4 }} title="삭제">🗑</button>
           )}
         </div>
 
@@ -396,9 +396,9 @@ function MemberModal({ member, onClose, onSave, onDelete, onMove }: {
         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
           {POSITION_PRESETS.map(p => (
             <button key={p} onClick={() => setSelPos(p)} style={{
-              flex: 1, padding: '9px 0', borderRadius: 10, border: `1px solid ${selPos === p ? BLUE : '#E5E5EA'}`,
-              background: selPos === p ? '#E6F1FB' : '#F9FAFB', color: selPos === p ? BLUE : GRAY,
-              fontWeight: selPos === p ? 600 : 500, fontSize: 13, cursor: 'pointer',
+              flex: 1, padding: '9px 0', borderRadius: radius.md, border: `1px solid ${selPos === p ? BLUE : palette.border}`,
+              background: selPos === p ? '#E6F1FB' : palette.surfaceSunken, color: selPos === p ? BLUE : palette.textMuted,
+              fontWeight: selPos === p ? weight.semibold : weight.medium, fontSize: font.sm, cursor: 'pointer',
             }}>{p}</button>
           ))}
         </div>
@@ -413,14 +413,14 @@ function MemberModal({ member, onClose, onSave, onDelete, onMove }: {
         <input value={mobile} onChange={e => setMobile(formatPhone(e.target.value))} placeholder="휴대폰" style={inputSt} inputMode="tel" />
 
         {member && onMove && (
-          <button onClick={onMove} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: BLUE, fontSize: 14, cursor: 'pointer', padding: '6px 0', marginBottom: 4 }}>
+          <button onClick={onMove} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: BLUE, fontSize: font.base, cursor: 'pointer', padding: '6px 0', marginBottom: 4 }}>
             ⇄ 팀 이동
           </button>
         )}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: 'none', background: '#F3F4F6', color: '#6B7280', fontSize: 15, cursor: 'pointer' }}>취소</button>
-          <button onClick={save} disabled={!name.trim()} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: 'none', background: name.trim() ? BLUE : '#D1D5DB', color: '#fff', fontSize: 15, fontWeight: 600, cursor: name.trim() ? 'pointer' : 'default' }}>저장</button>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: radius.md, border: 'none', background: palette.borderSubtle, color: palette.textSub, fontSize: font.md, cursor: 'pointer' }}>취소</button>
+          <button onClick={save} disabled={!name.trim()} style={{ flex: 1, padding: '11px 0', borderRadius: radius.md, border: 'none', background: name.trim() ? BLUE : palette.borderStrong, color: '#fff', fontSize: font.md, fontWeight: weight.semibold, cursor: name.trim() ? 'pointer' : 'default' }}>저장</button>
         </div>
       </div>
     </div>
@@ -436,20 +436,20 @@ function MoveModal({ member, targets, onClose, onMove }: {
 }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#F2F2F7', borderTopLeftRadius: 20, borderTopRightRadius: 20, width: '100%', maxWidth: 600, maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>"{member.name}" 팀 이동</div>
+      <div onClick={e => e.stopPropagation()} style={{ background: palette.surfaceSunken, borderTopLeftRadius: 20, borderTopRightRadius: 20, width: '100%', maxWidth: 600, maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${palette.border}` }}>
+          <div style={{ fontSize: font.lg, fontWeight: weight.bold, color: palette.text }}>"{member.name}" 팀 이동</div>
         </div>
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {targets.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', color: GRAY, fontSize: 14 }}>이동 가능한 팀이 없습니다</div>
+            <div style={{ padding: 20, textAlign: 'center', color: palette.textMuted, fontSize: font.base }}>이동 가능한 팀이 없습니다</div>
           ) : targets.map((t, i) => (
-            <button key={i} onClick={() => onMove(t.deptId, t.teamId)} style={{ display: 'block', width: '100%', padding: '14px 20px', background: '#fff', border: 'none', borderBottom: '1px solid #F3F4F6', textAlign: 'left', fontSize: 15, color: BLUE, cursor: 'pointer' }}>
+            <button key={i} onClick={() => onMove(t.deptId, t.teamId)} style={{ display: 'block', width: '100%', padding: '14px 20px', background: '#fff', border: 'none', borderBottom: `1px solid ${palette.borderSubtle}`, textAlign: 'left', fontSize: font.md, color: BLUE, cursor: 'pointer' }}>
               {t.label}
             </button>
           ))}
         </div>
-        <button onClick={onClose} style={{ margin: '8px 14px 16px', padding: '14px 0', borderRadius: 14, border: 'none', background: '#fff', fontSize: 16, fontWeight: 600, color: BLUE, cursor: 'pointer' }}>취소</button>
+        <button onClick={onClose} style={{ margin: '8px 14px 16px', padding: '14px 0', borderRadius: radius.lg, border: 'none', background: '#fff', fontSize: font.lg, fontWeight: weight.semibold, color: BLUE, cursor: 'pointer' }}>취소</button>
       </div>
     </div>
   );
@@ -462,8 +462,8 @@ function InputModal({ title, placeholder, value, onChange, onClose, onSave }: {
 }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.38)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 360 }}>
-        <div style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E', marginBottom: 14 }}>{title}</div>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: radius.lg, padding: 24, width: '100%', maxWidth: 360 }}>
+        <div style={{ fontSize: font.lg, fontWeight: weight.semibold, color: palette.text, marginBottom: 14 }}>{title}</div>
         <input
           value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder} autoFocus
@@ -471,8 +471,8 @@ function InputModal({ title, placeholder, value, onChange, onClose, onSave }: {
           onKeyDown={e => e.key === 'Enter' && onSave()}
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: 'none', background: '#F3F4F6', color: '#6B7280', fontSize: 15, cursor: 'pointer' }}>취소</button>
-          <button onClick={onSave} disabled={!value.trim()} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: 'none', background: value.trim() ? BLUE : '#D1D5DB', color: '#fff', fontSize: 15, fontWeight: 600, cursor: value.trim() ? 'pointer' : 'default' }}>저장</button>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: radius.md, border: 'none', background: palette.borderSubtle, color: palette.textSub, fontSize: font.md, cursor: 'pointer' }}>취소</button>
+          <button onClick={onSave} disabled={!value.trim()} style={{ flex: 1, padding: '11px 0', borderRadius: radius.md, border: 'none', background: value.trim() ? BLUE : palette.borderStrong, color: '#fff', fontSize: font.md, fontWeight: weight.semibold, cursor: value.trim() ? 'pointer' : 'default' }}>저장</button>
         </div>
       </div>
     </div>
@@ -481,19 +481,19 @@ function InputModal({ title, placeholder, value, onChange, onClose, onSave }: {
 
 // ── 공통 스타일 ───────────────────────────────────────────────────────────────
 const inputSt: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', borderRadius: 10,
-  border: '1px solid #E5E5EA', background: '#fff',
-  fontSize: 15, color: '#1C1C1E', marginBottom: 10,
+  width: '100%', padding: '10px 12px', borderRadius: radius.md,
+  border: `1px solid ${palette.border}`, background: '#fff',
+  fontSize: font.md, color: palette.text, marginBottom: 10,
   boxSizing: 'border-box', outline: 'none',
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 12, color: GRAY, marginBottom: 4 }}>{children}</div>;
+  return <div style={{ fontSize: font.xs, color: palette.textMuted, marginBottom: 4 }}>{children}</div>;
 }
 
 function InlineBtn({ children, color, onClick }: { children: React.ReactNode; color: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color, cursor: 'pointer', padding: '2px 6px' }}>
+    <button onClick={onClick} style={{ background: 'none', border: 'none', fontSize: font.sm, fontWeight: weight.semibold, color, cursor: 'pointer', padding: '2px 6px' }}>
       {children}
     </button>
   );

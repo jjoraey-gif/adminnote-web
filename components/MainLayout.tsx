@@ -6,6 +6,7 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { useWebStore } from '@/lib/useWebStore';
 import { useOvertimeAlarm, loadSoundPref, saveSoundPref, primeAudio } from '@/lib/overtime';
+import { palette, font, weight, radius } from '@/lib/theme';
 import ScheduleView from './ScheduleView';
 import TodoView from './TodoView';
 import BudgetView from './BudgetView';
@@ -25,6 +26,11 @@ const MAIN_TABS = [
   { key: 'overtime', label: '초과알람' },
   { key: 'more',     label: '더보기' },
 ];
+
+/** 헤더 높이 — 탭 바와 ScheduleView 오른쪽 패널의 sticky 기준점이 된다 */
+const HEADER_H = 100;
+/** 메인 탭 바 높이 (글자 20px + 상하 여백 15px + 밑줄 3px) */
+const TABBAR_H = 53;
 
 const MORE_TABS = [
   { key: 'history',   label: '이력관리' },
@@ -90,9 +96,9 @@ export default function MainLayout({ user, onLogout }: Props) {
 
       {/* 헤더 */}
       <header style={{
-        borderBottom: '1px solid #E5E7EB', height: 100,
+        borderBottom: `1px solid ${palette.border}`, height: HEADER_H,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#fff', position: 'sticky', top: 0, zIndex: 50,
+        background: palette.surface, position: 'sticky', top: 0, zIndex: 50,
       }}>
         <div style={{
           width: '100%', maxWidth: 1064, padding: '0 32px',
@@ -102,33 +108,34 @@ export default function MainLayout({ user, onLogout }: Props) {
           <div style={{ flex: '0 0 200px' }} />
           <span
             onClick={() => setActiveTab('photo')}
-            style={{ fontSize: 60, fontWeight: 800, letterSpacing: -1, flexShrink: 0, cursor: 'pointer' }}
+            style={{ fontSize: 44, fontWeight: weight.bold, letterSpacing: -1.2, flexShrink: 0, cursor: 'pointer' }}
           >
-            <span style={{ color: '#2563EB' }}>Admin</span>
-            <span style={{ color: '#1C1C1E' }}>Note</span>
+            <span style={{ color: palette.primary }}>Admin</span>
+            <span style={{ color: palette.text }}>Note</span>
           </span>
           <div style={{
             flex: '0 0 200px', display: 'flex', alignItems: 'center',
             gap: 10, justifyContent: 'flex-end', whiteSpace: 'nowrap',
           }}>
-            <span style={{ fontSize: 14, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{displayName}</span>
+            <span style={{ fontSize: font.base, color: palette.textSub, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{displayName}</span>
             <button
               onClick={() => setMyPageOpen(true)}
               title="마이페이지"
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 22, padding: '2px 4px', color: '#6B7280', flexShrink: 0,
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: palette.surfaceSunken, border: `1px solid ${palette.border}`, borderRadius: radius.full,
+                cursor: 'pointer', fontSize: font.lg, color: palette.textSub, flexShrink: 0, lineHeight: 1,
               }}
-            >⚙️</button>
+            >⚙</button>
           </div>
         </div>
       </header>
 
       {/* 메인 탭 바 */}
       <div style={{
-        borderBottom: showMoreBar ? 'none' : '1px solid #E5E7EB',
-        display: 'flex', justifyContent: 'center', background: '#fff',
-        position: 'sticky', top: 100, zIndex: 40,
+        borderBottom: showMoreBar ? 'none' : `1px solid ${palette.border}`,
+        display: 'flex', justifyContent: 'center', background: palette.surface,
+        position: 'sticky', top: HEADER_H, zIndex: 40,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
           {MAIN_TABS.map((tab) => {
@@ -138,11 +145,11 @@ export default function MainLayout({ user, onLogout }: Props) {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  padding: '16px 36px', fontSize: 20,
-                  fontWeight: isActive ? 700 : 500,
-                  color: '#1C1C1E',
+                  padding: '15px 32px', fontSize: font['2xl'],
+                  fontWeight: isActive ? weight.bold : weight.medium,
+                  color: isActive ? palette.text : palette.textSub,
                   background: 'none', border: 'none',
-                  borderBottom: isActive ? '3px solid #1C1C1E' : '3px solid transparent',
+                  borderBottom: `3px solid ${isActive ? palette.primary : 'transparent'}`,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
                 }}
@@ -157,9 +164,9 @@ export default function MainLayout({ user, onLogout }: Props) {
       {/* 더보기 서브 탭 바 */}
       {showMoreBar && (
         <div style={{
-          borderBottom: '1px solid #E5E7EB', borderTop: '1px solid #E5E7EB',
-          display: 'flex', justifyContent: 'center', background: '#F9FAFB',
-          position: 'sticky', top: 153, zIndex: 39,
+          borderBottom: `1px solid ${palette.border}`, borderTop: `1px solid ${palette.border}`,
+          display: 'flex', justifyContent: 'center', background: palette.surfaceSunken,
+          position: 'sticky', top: HEADER_H + TABBAR_H, zIndex: 39,
         }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
             {MORE_TABS.map((tab) => {
@@ -169,11 +176,11 @@ export default function MainLayout({ user, onLogout }: Props) {
                   key={tab.key}
                   onClick={() => setActiveMoreTab(tab.key)}
                   style={{
-                    padding: '12px 28px', fontSize: 15,
-                    fontWeight: isActive ? 700 : 400,
-                    color: isActive ? '#2563EB' : '#6B7280',
+                    padding: '12px 28px', fontSize: font.md,
+                    fontWeight: isActive ? weight.bold : weight.regular,
+                    color: isActive ? palette.primary : palette.textSub,
                     background: 'none', border: 'none',
-                    borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                    borderBottom: `2px solid ${isActive ? palette.primary : 'transparent'}`,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap', marginBottom: -1, transition: 'all 0.15s',
                   }}
@@ -196,7 +203,7 @@ export default function MainLayout({ user, onLogout }: Props) {
           {/* 업무일정은 달력을 좌우로 넓게 쓰는 편이 보기 좋아 폭을 더 준다 */}
           <div style={{ width: '100%', maxWidth: currentTab === 'schedule' ? 1480 : 1000 }}>
           {store.loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF', fontSize: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: palette.textMuted, fontSize: font.base }}>
               데이터 불러오는 중...
             </div>
           ) : (
@@ -311,24 +318,13 @@ export default function MainLayout({ user, onLogout }: Props) {
       )}
 
       {/* 푸터 */}
-      <footer style={{ borderTop: '1px solid #E5E7EB', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>© 2026 AdminNote</span>
+      <footer style={{ borderTop: `1px solid ${palette.border}`, padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: font.xs, color: palette.textMuted }}>© 2026 AdminNote</span>
         <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/terms" style={{ fontSize: 12, color: '#9CA3AF', textDecoration: 'none' }}>이용약관</Link>
-          <Link href="/privacy" style={{ fontSize: 12, color: '#9CA3AF', textDecoration: 'none' }}>개인정보처리방침</Link>
+          <Link href="/terms" style={{ fontSize: font.xs, color: palette.textMuted, textDecoration: 'none' }}>이용약관</Link>
+          <Link href="/privacy" style={{ fontSize: font.xs, color: palette.textMuted, textDecoration: 'none' }}>개인정보처리방침</Link>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function ComingSoon({ label, desc }: { label: string; desc: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 10 }}>
-      <div style={{ fontSize: 36 }}>🚧</div>
-      <p style={{ fontSize: 17, fontWeight: 600, color: '#374151', margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 14, color: '#9CA3AF', margin: 0 }}>{desc}</p>
-      <p style={{ fontSize: 13, color: '#CBD5E1', margin: 0, marginTop: 4 }}>준비 중입니다.</p>
     </div>
   );
 }

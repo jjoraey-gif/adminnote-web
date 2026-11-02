@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { TodoItem, TodoTopic } from '@/lib/useSnapshot';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 interface Props {
   todos: TodoItem[];
@@ -53,37 +54,37 @@ function EditModal({ todo, onClose, onSave }: { todo: TodoItem; onClose: () => v
     >
       <div
         onMouseDown={e => e.stopPropagation()}
-        style={{ background: '#fff', borderRadius: 16, width: 400, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+        style={{ background: '#fff', borderRadius: radius.lg, width: 400, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>할 일 수정</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${palette.border}` }}>
+          <span style={{ fontSize: font.lg, fontWeight: weight.bold, color: palette.text }}>할 일 수정</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: font['2xl'], cursor: 'pointer', color: palette.textSub }}>✕</button>
         </div>
         <div style={{ padding: '20px' }}>
-          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>내용 *</div>
+          <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 6 }}>내용 *</div>
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && canSave && (onSave(title.trim(), date), onClose())}
             autoFocus
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', border: `1px solid ${palette.border}`, borderRadius: radius.md, fontSize: font.base, outline: 'none', boxSizing: 'border-box' }}
           />
-          <div style={{ fontSize: 13, color: '#6B7280', margin: '12px 0 6px' }}>날짜</div>
+          <div style={{ fontSize: font.sm, color: palette.textSub, margin: '12px 0 6px' }}>날짜</div>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', border: `1px solid ${palette.border}`, borderRadius: radius.md, fontSize: font.base, outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
         <div style={{ padding: '0 20px 20px' }}>
           <button
             onClick={() => { if (canSave) { onSave(title.trim(), date); onClose(); } }}
             style={{
-              width: '100%', padding: '12px', borderRadius: 12, border: 'none',
-              background: canSave ? '#2563EB' : '#E5E7EB',
-              color: canSave ? '#fff' : '#9CA3AF',
-              fontSize: 15, fontWeight: 600, cursor: canSave ? 'pointer' : 'default',
+              width: '100%', padding: '12px', borderRadius: radius.md, border: 'none',
+              background: canSave ? palette.primary : palette.border,
+              color: canSave ? '#fff' : palette.textMuted,
+              fontSize: font.md, fontWeight: weight.semibold, cursor: canSave ? 'pointer' : 'default',
             }}
           >
             저장
@@ -142,11 +143,11 @@ function TopicManagerModal({ topics, activeTopicId, onClose, onAdd, onRename, on
     >
       <div
         onMouseDown={e => e.stopPropagation()}
-        style={{ background: '#fff', borderRadius: 16, width: 420, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+        style={{ background: '#fff', borderRadius: radius.lg, width: 420, maxWidth: '90vw', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>주제 관리</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${palette.border}` }}>
+          <span style={{ fontSize: font.lg, fontWeight: weight.bold, color: palette.text }}>주제 관리</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: font['2xl'], cursor: 'pointer', color: palette.textSub }}>✕</button>
         </div>
         <div style={{ padding: '16px 20px', maxHeight: 340, overflowY: 'auto' }}>
           {sorted.map((t, idx) => (
@@ -157,11 +158,11 @@ function TopicManagerModal({ topics, activeTopicId, onClose, onAdd, onRename, on
                 onBlur={() => commit(t)}
                 onKeyDown={e => e.key === 'Enter' && commit(t)}
                 placeholder="주제 이름"
-                style={{ flex: 1, padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                style={{ flex: 1, padding: '8px 10px', border: `1px solid ${palette.border}`, borderRadius: radius.sm, fontSize: font.base, outline: 'none' }}
               />
               <button onClick={() => move(t, -1)} disabled={idx === 0} style={iconBtnStyle(idx === 0)}>▲</button>
               <button onClick={() => move(t, 1)} disabled={idx === sorted.length - 1} style={iconBtnStyle(idx === sorted.length - 1)}>▼</button>
-              <button onClick={() => remove(t)} disabled={sorted.length <= 1} style={iconBtnStyle(sorted.length <= 1, '#EF4444')}>✕</button>
+              <button onClick={() => remove(t)} disabled={sorted.length <= 1} style={iconBtnStyle(sorted.length <= 1, palette.danger)}>✕</button>
             </div>
           ))}
         </div>
@@ -171,13 +172,13 @@ function TopicManagerModal({ topics, activeTopicId, onClose, onAdd, onRename, on
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && add()}
             placeholder="+ 새 주제 추가"
-            style={{ flex: 1, padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none' }}
+            style={{ flex: 1, padding: '10px 12px', border: `1px solid ${palette.border}`, borderRadius: radius.md, fontSize: font.base, outline: 'none' }}
           />
           <button
             onClick={add}
             style={{
-              padding: '0 18px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-              background: newName.trim() ? '#2563EB' : '#E5E7EB', color: newName.trim() ? '#fff' : '#9CA3AF',
+              padding: '0 18px', borderRadius: radius.md, border: 'none', fontSize: font.base, fontWeight: weight.semibold, cursor: 'pointer',
+              background: newName.trim() ? palette.primary : palette.border, color: newName.trim() ? '#fff' : palette.textMuted,
             }}
           >추가</button>
         </div>
@@ -186,10 +187,10 @@ function TopicManagerModal({ topics, activeTopicId, onClose, onAdd, onRename, on
   );
 }
 
-function iconBtnStyle(disabled: boolean, color = '#6B7280'): React.CSSProperties {
+function iconBtnStyle(disabled: boolean, color: string = palette.textSub): React.CSSProperties {
   return {
-    width: 30, height: 30, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff',
-    color: disabled ? '#D1D5DB' : color, fontSize: 12, cursor: disabled ? 'default' : 'pointer',
+    width: 30, height: 30, borderRadius: radius.sm, border: `1px solid ${palette.border}`, background: '#fff',
+    color: disabled ? palette.borderStrong : color, fontSize: font.xs, cursor: disabled ? 'default' : 'pointer',
   };
 }
 
@@ -224,8 +225,8 @@ function TodoRow({
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 16px', background: '#fff',
-        border: `1px solid ${drag?.isOver ? '#2563EB' : '#E5E7EB'}`,
-        borderRadius: 12,
+        border: `1px solid ${drag?.isOver ? palette.primary : palette.border}`,
+        borderRadius: radius.md,
         opacity: todo.isCompleted ? 0.6 : (drag?.isDragging ? 0.4 : 1),
         boxShadow: drag?.isOver ? '0 0 0 3px rgba(37,99,235,0.15)' : 'none',
         transition: 'border-color 0.12s, box-shadow 0.12s',
@@ -235,8 +236,8 @@ function TodoRow({
         <span
           title={todo.isCompleted ? '완료된 항목은 순서를 바꿀 수 없습니다' : '드래그해서 순서 변경'}
           style={{
-            color: todo.isCompleted ? '#E5E7EB' : '#C7C7CC',
-            fontSize: 15, lineHeight: 1, flexShrink: 0,
+            color: todo.isCompleted ? palette.border : palette.textFaint,
+            fontSize: font.md, lineHeight: 1, flexShrink: 0,
             cursor: dragEnabled ? 'grab' : 'default',
             userSelect: 'none',
           }}
@@ -246,22 +247,22 @@ function TodoRow({
         onClick={onToggle}
         style={{
           width: 22, height: 22, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
-          border: todo.isCompleted ? 'none' : '2px solid #D1D5DB',
-          background: todo.isCompleted ? '#16A34A' : 'transparent',
+          border: todo.isCompleted ? 'none' : `2px solid ${palette.borderStrong}`,
+          background: todo.isCompleted ? palette.success : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {todo.isCompleted && <span style={{ color: '#fff', fontSize: 12 }}>✓</span>}
+        {todo.isCompleted && <span style={{ color: '#fff', fontSize: font.xs }}>✓</span>}
       </button>
       <div style={{ flex: 1 }}>
         <div style={{
-          fontSize: 14, fontWeight: 500, color: '#1C1C1E',
+          fontSize: font.base, fontWeight: weight.medium, color: palette.text,
           textDecoration: todo.isCompleted ? 'line-through' : 'none',
         }}>{todo.title}</div>
-        {todo.date && <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{todo.date}</div>}
+        {todo.date && <div style={{ fontSize: font.xs, color: palette.textMuted, marginTop: 2 }}>{todo.date}</div>}
       </div>
-      <button onClick={onEdit} title="수정 (제목/날짜)" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#9CA3AF', padding: '4px', lineHeight: 1, flexShrink: 0 }}>✏️</button>
-      <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#D1D5DB', padding: '4px', lineHeight: 1, flexShrink: 0 }}>✕</button>
+      <button onClick={onEdit} title="수정 (제목/날짜)" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: font.lg, color: palette.textMuted, padding: '4px', lineHeight: 1, flexShrink: 0 }}>✏️</button>
+      <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: font.lg, color: palette.borderStrong, padding: '4px', lineHeight: 1, flexShrink: 0 }}>✕</button>
     </div>
   );
 }
@@ -376,8 +377,8 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
         value={addDate}
         onChange={e => setAddDate(e.target.value)}
         style={{
-          height: 44, padding: '0 10px', border: '1px solid #E5E7EB', borderRadius: 10,
-          fontSize: 13, outline: 'none', color: '#2563EB', background: '#EFF6FF', fontWeight: 600,
+          height: 44, padding: '0 10px', border: `1px solid ${palette.border}`, borderRadius: radius.md,
+          fontSize: font.sm, outline: 'none', color: palette.primary, background: palette.primaryTint, fontWeight: weight.semibold,
         }}
       />
       <input
@@ -387,13 +388,13 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
         placeholder="할 일을 입력하세요 (Enter)"
         style={{
           flex: 1, height: 44, padding: '0 14px',
-          border: '1px solid #E5E7EB', borderRadius: 10,
-          fontSize: 14, outline: 'none', color: '#1C1C1E',
+          border: `1px solid ${palette.border}`, borderRadius: radius.md,
+          fontSize: font.base, outline: 'none', color: palette.text,
         }}
       />
       <button onClick={handleAdd} style={{
-        height: 44, padding: '0 20px', background: '#2563EB', color: '#fff',
-        border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        height: 44, padding: '0 20px', background: palette.primary, color: '#fff',
+        border: 'none', borderRadius: radius.md, fontSize: font.base, fontWeight: weight.semibold, cursor: 'pointer',
       }}>추가</button>
     </div>
   );
@@ -408,10 +409,10 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
             key={tab}
             onClick={() => setMainTab(tab)}
             style={{
-              flex: 1, padding: '10px 0', borderRadius: 24, fontSize: 14, fontWeight: 600,
+              flex: 1, padding: '10px 0', borderRadius: radius.xl, fontSize: font.base, fontWeight: weight.semibold,
               cursor: 'pointer', border: 'none',
-              background: mainTab === tab ? '#2563EB' : '#F3F4F6',
-              color: mainTab === tab ? '#fff' : '#6B7280',
+              background: mainTab === tab ? palette.primary : palette.borderSubtle,
+              color: mainTab === tab ? '#fff' : palette.textSub,
             }}
           >
             {tab === 'today' ? '오늘' : tab === 'upcoming' ? '예정' : '최근 한달'}
@@ -424,9 +425,9 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
         <button
           onClick={() => setActiveTopicId(ALL_TOPICS)}
           style={{
-            padding: '6px 14px', borderRadius: 15, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
-            background: activeTopicId === ALL_TOPICS ? '#1C1C1E' : '#F0F0F5',
-            color: activeTopicId === ALL_TOPICS ? '#fff' : '#6B7280',
+            padding: '6px 14px', borderRadius: radius.lg, fontSize: font.sm, fontWeight: weight.semibold, cursor: 'pointer', border: 'none',
+            background: activeTopicId === ALL_TOPICS ? palette.text : palette.surfaceSunken,
+            color: activeTopicId === ALL_TOPICS ? '#fff' : palette.textSub,
           }}
         >전체</button>
         {sortedTopics.map(topic => (
@@ -434,9 +435,9 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
             key={topic.id}
             onClick={() => setActiveTopicId(topic.id)}
             style={{
-              padding: '6px 14px', borderRadius: 15, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
-              background: activeTopicId === topic.id ? '#1C1C1E' : '#F0F0F5',
-              color: activeTopicId === topic.id ? '#fff' : '#6B7280',
+              padding: '6px 14px', borderRadius: radius.lg, fontSize: font.sm, fontWeight: weight.semibold, cursor: 'pointer', border: 'none',
+              background: activeTopicId === topic.id ? palette.text : palette.surfaceSunken,
+              color: activeTopicId === topic.id ? '#fff' : palette.textSub,
             }}
           >{topic.name || '(제목없음)'}</button>
         ))}
@@ -444,8 +445,8 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
           onClick={() => setTopicManagerOpen(true)}
           title="주제 관리"
           style={{
-            width: 28, height: 28, borderRadius: 14, border: 'none', background: '#F0F0F5',
-            color: '#6B7280', fontSize: 13, cursor: 'pointer', marginLeft: 2,
+            width: 28, height: 28, borderRadius: radius.lg, border: 'none', background: palette.surfaceSunken,
+            color: palette.textSub, fontSize: font.sm, cursor: 'pointer', marginLeft: 2,
           }}
         >⚙</button>
       </div>
@@ -455,20 +456,20 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
           {/* 오늘 진행 현황 */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '16px 20px', background: '#EFF6FF', borderRadius: 14,
-            border: '1px solid #BFDBFE', marginBottom: 20,
+            padding: '16px 20px', background: palette.primaryTint, borderRadius: radius.lg,
+            border: `1px solid ${palette.primaryTintBorder}`, marginBottom: 20,
           }}>
             <div>
-              <div style={{ fontSize: 14, color: '#1D4ED8', fontWeight: 600, marginBottom: 2 }}>오늘의 할 일</div>
-              <div style={{ fontSize: 13, color: '#3B82F6' }}>
+              <div style={{ fontSize: font.base, color: palette.primaryHover, fontWeight: weight.semibold, marginBottom: 2 }}>오늘의 할 일</div>
+              <div style={{ fontSize: font.sm, color: palette.saturday }}>
                 {todayCount === 0 ? '등록된 할 일이 없습니다' : `${todayDone} / ${todayCount} 완료`}
               </div>
             </div>
             {todayCount > 0 && (
               <div style={{ position: 'relative', width: 56, height: 56 }}>
                 <svg width="56" height="56" viewBox="0 0 56 56">
-                  <circle cx="28" cy="28" r="22" fill="none" stroke="#BFDBFE" strokeWidth="5" />
-                  <circle cx="28" cy="28" r="22" fill="none" stroke="#2563EB" strokeWidth="5"
+                  <circle cx="28" cy="28" r="22" fill="none" stroke={palette.primaryTintBorder} strokeWidth="5" />
+                  <circle cx="28" cy="28" r="22" fill="none" stroke={palette.primary} strokeWidth="5"
                     strokeDasharray={`${2 * Math.PI * 22}`}
                     strokeDashoffset={`${2 * Math.PI * 22 * (1 - todayDone / todayCount)}`}
                     strokeLinecap="round" transform="rotate(-90 28 28)"
@@ -476,7 +477,7 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
                 </svg>
                 <div style={{
                   position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, color: '#2563EB',
+                  fontSize: font.xs, fontWeight: weight.bold, color: palette.primary,
                 }}>
                   {Math.round((todayDone / todayCount) * 100)}%
                 </div>
@@ -491,23 +492,23 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {([['today', '오늘'], ['all', '전체'], ['completed', '완료']] as [Filter, string][]).map(([f, label]) => (
               <button key={f} onClick={() => setFilter(f)} style={{
-                padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                border: filter === f ? 'none' : '1px solid #E5E7EB',
-                background: filter === f ? '#2563EB' : '#fff',
-                color: filter === f ? '#fff' : '#6B7280',
+                padding: '6px 16px', borderRadius: radius.xl, fontSize: font.sm, fontWeight: weight.medium, cursor: 'pointer',
+                border: filter === f ? 'none' : `1px solid ${palette.border}`,
+                background: filter === f ? palette.primary : '#fff',
+                color: filter === f ? '#fff' : palette.textSub,
               }}>{label}</button>
             ))}
           </div>
 
           {/* 목록 */}
           {filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '48px 0', color: palette.textMuted, fontSize: font.base }}>
               {filter === 'today' ? '오늘 등록된 할 일이 없습니다.' : '항목이 없습니다.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filtered.some(t => !t.isCompleted) && (
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 2 }}>
+                <div style={{ fontSize: font.xs, color: palette.textMuted, marginBottom: 2 }}>
                   ⠿ 손잡이를 끌어서 순서를 바꿀 수 있습니다
                 </div>
               )}
@@ -535,14 +536,14 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
         <>
           {/* 예정 헤더 */}
           <div style={{
-            padding: '14px 20px', background: '#EFF6FF', borderRadius: 14,
-            border: '1px solid #BFDBFE', marginBottom: 20,
+            padding: '14px 20px', background: palette.primaryTint, borderRadius: radius.lg,
+            border: `1px solid ${palette.primaryTintBorder}`, marginBottom: 20,
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <span style={{ fontSize: 20 }}>🗓️</span>
+            <span style={{ fontSize: font['2xl'] }}>🗓️</span>
             <div>
-              <div style={{ fontSize: 14, color: '#1D4ED8', fontWeight: 600, marginBottom: 2 }}>예정된 할 일</div>
-              <div style={{ fontSize: 13, color: '#3B82F6' }}>
+              <div style={{ fontSize: font.base, color: palette.primaryHover, fontWeight: weight.semibold, marginBottom: 2 }}>예정된 할 일</div>
+              <div style={{ fontSize: font.sm, color: palette.saturday }}>
                 {upcomingTotal === 0 ? '예정된 항목이 없습니다' : `총 ${upcomingTotal}건`}
               </div>
             </div>
@@ -552,14 +553,14 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
           {AddRow}
 
           {upcomingByDate.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '48px 0', color: palette.textMuted, fontSize: font.base }}>
               예정된 할 일이 없습니다. 위에서 날짜를 미래로 지정해 추가해보세요.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {upcomingByDate.map(([dateStr, items]) => (
                 <div key={dateStr}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', marginBottom: 8, paddingLeft: 4 }}>
+                  <div style={{ fontSize: font.sm, fontWeight: weight.semibold, color: palette.textSub, marginBottom: 8, paddingLeft: 4 }}>
                     {sectionDateLabel(dateStr, todayStr)} · {items.length}건
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -582,14 +583,14 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
         <>
           {/* 최근한달 헤더 */}
           <div style={{
-            padding: '14px 20px', background: '#F0FDF4', borderRadius: 14,
+            padding: '14px 20px', background: palette.successTint, borderRadius: radius.lg,
             border: '1px solid #BBF7D0', marginBottom: 20,
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <span style={{ fontSize: 20 }}>✅</span>
+            <span style={{ fontSize: font['2xl'] }}>✅</span>
             <div>
-              <div style={{ fontSize: 14, color: '#15803D', fontWeight: 600, marginBottom: 2 }}>최근 30일 완료 현황</div>
-              <div style={{ fontSize: 13, color: '#16A34A' }}>
+              <div style={{ fontSize: font.base, color: '#15803D', fontWeight: weight.semibold, marginBottom: 2 }}>최근 30일 완료 현황</div>
+              <div style={{ fontSize: font.sm, color: palette.success }}>
                 {recentTotal === 0 ? '완료된 항목이 없습니다' : `총 ${recentTotal}건 완료`}
               </div>
             </div>
@@ -597,7 +598,7 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
 
           {/* 날짜별 그룹 */}
           {recentByDate.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: '#9CA3AF', fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '48px 0', color: palette.textMuted, fontSize: font.base }}>
               최근 한달간 완료된 할 일이 없습니다.
             </div>
           ) : (
@@ -605,7 +606,7 @@ export default function TodoView({ todos, topics, onAdd, onUpdate, onToggle, onD
               {recentByDate.map(([dateStr, items]) => (
                 <div key={dateStr}>
                   <div style={{
-                    fontSize: 13, fontWeight: 600, color: '#6B7280',
+                    fontSize: font.sm, fontWeight: weight.semibold, color: palette.textSub,
                     marginBottom: 8, paddingLeft: 4,
                   }}>
                     {dateLabel(dateStr)} · {items.length}건

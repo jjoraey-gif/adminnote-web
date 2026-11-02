@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { PerformanceRating, SameGradePromotion, PromotionRecord } from '@/lib/useWebStore';
+import { font, palette, radius, weight } from '@/lib/theme';
 
-const C = { blue: '#2563EB', green: '#16A34A', red: '#EF4444', gray: '#8E8E93', border: '#E5E7EB', text: '#1C1C1E', bg: '#F9FAFB', card: '#fff' };
+const C = { blue: palette.primary, green: palette.success, red: palette.danger, gray: palette.textSub, border: palette.border, text: palette.text, bg: palette.surfaceSunken, card: '#fff' };
 const RANKS = ['9급', '8급', '7급', '6급', '5급', '4급'];
 
 function uuid() {
@@ -101,8 +102,8 @@ export default function PromotionRankView({
           onClick={() => open('promotion')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '9px 18px', borderRadius: 10, border: `1px solid ${C.border}`,
-            background: C.card, color: C.text, fontSize: 15, fontWeight: 600, cursor: 'pointer',
+            padding: '9px 18px', borderRadius: radius.md, border: `1px solid ${C.border}`,
+            background: C.card, color: C.text, fontSize: font.md, fontWeight: weight.semibold, cursor: 'pointer',
           }}
         >🎖 승진 입력</button>
       </div>
@@ -114,26 +115,26 @@ export default function PromotionRankView({
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {/* 왼쪽: 순위 */}
             <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setRankMenuOpen(v => !v)}>
-              <div style={{ fontSize: 13, color: C.gray, marginBottom: 2 }}>{latest.date}</div>
-              <div style={{ fontSize: 42, fontWeight: 800, color: C.text, lineHeight: 1.1 }}>{latest.rank}위</div>
+              <div style={{ fontSize: font.sm, color: C.gray, marginBottom: 2 }}>{latest.date}</div>
+              <div style={{ fontSize: 42, fontWeight: weight.extrabold, color: C.text, lineHeight: 1.1 }}>{latest.rank}위</div>
               {rankDiff !== null && rankDiff !== 0 && (
-                <div style={{ fontSize: 12, fontWeight: 600, color: rankDiff > 0 ? C.green : C.red, marginTop: 4 }}>
+                <div style={{ fontSize: font.xs, fontWeight: weight.semibold, color: rankDiff > 0 ? C.green : C.red, marginTop: 4 }}>
                   직전 대비 {Math.abs(rankDiff)}위 {rankDiff > 0 ? '▲ 상승' : '▼ 하락'}
                 </div>
               )}
             </div>
             {/* 오른쪽: 실제 예상 순위 or 메뉴 */}
             {rankMenuOpen ? (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#F3F4F6', borderRadius: 10, padding: '6px 10px' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: palette.borderSubtle, borderRadius: radius.md, padding: '6px 10px' }}>
                 <button onClick={() => { open('rank', latest); setRankMenuOpen(false); }} style={inlineBtn(C.blue)}>수정</button>
                 <button onClick={() => { onDeletePerformanceRating(latest.id); setRankMenuOpen(false); }} style={inlineBtn(C.red)}>삭제</button>
                 <button onClick={() => setRankMenuOpen(false)} style={inlineBtn(C.gray)}>✕</button>
               </div>
             ) : actualRank != null ? (
-              <div style={{ background: '#F2F2F7', borderRadius: 14, padding: '10px 18px', textAlign: 'center', minWidth: 100 }}>
-                <div style={{ fontSize: 12, color: C.text, marginBottom: 2 }}>실제 예상 순위</div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: actualRank <= 3 ? C.green : C.blue }}>{actualRank}위</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.red, marginTop: 2 }}>승진 {totalPromoted}명 차감</div>
+              <div style={{ background: palette.surfaceSunken, borderRadius: radius.lg, padding: '10px 18px', textAlign: 'center', minWidth: 100 }}>
+                <div style={{ fontSize: font.xs, color: C.text, marginBottom: 2 }}>실제 예상 순위</div>
+                <div style={{ fontSize: 32, fontWeight: weight.extrabold, color: actualRank <= 3 ? C.green : C.blue }}>{actualRank}위</div>
+                <div style={{ fontSize: font['2xs'], fontWeight: weight.semibold, color: C.red, marginTop: 2 }}>승진 {totalPromoted}명 차감</div>
               </div>
             ) : null}
           </div>
@@ -187,8 +188,8 @@ export default function PromotionRankView({
 function SectionHeader({ title, onAdd }: { title: string; onAdd: () => void }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, marginBottom: 6 }}>
-      <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</span>
-      <button onClick={onAdd} style={{ background: 'none', border: 'none', fontSize: 26, fontWeight: 300, cursor: 'pointer', color: C.text, padding: '0 4px' }}>＋</button>
+      <span style={{ fontSize: font.lg, fontWeight: weight.bold, color: C.text }}>{title}</span>
+      <button onClick={onAdd} style={{ background: 'none', border: 'none', fontSize: 26, fontWeight: weight.light, cursor: 'pointer', color: C.text, padding: '0 4px' }}>＋</button>
     </div>
   );
 }
@@ -199,17 +200,17 @@ function PromoRow({ promo, last, onEdit, onDelete }: { promo: SameGradePromotion
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding: '13px 20px', borderBottom: last ? 'none' : `1px solid ${C.border}` }}>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 15, fontWeight: 500, color: C.text }}>{promo.date}</span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: C.blue }}>{promo.count}명 승진</span>
+        <span style={{ fontSize: font.md, fontWeight: weight.medium, color: C.text }}>{promo.date}</span>
+        <span style={{ fontSize: font.md, fontWeight: weight.bold, color: C.blue }}>{promo.count}명 승진</span>
       </div>
       {menuOpen ? (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#F3F4F6', borderRadius: 10, padding: '5px 10px' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: palette.borderSubtle, borderRadius: radius.md, padding: '5px 10px' }}>
           <button onClick={() => { onEdit(); setMenuOpen(false); }} style={inlineBtn(C.blue)}>수정</button>
           <button onClick={() => { onDelete(); setMenuOpen(false); }} style={inlineBtn(C.red)}>삭제</button>
           <button onClick={() => setMenuOpen(false)} style={inlineBtn(C.gray)}>✕</button>
         </div>
       ) : (
-        <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', fontSize: 18, color: '#C7C7CC', cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
+        <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', fontSize: font.xl, color: palette.textFaint, cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
       )}
     </div>
   );
@@ -221,17 +222,17 @@ function PastRow({ rating, last, onEdit, onDelete }: { rating: PerformanceRating
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding: '13px 20px', borderBottom: last ? 'none' : `1px solid ${C.border}` }}>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 15, fontWeight: 500, color: C.text }}>{rating.date}</span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: C.blue }}>{rating.rank}위</span>
+        <span style={{ fontSize: font.md, fontWeight: weight.medium, color: C.text }}>{rating.date}</span>
+        <span style={{ fontSize: font.md, fontWeight: weight.bold, color: C.blue }}>{rating.rank}위</span>
       </div>
       {menuOpen ? (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#F3F4F6', borderRadius: 10, padding: '5px 10px' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: palette.borderSubtle, borderRadius: radius.md, padding: '5px 10px' }}>
           <button onClick={() => { onEdit(); setMenuOpen(false); }} style={inlineBtn(C.blue)}>수정</button>
           <button onClick={() => { onDelete(); setMenuOpen(false); }} style={inlineBtn(C.red)}>삭제</button>
           <button onClick={() => setMenuOpen(false)} style={inlineBtn(C.gray)}>✕</button>
         </div>
       ) : (
-        <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', fontSize: 18, color: '#C7C7CC', cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
+        <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', fontSize: font.xl, color: palette.textFaint, cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
       )}
     </div>
   );
@@ -239,7 +240,7 @@ function PastRow({ rating, last, onEdit, onDelete }: { rating: PerformanceRating
 
 // ── 빈 상태 ───────────────────────────────────────────────────────────────────
 function Empty({ text }: { text: string }) {
-  return <div style={{ padding: '18px 0', textAlign: 'center', color: '#C7C7CC', fontSize: 13 }}>{text}</div>;
+  return <div style={{ padding: '18px 0', textAlign: 'center', color: palette.textFaint, fontSize: font.sm }}>{text}</div>;
 }
 
 // ── 폼 모달 ──────────────────────────────────────────────────────────────────
@@ -279,16 +280,16 @@ function FormModal({ kind, data, onClose, onSubmit }: {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#F2F2F7', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+          background: palette.surfaceSunken, borderTopLeftRadius: 20, borderTopRightRadius: 20,
           width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', paddingBottom: 24,
         }}
       >
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 14px' }}>
-          <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{titleMap[kind!]}</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: C.gray, cursor: 'pointer' }}>✕</button>
+          <span style={{ fontSize: font['2xl'], fontWeight: weight.bold, color: C.text }}>{titleMap[kind!]}</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: font['2xl'], color: C.gray, cursor: 'pointer' }}>✕</button>
         </div>
-        <div style={{ height: 1, background: '#E0E0E0' }} />
+        <div style={{ height: 1, background: palette.border }} />
 
         <div style={{ padding: 20 }}>
           {/* 날짜 */}
@@ -328,10 +329,10 @@ function FormModal({ kind, data, onClose, onSubmit }: {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {RANKS.map(r => (
                   <button key={r} onClick={() => setGrade(r)} style={{
-                    padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    fontWeight: grade === r ? 700 : 500, fontSize: 14,
-                    background: grade === r ? C.blue : '#F3F4F6',
-                    color: grade === r ? '#fff' : '#374151',
+                    padding: '10px 18px', borderRadius: radius.md, border: 'none', cursor: 'pointer',
+                    fontWeight: grade === r ? weight.bold : weight.medium, fontSize: font.base,
+                    background: grade === r ? C.blue : palette.borderSubtle,
+                    color: grade === r ? '#fff' : palette.textBody,
                   }}>{r}</button>
                 ))}
               </div>
@@ -344,9 +345,9 @@ function FormModal({ kind, data, onClose, onSubmit }: {
           <button
             onClick={submit} disabled={!canSave}
             style={{
-              width: '100%', padding: '15px 0', borderRadius: 12, border: 'none',
-              background: !canSave ? '#D1D5DB' : kind === 'promotion' ? C.green : C.blue,
-              color: '#fff', fontSize: 17, fontWeight: 600,
+              width: '100%', padding: '15px 0', borderRadius: radius.md, border: 'none',
+              background: !canSave ? palette.borderStrong : kind === 'promotion' ? C.green : C.blue,
+              color: '#fff', fontSize: font.lg, fontWeight: weight.semibold,
               cursor: canSave ? 'pointer' : 'default',
             }}
           >{kind === 'promotion' ? '승진 처리' : '저장'}</button>
@@ -358,22 +359,22 @@ function FormModal({ kind, data, onClose, onSubmit }: {
 
 // ── 스타일 헬퍼 ──────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
-  background: C.card, borderRadius: 14, border: `1px solid ${C.border}`,
+  background: C.card, borderRadius: radius.lg, border: `1px solid ${C.border}`,
   padding: '16px 20px', marginBottom: 16,
   boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
 };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px', borderRadius: 12,
+  width: '100%', padding: '12px', borderRadius: radius.md,
   border: `1px solid ${C.border}`, background: '#fff',
-  fontSize: 15, color: C.text, marginBottom: 16,
+  fontSize: font.md, color: C.text, marginBottom: 16,
   boxSizing: 'border-box', outline: 'none',
 };
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: font.sm, color: C.gray, marginBottom: 8 }}>{children}</div>;
 }
 
 function inlineBtn(color: string): React.CSSProperties {
-  return { background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color, cursor: 'pointer', padding: '2px 6px' };
+  return { background: 'none', border: 'none', fontSize: font.sm, fontWeight: weight.semibold, color, cursor: 'pointer', padding: '2px 6px' };
 }

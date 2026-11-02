@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -70,18 +71,18 @@ export default function CalendarView({ user }: Props) {
       {/* 월 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <button onClick={prevMonth} style={navBtn}>‹</button>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1C1C1E', margin: 0 }}>
+        <h2 style={{ fontSize: font['3xl'], fontWeight: weight.bold, color: palette.text, margin: 0 }}>
           {year}년 {month + 1}월
         </h2>
         <button onClick={nextMonth} style={navBtn}>›</button>
       </div>
 
       {/* 달력 */}
-      <div style={{ border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+      <div style={{ border: `1px solid ${palette.border}`, borderRadius: radius.lg, overflow: 'hidden', background: '#fff' }}>
         {/* 요일 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: palette.surfaceSunken, borderBottom: `1px solid ${palette.border}` }}>
           {WEEKDAYS.map((d, i) => (
-            <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: 600, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#6B7280' }}>
+            <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: font.sm, fontWeight: weight.semibold, color: i === 0 ? palette.danger : i === 6 ? palette.saturday : palette.textSub }}>
               {d}
             </div>
           ))}
@@ -89,7 +90,7 @@ export default function CalendarView({ user }: Props) {
 
         {/* 날짜 */}
         {weeks.map((week, wi) => (
-          <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: wi < weeks.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+          <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: wi < weeks.length - 1 ? `1px solid ${palette.borderSubtle}` : 'none' }}>
             {week.map((day, di) => {
               const selected = day !== null && day === selectedDay;
               const todayCell = isToday(day);
@@ -108,8 +109,8 @@ export default function CalendarView({ user }: Props) {
                     minHeight: 96,
                     padding: '10px 12px',
                     cursor: day ? 'pointer' : 'default',
-                    background: selected && !todayCell ? '#EFF6FF' : '#fff',
-                    borderRight: di < 6 ? '1px solid #F3F4F6' : 'none',
+                    background: selected && !todayCell ? palette.primaryTint : '#fff',
+                    borderRight: di < 6 ? `1px solid ${palette.borderSubtle}` : 'none',
                     transition: 'background 0.1s',
                   }}
                 >
@@ -119,18 +120,18 @@ export default function CalendarView({ user }: Props) {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        background: todayCell ? '#2563EB' : 'transparent',
+                        background: todayCell ? palette.primary : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 14,
-                        fontWeight: todayCell ? 700 : 400,
-                        color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                        fontSize: font.base,
+                        fontWeight: todayCell ? weight.bold : weight.regular,
+                        color: todayCell ? '#fff' : isRed ? palette.danger : isSat ? palette.saturday : palette.text,
                       }}>
                         {day}
                       </div>
                       {holiday && (
-                        <div style={{ fontSize: 10, color: '#EF4444', marginTop: 3, fontWeight: 600, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                        <div style={{ fontSize: font['2xs'], color: palette.danger, marginTop: 3, fontWeight: weight.semibold, lineHeight: 1.2, wordBreak: 'keep-all' }}>
                           {holiday}
                         </div>
                       )}
@@ -151,18 +152,18 @@ export default function CalendarView({ user }: Props) {
           <div style={{
             marginTop: 16,
             padding: '14px 20px',
-            background: hName ? '#FFF1F1' : '#EFF6FF',
-            borderRadius: 12,
-            border: `1px solid ${hName ? '#FECACA' : '#BFDBFE'}`,
-            fontSize: 14,
-            color: hName ? '#DC2626' : '#1D4ED8',
+            background: hName ? palette.dangerTint : palette.primaryTint,
+            borderRadius: radius.md,
+            border: `1px solid ${hName ? '#FECACA' : palette.primaryTintBorder}`,
+            fontSize: font.base,
+            color: hName ? palette.dangerStrong : palette.primaryHover,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}>
-            <span style={{ fontWeight: 600 }}>{month + 1}월 {selectedDay}일</span>
+            <span style={{ fontWeight: weight.semibold }}>{month + 1}월 {selectedDay}일</span>
             {hName
-              ? <span style={{ fontWeight: 600 }}>— {hName}</span>
+              ? <span style={{ fontWeight: weight.semibold }}>— {hName}</span>
               : <span style={{ color: '#93C5FD' }}>— 앱과 연동 시 해당 날짜 일정이 표시됩니다.</span>
             }
           </div>
@@ -174,13 +175,13 @@ export default function CalendarView({ user }: Props) {
 
 const navBtn: React.CSSProperties = {
   background: 'none',
-  border: '1px solid #E5E7EB',
-  borderRadius: 8,
+  border: `1px solid ${palette.border}`,
+  borderRadius: radius.sm,
   width: 36,
   height: 36,
   cursor: 'pointer',
-  fontSize: 18,
-  color: '#374151',
+  fontSize: font.xl,
+  color: palette.textBody,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

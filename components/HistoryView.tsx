@@ -4,11 +4,12 @@ import { useState } from 'react';
 import {
   PromotionRecord, AssignmentRecord, AwardRecord, CareerInfo,
 } from '@/lib/useWebStore';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 // ── 색상 ──────────────────────────────────────────────────────────────────────
 const C = {
-  blue: '#2563EB', green: '#16A34A', orange: '#D97706', gray: '#8E8E93',
-  bg: '#F2F2F7', card: '#fff', border: '#E5E7EB', text: '#1C1C1E',
+  blue: palette.primary, green: palette.success, orange: palette.warn, gray: palette.textSub,
+  bg: palette.surfaceSunken, card: '#fff', border: palette.border, text: palette.text,
 };
 const DOT = { purple: '#A78BFA', green: '#6EE7B7', pink: '#F9A8D4' };
 const RANKS = ['9급', '8급', '7급', '6급', '5급', '4급'];
@@ -183,7 +184,7 @@ export default function HistoryView({
           const endS = i === 0 ? todayStr() : sa[i - 1].date;
           return (
             <Row
-              key={r.id} dot={i === 0 ? DOT.green : '#9CA3AF'}
+              key={r.id} dot={i === 0 ? DOT.green : palette.textMuted}
               title={r.department} badge={i === 0 ? '현부서' : undefined}
               subtitle={calcDuration(r.date, endS)} date={r.date}
               last={i === sa.length - 1}
@@ -232,7 +233,7 @@ function StatCard({ label, big, sub, color, onClick, clickable }: {
     <div
       onClick={onClick}
       style={{
-        background: C.card, borderRadius: 14, padding: '16px 18px',
+        background: C.card, borderRadius: radius.lg, padding: '16px 18px',
         border: `1px solid ${C.border}`,
         cursor: clickable ? 'pointer' : 'default',
         boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
@@ -241,9 +242,9 @@ function StatCard({ label, big, sub, color, onClick, clickable }: {
       onMouseEnter={e => clickable && ((e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
       onMouseLeave={e => clickable && ((e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)')}
     >
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 6 }}>{label}{clickable && <span style={{ fontSize: 11, marginLeft: 4, color: '#CBD5E1' }}>✎</span>}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color, marginBottom: 4 }}>{big}</div>
-      <div style={{ fontSize: 12, color: C.gray }}>{sub}</div>
+      <div style={{ fontSize: font.xs, color: C.gray, marginBottom: 6 }}>{label}{clickable && <span style={{ fontSize: font['2xs'], marginLeft: 4, color: palette.textFaint }}>✎</span>}</div>
+      <div style={{ fontSize: font['3xl'], fontWeight: weight.bold, color, marginBottom: 4 }}>{big}</div>
+      <div style={{ fontSize: font.xs, color: C.gray }}>{sub}</div>
     </div>
   );
 }
@@ -252,10 +253,10 @@ function StatCard({ label, big, sub, color, onClick, clickable }: {
 function SectionHeader({ title, onAdd }: { title: string; onAdd: () => void }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginTop: 4 }}>
-      <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</span>
+      <span style={{ fontSize: font.lg, fontWeight: weight.bold, color: C.text }}>{title}</span>
       <button
         onClick={onAdd}
-        style={{ background: 'none', border: 'none', fontSize: 26, fontWeight: 300, color: C.text, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
+        style={{ background: 'none', border: 'none', fontSize: 26, fontWeight: weight.light, color: C.text, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
       >＋</button>
     </div>
   );
@@ -264,9 +265,9 @@ function SectionHeader({ title, onAdd }: { title: string; onAdd: () => void }) {
 // ── 섹션 카드 ─────────────────────────────────────────────────────────────────
 function SectionCard({ empty, emptyText, children }: { empty: boolean; emptyText: string; children?: React.ReactNode }) {
   return (
-    <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+    <div style={{ background: C.card, borderRadius: radius.lg, border: `1px solid ${C.border}`, marginBottom: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       {empty ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: '#C7C7CC', fontSize: 14 }}>{emptyText}</div>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: palette.textFaint, fontSize: font.base }}>{emptyText}</div>
       ) : (
         <div style={{ paddingTop: 4, paddingBottom: 4 }}>{children}</div>
       )}
@@ -289,21 +290,21 @@ function Row({ dot, title, badge, subtitle, date, last, onEdit, onDelete }: {
           borderBottom: last ? 'none' : `1px solid ${C.border}`,
           cursor: 'pointer', transition: 'background 0.1s',
         }}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#F9FAFB'}
+        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = palette.surfaceSunken}
         onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
       >
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: dot, marginRight: 14, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{title}</span>
+            <span style={{ fontSize: font.md, fontWeight: weight.bold, color: C.text }}>{title}</span>
             {badge && (
-              <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: '#DCFCE7', color: C.green }}>{badge}</span>
+              <span style={{ fontSize: font['2xs'], fontWeight: weight.semibold, padding: '2px 6px', borderRadius: 4, background: '#DCFCE7', color: C.green }}>{badge}</span>
             )}
           </div>
-          {subtitle && <div style={{ fontSize: 12, color: C.gray, marginTop: 2 }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize: font.xs, color: C.gray, marginTop: 2 }}>{subtitle}</div>}
         </div>
-        {date && <span style={{ fontSize: 13, color: C.gray, marginLeft: 12, flexShrink: 0 }}>{date}</span>}
-        <span style={{ fontSize: 12, color: '#D1D5DB', marginLeft: 8 }}>···</span>
+        {date && <span style={{ fontSize: font.sm, color: C.gray, marginLeft: 12, flexShrink: 0 }}>{date}</span>}
+        <span style={{ fontSize: font.xs, color: palette.borderStrong, marginLeft: 8 }}>···</span>
       </div>
 
       {/* 수정/삭제 모달 */}
@@ -320,13 +321,13 @@ function Row({ dot, title, badge, subtitle, date, last, onEdit, onDelete }: {
             }}
           >
             <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{title}</div>
-              {date && <div style={{ fontSize: 13, color: C.gray, marginTop: 2 }}>{date}</div>}
+              <div style={{ fontSize: font.lg, fontWeight: weight.bold, color: C.text }}>{title}</div>
+              {date && <div style={{ fontSize: font.sm, color: C.gray, marginTop: 2 }}>{date}</div>}
             </div>
-            <button onClick={() => { setOpen(false); onEdit(); }} style={actionBtnStyle('#1C1C1E')}>수정</button>
-            <button onClick={() => { setOpen(false); onDelete(); }} style={actionBtnStyle('#EF4444')}>삭제</button>
+            <button onClick={() => { setOpen(false); onEdit(); }} style={actionBtnStyle(palette.text)}>수정</button>
+            <button onClick={() => { setOpen(false); onDelete(); }} style={actionBtnStyle(palette.danger)}>삭제</button>
             <div style={{ height: 8 }} />
-            <button onClick={() => setOpen(false)} style={{ ...actionBtnStyle('#6B7280'), fontWeight: 400 }}>취소</button>
+            <button onClick={() => setOpen(false)} style={{ ...actionBtnStyle(palette.textSub), fontWeight: weight.regular }}>취소</button>
           </div>
         </div>
       )}
@@ -338,8 +339,8 @@ function actionBtnStyle(color: string): React.CSSProperties {
   return {
     display: 'block', width: '100%', padding: '16px 20px',
     background: 'none', border: 'none', textAlign: 'center',
-    fontSize: 16, fontWeight: 600, color, cursor: 'pointer',
-    borderBottom: `1px solid #F3F4F6`,
+    fontSize: font.lg, fontWeight: weight.semibold, color, cursor: 'pointer',
+    borderBottom: `1px solid ${palette.borderSubtle}`,
   };
 }
 
@@ -411,10 +412,10 @@ function FormModal({ kind, editing, careerInfo, onClose,
       >
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 14px' }}>
-          <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{titleMap[kind]}</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: C.gray, cursor: 'pointer' }}>✕</button>
+          <span style={{ fontSize: font['2xl'], fontWeight: weight.bold, color: C.text }}>{titleMap[kind]}</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: font['2xl'], color: C.gray, cursor: 'pointer' }}>✕</button>
         </div>
-        <div style={{ height: 1, background: '#E0E0E0' }} />
+        <div style={{ height: 1, background: palette.border }} />
 
         {/* 폼 내용 */}
         <div style={{ padding: 20 }}>
@@ -424,8 +425,8 @@ function FormModal({ kind, editing, careerInfo, onClose,
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {RANKS.map(r => (
                   <button key={r} onClick={() => setGrade(r)} style={{
-                    padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: grade === r ? 700 : 500, fontSize: 14,
-                    background: grade === r ? C.blue : '#F3F4F6', color: grade === r ? '#fff' : '#374151',
+                    padding: '10px 18px', borderRadius: radius.md, border: 'none', cursor: 'pointer', fontWeight: grade === r ? weight.bold : weight.medium, fontSize: font.base,
+                    background: grade === r ? C.blue : palette.borderSubtle, color: grade === r ? '#fff' : palette.textBody,
                   }}>{r}</button>
                 ))}
               </div>
@@ -461,8 +462,8 @@ function FormModal({ kind, editing, careerInfo, onClose,
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {['9급', '8급', '7급', '6급', '5급'].map(g => (
                   <button key={g} onClick={() => setInitialGrade(g)} style={{
-                    padding: '10px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 14,
-                    fontWeight: initialGrade === g ? 700 : 400,
+                    padding: '10px 18px', borderRadius: radius.xl, border: 'none', cursor: 'pointer', fontSize: font.base,
+                    fontWeight: initialGrade === g ? weight.bold : weight.regular,
                     background: initialGrade === g ? C.blue : '#fff', color: initialGrade === g ? '#fff' : '#333',
                   }}>{g}</button>
                 ))}
@@ -474,7 +475,7 @@ function FormModal({ kind, editing, careerInfo, onClose,
               <Label>호봉</Label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <button onClick={() => setStep(v => Math.max(1, v - 1))} style={stepBtnStyle}>－</button>
-                <span style={{ fontSize: 24, fontWeight: 700, minWidth: 80, textAlign: 'center' }}>{step}호봉</span>
+                <span style={{ fontSize: 24, fontWeight: weight.bold, minWidth: 80, textAlign: 'center' }}>{step}호봉</span>
                 <button onClick={() => setStep(v => Math.min(40, v + 1))} style={stepBtnStyle}>＋</button>
               </div>
               <Label>다음 호봉 승급일</Label>
@@ -488,9 +489,9 @@ function FormModal({ kind, editing, careerInfo, onClose,
           <button
             onClick={save} disabled={!canSave}
             style={{
-              width: '100%', padding: '15px 0', borderRadius: 12, border: 'none',
-              background: canSave ? C.blue : '#D1D5DB', color: '#fff',
-              fontSize: 17, fontWeight: 600, cursor: canSave ? 'pointer' : 'default',
+              width: '100%', padding: '15px 0', borderRadius: radius.md, border: 'none',
+              background: canSave ? C.blue : palette.borderStrong, color: '#fff',
+              fontSize: font.lg, fontWeight: weight.semibold, cursor: canSave ? 'pointer' : 'default',
             }}
           >저장</button>
         </div>
@@ -500,18 +501,18 @@ function FormModal({ kind, editing, careerInfo, onClose,
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: font.sm, color: C.gray, marginBottom: 8 }}>{children}</div>;
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px', borderRadius: 12,
+  width: '100%', padding: '12px', borderRadius: radius.md,
   border: `1px solid ${C.border}`, background: '#fff',
-  fontSize: 15, color: C.text, marginBottom: 16, boxSizing: 'border-box',
+  fontSize: font.md, color: C.text, marginBottom: 16, boxSizing: 'border-box',
   outline: 'none',
 };
 
 const stepBtnStyle: React.CSSProperties = {
-  width: 44, height: 44, borderRadius: 22, border: `1px solid ${C.border}`,
-  background: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex',
+  width: 44, height: 44, borderRadius: radius.xl, border: `1px solid ${C.border}`,
+  background: '#fff', fontSize: font['3xl'], cursor: 'pointer', display: 'flex',
   alignItems: 'center', justifyContent: 'center',
 };

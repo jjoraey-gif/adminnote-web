@@ -1,4 +1,6 @@
 'use client';
+import { font, palette, radius, weight } from '@/lib/theme';
+
 
 const FEATURES = [
   {
@@ -74,15 +76,15 @@ export default function AppIntroView() {
     <div style={{ fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif", color: '#0D0D0D' }}>
 
       {/* Hero */}
-      <div style={{ textAlign: 'center', padding: '80px 40px 60px', borderBottom: '1px solid #E5E7EB' }}>
-        <div style={{ display: 'inline-block', background: '#EEF4FF', color: '#2563EB', fontSize: 13, fontWeight: 700, padding: '5px 16px', borderRadius: 100, marginBottom: 28, letterSpacing: '0.04em' }}>
+      <div style={{ textAlign: 'center', padding: '80px 40px 60px', borderBottom: `1px solid ${palette.border}` }}>
+        <div style={{ display: 'inline-block', background: palette.primaryTint, color: palette.primary, fontSize: font.sm, fontWeight: weight.bold, padding: '5px 16px', borderRadius: radius.full, marginBottom: 28, letterSpacing: '0.04em' }}>
           공무원 업무수첩
         </div>
-        <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.04em', marginBottom: 24 }}>
+        <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: weight.black, lineHeight: 1.1, letterSpacing: '-0.04em', marginBottom: 24 }}>
           공직생활의 모든 기록을<br />
-          <span style={{ color: '#2563EB' }}>한 곳에서</span>
+          <span style={{ color: palette.primary }}>한 곳에서</span>
         </h1>
-        <p style={{ fontSize: 17, color: '#6B7280', lineHeight: 1.8, marginBottom: 40 }}>
+        <p style={{ fontSize: font.lg, color: palette.textSub, lineHeight: 1.8, marginBottom: 40 }}>
           업무일정 · 오늘할 일 · 예산관리 · 이력관리<br />
           승진순위 · 부서조직도 · 외부연락처 · 사진전송 · 문서스캔<br />
           공무원에게 꼭 맞는 모든 기능을 하나의 앱으로.
@@ -92,7 +94,7 @@ export default function AppIntroView() {
             href="https://apps.apple.com/kr/app/%EA%B3%B5%EB%AC%B4%EC%9B%90-%EC%97%85%EB%AC%B4%EC%88%98%EC%B2%A9/id6760883601"
             target="_blank"
             rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1C1C1E', color: '#fff', padding: '14px 28px', borderRadius: 100, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: palette.text, color: '#fff', padding: '14px 28px', borderRadius: radius.full, fontSize: font.md, fontWeight: weight.bold, textDecoration: 'none' }}
           >
             <svg width="18" height="22" viewBox="0 0 20 24" fill="none"><path d="M16.5 12.4C16.48 9.86 18.6 8.61 18.7 8.55C17.48 6.74 15.55 6.51 14.88 6.49C13.28 6.31 11.73 7.41 10.9 7.41C10.06 7.41 8.78 6.51 7.43 6.54C5.66 6.57 4.01 7.59 3.1 9.19C1.22 12.41 2.63 17.1 4.44 19.69C5.35 20.96 6.41 22.38 7.8 22.33C9.15 22.28 9.65 21.49 11.28 21.49C12.9 21.49 13.37 22.33 14.77 22.3C16.21 22.28 17.13 21.01 18.01 19.73C19.07 18.27 19.5 16.84 19.52 16.77C19.49 16.76 16.52 15.66 16.5 12.4Z" fill="white"/><path d="M13.66 4.44C14.39 3.55 14.89 2.33 14.75 1.09C13.73 1.13 12.48 1.78 11.73 2.65C11.06 3.43 10.47 4.71 10.62 5.9C11.76 5.99 12.91 5.3 13.66 4.44Z" fill="white"/></svg>
             App Store
@@ -101,13 +103,13 @@ export default function AppIntroView() {
             href="https://play.google.com/store/apps/details?id=com.jjoraey.adminnote"
             target="_blank"
             rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#01875F', color: '#fff', padding: '14px 28px', borderRadius: 100, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#01875F', color: '#fff', padding: '14px 28px', borderRadius: radius.full, fontSize: font.md, fontWeight: weight.bold, textDecoration: 'none' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.18 23.76c.3.17.64.2.97.1l11.65-11.65L12.34 8.75 3.18 23.76z" fill="white" opacity=".6"/><path d="M1.5 2.67A1.5 1.5 0 0 0 1 3.87v16.26a1.5 1.5 0 0 0 .5 1.2l.07.06 9.11-9.11v-.21L1.57 2.6l-.07.07z" fill="white"/><path d="M15.8 15.73l-3.04-3.04v-.22l3.04-3.04.07.04 3.6 2.05c1.03.58 1.03 1.54 0 2.12l-3.6 2.05-.07.04z" fill="white" opacity=".8"/><path d="M15.87 15.69L12.76 12.6 3.18 23.76c.34.36.89.4 1.3.1l11.39-8.17" fill="white" opacity=".4"/><path d="M15.87 9.51L4.48 1.34A1.02 1.02 0 0 0 3.18.25L12.76 12.6 15.87 9.51z" fill="white" opacity=".4"/></svg>
             Google Play
           </a>
         </div>
-        <p style={{ marginTop: 16, fontSize: 13, color: '#B0B8C1' }}>무료 · iPhone · iPad · Android 지원</p>
+        <p style={{ marginTop: 16, fontSize: font.sm, color: '#B0B8C1' }}>무료 · iPhone · iPad · Android 지원</p>
       </div>
 
       {/* 기능 그리드 */}
@@ -117,25 +119,25 @@ export default function AppIntroView() {
             <div
               key={f.tag}
               style={{
-                background: '#F9FAFB',
-                border: '1px solid #E5E7EB',
-                borderRadius: 18,
+                background: palette.surfaceSunken,
+                border: `1px solid ${palette.border}`,
+                borderRadius: radius.lg,
                 padding: '28px 28px 24px',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#2563EB', background: '#EEF4FF', display: 'inline-block', padding: '4px 12px', borderRadius: 100, marginBottom: 16 }}>
+              <div style={{ fontSize: font.sm, fontWeight: weight.bold, color: palette.primary, background: palette.primaryTint, display: 'inline-block', padding: '4px 12px', borderRadius: radius.full, marginBottom: 16 }}>
                 {f.tag}
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.35, letterSpacing: '-0.02em', marginBottom: 12, whiteSpace: 'pre-line' }}>
+              <h3 style={{ fontSize: font.xl, fontWeight: weight.extrabold, lineHeight: 1.35, letterSpacing: '-0.02em', marginBottom: 12, whiteSpace: 'pre-line' }}>
                 {f.title}
               </h3>
-              <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.75, marginBottom: 16 }}>
+              <p style={{ fontSize: font.base, color: palette.textSub, lineHeight: 1.75, marginBottom: 16 }}>
                 {f.desc}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {f.details.map((d) => (
-                  <div key={d} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563EB', flexShrink: 0, marginTop: 5 }} />
+                  <div key={d} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: font.sm, color: palette.textBody }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: palette.primary, flexShrink: 0, marginTop: 5 }} />
                     {d}
                   </div>
                 ))}
@@ -146,11 +148,11 @@ export default function AppIntroView() {
       </div>
 
       {/* CTA */}
-      <div style={{ borderTop: '1px solid #E5E7EB', textAlign: 'center', padding: '64px 40px 40px' }}>
-        <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 16 }}>
+      <div style={{ borderTop: `1px solid ${palette.border}`, textAlign: 'center', padding: '64px 40px 40px' }}>
+        <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: weight.black, letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 16 }}>
           지금 무료로 시작하세요
         </h2>
-        <p style={{ fontSize: 16, color: '#6B7280', marginBottom: 36 }}>
+        <p style={{ fontSize: font.lg, color: palette.textSub, marginBottom: 36 }}>
           App Store와 Google Play에서 무료로 다운로드하세요.
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -158,7 +160,7 @@ export default function AppIntroView() {
             href="https://apps.apple.com/kr/app/%EA%B3%B5%EB%AC%B4%EC%9B%90-%EC%97%85%EB%AC%B4%EC%88%98%EC%B2%A9/id6760883601"
             target="_blank"
             rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1C1C1E', color: '#fff', padding: '14px 28px', borderRadius: 100, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: palette.text, color: '#fff', padding: '14px 28px', borderRadius: radius.full, fontSize: font.md, fontWeight: weight.bold, textDecoration: 'none' }}
           >
             <svg width="18" height="22" viewBox="0 0 20 24" fill="none"><path d="M16.5 12.4C16.48 9.86 18.6 8.61 18.7 8.55C17.48 6.74 15.55 6.51 14.88 6.49C13.28 6.31 11.73 7.41 10.9 7.41C10.06 7.41 8.78 6.51 7.43 6.54C5.66 6.57 4.01 7.59 3.1 9.19C1.22 12.41 2.63 17.1 4.44 19.69C5.35 20.96 6.41 22.38 7.8 22.33C9.15 22.28 9.65 21.49 11.28 21.49C12.9 21.49 13.37 22.33 14.77 22.3C16.21 22.28 17.13 21.01 18.01 19.73C19.07 18.27 19.5 16.84 19.52 16.77C19.49 16.76 16.52 15.66 16.5 12.4Z" fill="white"/><path d="M13.66 4.44C14.39 3.55 14.89 2.33 14.75 1.09C13.73 1.13 12.48 1.78 11.73 2.65C11.06 3.43 10.47 4.71 10.62 5.9C11.76 5.99 12.91 5.3 13.66 4.44Z" fill="white"/></svg>
             App Store
@@ -167,7 +169,7 @@ export default function AppIntroView() {
             href="https://play.google.com/store/apps/details?id=com.jjoraey.adminnote"
             target="_blank"
             rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#01875F', color: '#fff', padding: '14px 28px', borderRadius: 100, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#01875F', color: '#fff', padding: '14px 28px', borderRadius: radius.full, fontSize: font.md, fontWeight: weight.bold, textDecoration: 'none' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.18 23.76c.3.17.64.2.97.1l11.65-11.65L12.34 8.75 3.18 23.76z" fill="white" opacity=".6"/><path d="M1.5 2.67A1.5 1.5 0 0 0 1 3.87v16.26a1.5 1.5 0 0 0 .5 1.2l.07.06 9.11-9.11v-.21L1.57 2.6l-.07.07z" fill="white"/><path d="M15.8 15.73l-3.04-3.04v-.22l3.04-3.04.07.04 3.6 2.05c1.03.58 1.03 1.54 0 2.12l-3.6 2.05-.07.04z" fill="white" opacity=".8"/><path d="M15.87 15.69L12.76 12.6 3.18 23.76c.34.36.89.4 1.3.1l11.39-8.17" fill="white" opacity=".4"/><path d="M15.87 9.51L4.48 1.34A1.02 1.02 0 0 0 3.18.25L12.76 12.6 15.87 9.51z" fill="white" opacity=".4"/></svg>
             Google Play
@@ -176,9 +178,9 @@ export default function AppIntroView() {
       </div>
 
       {/* 푸터 링크 */}
-      <div style={{ borderTop: '1px solid #E5E7EB', padding: '24px 40px', display: 'flex', justifyContent: 'center', gap: 28 }}>
-        <a href="/terms" target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#9CA3AF', textDecoration: 'none' }}>서비스 이용약관</a>
-        <a href="/privacy" target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#9CA3AF', textDecoration: 'none' }}>개인정보 처리방침</a>
+      <div style={{ borderTop: `1px solid ${palette.border}`, padding: '24px 40px', display: 'flex', justifyContent: 'center', gap: 28 }}>
+        <a href="/terms" target="_blank" rel="noreferrer" style={{ fontSize: font.sm, color: palette.textMuted, textDecoration: 'none' }}>서비스 이용약관</a>
+        <a href="/privacy" target="_blank" rel="noreferrer" style={{ fontSize: font.sm, color: palette.textMuted, textDecoration: 'none' }}>개인정보 처리방침</a>
       </div>
     </div>
   );

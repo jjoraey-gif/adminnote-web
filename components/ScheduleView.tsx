@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScheduleEvent, colorHex } from '@/lib/useSnapshot';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const COLORS = ['blue', 'red', 'green', 'pink', 'yellow', 'purple'];
@@ -310,7 +311,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 20 }}>
         <button onClick={() => shiftRow(-1)} style={navBtn} title="이전" aria-label="이전">‹</button>
         <h2 style={{
-          fontSize: 26, fontWeight: 700, color: '#1C1C1E', margin: 0,
+          fontSize: 26, fontWeight: weight.bold, color: palette.text, margin: 0,
           minWidth: 190, textAlign: 'center', whiteSpace: 'nowrap',
         }}>
           {focusY}년 {focusM + 1}월
@@ -322,17 +323,17 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       <div ref={calRef}>
         {/* 요일 헤더 */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#F9FAFB',
-          border: '1px solid #E5E7EB', borderRadius: '12px 12px 0 0',
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: palette.surfaceSunken,
+          border: `1px solid ${palette.border}`, borderRadius: '12px 12px 0 0',
         }}>
           {WEEKDAYS.map((d, i) => (
-            <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: 700, color: i === 0 ? '#EF4444' : i === 6 ? '#3B82F6' : '#1C1C1E' }}>{d}</div>
+            <div key={d} style={{ textAlign: 'center', padding: '12px 0', fontSize: font.sm, fontWeight: weight.bold, color: i === 0 ? palette.danger : i === 6 ? palette.saturday : palette.text }}>{d}</div>
           ))}
         </div>
 
         {/* 줄 단위 렌더 — 달이 바뀌는 줄 위에는 여백 띠를 넣어 경계를 만든다 */}
         <div style={{
-          border: '1px solid #E5E7EB', borderTop: 'none',
+          border: `1px solid ${palette.border}`, borderTop: 'none',
           borderRadius: '0 0 16px 16px', overflow: 'hidden', background: '#fff',
         }}>
         {rows.map((row, wi) => {
@@ -345,7 +346,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             <div key={row.key} style={{
               position: 'relative', overflow: 'hidden',
               borderTop: monthChanged ? '20px solid #DFE3EA' : 'none',
-              borderBottom: wi < rows.length - 1 && !(rows[wi + 1]?.month !== row.month) ? '1px solid #E5E7EB' : 'none',
+              borderBottom: wi < rows.length - 1 && !(rows[wi + 1]?.month !== row.month) ? `1px solid ${palette.border}` : 'none',
             }}>
               {/* 날짜 셀 */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
@@ -355,7 +356,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                     return (
                       <div key={`empty-${di}`} style={{
                         minHeight: `clamp(82px, calc((100vh - 350px) / ${ROW_COUNT}), 150px)`,
-                        borderRight: di < 6 ? '1px solid #F3F4F6' : 'none',
+                        borderRight: di < 6 ? `1px solid ${palette.borderSubtle}` : 'none',
                         background: '#fff',
                       }} />
                     );
@@ -374,25 +375,25 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       minHeight: `clamp(82px, calc((100vh - 350px) / ${ROW_COUNT}), 150px)`,
                       padding: '8px 10px',
                       cursor: 'pointer',
-                      background: selected && !todayCell ? '#EFF6FF' : '#fff',
-                      borderRight: di < 6 ? '1px solid #E5E7EB' : 'none',
+                      background: selected && !todayCell ? palette.primaryTint : '#fff',
+                      borderRight: di < 6 ? `1px solid ${palette.border}` : 'none',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                         <div style={{
                           width: 30, height: 30, borderRadius: '50%',
-                          background: todayCell ? '#2563EB' : 'transparent',
+                          background: todayCell ? palette.primary : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
-                          fontSize: 15, fontWeight: 700,
-                          color: todayCell ? '#fff' : isRed ? '#EF4444' : isSat ? '#3B82F6' : '#1C1C1E',
+                          fontSize: font.md, fontWeight: weight.bold,
+                          color: todayCell ? '#fff' : isRed ? palette.danger : isSat ? palette.saturday : palette.text,
                         }}>{day}</div>
                         {isFirst && !todayCell && (
-                          <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 700 }}>
+                          <span style={{ fontSize: font['2xs'], color: palette.textSub, fontWeight: weight.bold }}>
                             {Number(dateStr.slice(5, 7))}월
                           </span>
                         )}
                         {holiday && (
-                          <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                          <span style={{ fontSize: font['2xs'], color: palette.danger, fontWeight: weight.bold, lineHeight: 1.2, wordBreak: 'keep-all' }}>
                             {holiday}
                           </span>
                         )}
@@ -439,9 +440,9 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                     >
                       {isStart && (
                         <span style={{
-                          fontSize: 11,
+                          fontSize: font['2xs'],
                           color: '#fff',
-                          fontWeight: 600,
+                          fontWeight: weight.semibold,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -477,17 +478,17 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             paddingTop: 14, paddingBottom: 10, marginBottom: 6,
           }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
+            <div style={{ fontSize: font.md, fontWeight: weight.semibold, color: palette.text }}>
               {Number(selectedDate.slice(5, 7))}월 {Number(selectedDate.slice(8, 10))}일 일정
               {KOREAN_HOLIDAYS[selectedDate] && (
-                <span style={{ fontSize: 13, color: '#EF4444', fontWeight: 600, marginLeft: 8 }}>
+                <span style={{ fontSize: font.sm, color: palette.danger, fontWeight: weight.semibold, marginLeft: 8 }}>
                   · {KOREAN_HOLIDAYS[selectedDate]}
                 </span>
               )}
             </div>
             <button onClick={() => { setShowForm(v => !v); setEditingId(null); setEditForm(null); }} style={{
-              padding: '7px 16px', background: '#2563EB', color: '#fff',
-              border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              padding: '7px 16px', background: palette.primary, color: '#fff',
+              border: 'none', borderRadius: radius.sm, fontSize: font.sm, fontWeight: weight.semibold, cursor: 'pointer',
             }}>
               {showForm ? '취소' : '+ 일정 추가'}
             </button>
@@ -506,7 +507,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
 
           {/* 일정 목록 */}
           {selectedEvents.length === 0 && !showForm ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#9CA3AF', fontSize: 14, background: '#F9FAFB', borderRadius: 12 }}>
+            <div style={{ padding: '20px', textAlign: 'center', color: palette.textMuted, fontSize: font.base, background: palette.surfaceSunken, borderRadius: radius.md }}>
               등록된 일정이 없습니다.
             </div>
           ) : (
@@ -526,41 +527,41 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                     <div style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
                       padding: '12px 16px', background: '#fff',
-                      border: '1px solid #E5E7EB', borderRadius: 12,
+                      border: `1px solid ${palette.border}`, borderRadius: radius.md,
                       borderLeft: `4px solid ${colorHex(e.color)}`,
                     }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: e.memo ? 4 : 0 }}>
                           <span style={{
-                            fontSize: 15, fontWeight: 600,
-                            color: e.isCompleted ? '#9CA3AF' : '#1C1C1E',
+                            fontSize: font.md, fontWeight: weight.semibold,
+                            color: e.isCompleted ? palette.textMuted : palette.text,
                             textDecoration: e.isCompleted ? 'line-through' : 'none',
                           }}>{e.title}</span>
                           {e.category && (
-                            <span style={{ fontSize: 11, color: '#6B7280', background: '#F3F4F6', padding: '2px 7px', borderRadius: 20 }}>{e.category}</span>
+                            <span style={{ fontSize: font['2xs'], color: palette.textSub, background: palette.borderSubtle, padding: '2px 7px', borderRadius: radius.xl }}>{e.category}</span>
                           )}
                         </div>
                         {e.endDate && e.endDate !== e.date && (
-                          <div style={{ fontSize: 12, color: '#6B7280' }}>📅 {e.date} ~ {e.endDate}</div>
+                          <div style={{ fontSize: font.xs, color: palette.textSub }}>📅 {e.date} ~ {e.endDate}</div>
                         )}
                         {(e.startTime || e.endTime) && (
-                          <div style={{ fontSize: 12, color: '#6B7280' }}>🕐 {e.startTime}{e.endTime ? ` ~ ${e.endTime}` : ''}</div>
+                          <div style={{ fontSize: font.xs, color: palette.textSub }}>🕐 {e.startTime}{e.endTime ? ` ~ ${e.endTime}` : ''}</div>
                         )}
-                        {e.memo && <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{e.memo}</div>}
+                        {e.memo && <div style={{ fontSize: font.xs, color: palette.textSub, marginTop: 2 }}>{e.memo}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <button onClick={() => onToggle(e.id)} style={{
-                          fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
-                          border: '1px solid #E5E7EB', background: e.isCompleted ? '#DCFCE7' : '#fff',
-                          color: e.isCompleted ? '#16A34A' : '#6B7280',
+                          fontSize: font.xs, padding: '4px 10px', borderRadius: radius.sm, cursor: 'pointer',
+                          border: `1px solid ${palette.border}`, background: e.isCompleted ? '#DCFCE7' : '#fff',
+                          color: e.isCompleted ? palette.success : palette.textSub,
                         }}>{e.isCompleted ? '완료됨' : '완료'}</button>
                         <button onClick={() => handleEditStart(e)} style={{
-                          fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
-                          border: '1px solid #BFDBFE', background: '#fff', color: '#2563EB',
+                          fontSize: font.xs, padding: '4px 10px', borderRadius: radius.sm, cursor: 'pointer',
+                          border: `1px solid ${palette.primaryTintBorder}`, background: '#fff', color: palette.primary,
                         }}>수정</button>
                         <button onClick={() => onDelete(e.id)} style={{
-                          fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
-                          border: '1px solid #FEE2E2', background: '#fff', color: '#EF4444',
+                          fontSize: font.xs, padding: '4px 10px', borderRadius: radius.sm, cursor: 'pointer',
+                          border: `1px solid ${palette.dangerTint}`, background: '#fff', color: palette.danger,
                         }}>삭제</button>
                       </div>
                     </div>
@@ -571,7 +572,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           )}
         </div>
       ) : (
-        <div style={{ padding: 20, textAlign: 'center', color: '#9CA3AF', fontSize: 14, background: '#F9FAFB', borderRadius: 12 }}>
+        <div style={{ padding: 20, textAlign: 'center', color: palette.textMuted, fontSize: font.base, background: palette.surfaceSunken, borderRadius: radius.md }}>
           날짜를 선택하세요.
         </div>
       )}
@@ -592,8 +593,8 @@ function EventForm({
 }) {
   return (
     <div style={{
-      padding: '16px', background: '#F9FAFB', borderRadius: 12,
-      border: '1px solid #E5E7EB', marginBottom: 12,
+      padding: '16px', background: palette.surfaceSunken, borderRadius: radius.md,
+      border: `1px solid ${palette.border}`, marginBottom: 12,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <input
@@ -630,28 +631,28 @@ function EventForm({
       />
       {/* 색상 선택 — 앱과 동일한 색상 */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: '#6B7280' }}>색상</span>
+        <span style={{ fontSize: font.xs, color: palette.textSub }}>색상</span>
         {COLORS.map(c => (
           <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} style={{
             width: 26, height: 26, borderRadius: '50%',
-            border: form.color === c ? '3px solid #1C1C1E' : '2px solid transparent',
+            border: form.color === c ? `3px solid ${palette.text}` : '2px solid transparent',
             background: colorHex(c), cursor: 'pointer', padding: 0,
             outline: form.color === c ? '2px solid #fff' : 'none',
             outlineOffset: '-4px',
           }} title={c} />
         ))}
-        <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 4 }}>
+        <span style={{ fontSize: font['2xs'], color: palette.textMuted, marginLeft: 4 }}>
           ← 앱과 동일 색상
         </span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={onSubmit} style={{
-          flex: 1, height: 40, background: '#2563EB', color: '#fff',
-          border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          flex: 1, height: 40, background: palette.primary, color: '#fff',
+          border: 'none', borderRadius: radius.sm, fontSize: font.base, fontWeight: weight.semibold, cursor: 'pointer',
         }}>{submitLabel}</button>
         <button onClick={onCancel} style={{
-          height: 40, padding: '0 16px', background: '#F3F4F6', color: '#6B7280',
-          border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer',
+          height: 40, padding: '0 16px', background: palette.borderSubtle, color: palette.textSub,
+          border: 'none', borderRadius: radius.sm, fontSize: font.base, cursor: 'pointer',
         }}>취소</button>
       </div>
     </div>
@@ -669,15 +670,15 @@ const navBtn: React.CSSProperties = {
   borderRadius: '50%',
   cursor: 'pointer',
   fontSize: 44,
-  fontWeight: 500,
-  color: '#1C1C1E',
+  fontWeight: weight.medium,
+  color: palette.text,
   lineHeight: 1,
   paddingBottom: 6,   // ‹ › 글리프가 위로 떠 보여 시각적 중앙을 맞춘다
 };
 const inputStyle: React.CSSProperties = {
-  width: '100%', height: 40, padding: '0 12px', border: '1px solid #E5E7EB',
-  borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: '#fff',
+  width: '100%', height: 40, padding: '0 12px', border: `1px solid ${palette.border}`,
+  borderRadius: radius.sm, fontSize: font.base, outline: 'none', boxSizing: 'border-box', background: '#fff',
 };
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 11, color: '#9CA3AF', marginBottom: 4,
+  display: 'block', fontSize: font['2xs'], color: palette.textMuted, marginBottom: 4,
 };

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 const ADMIN_EMAIL = 'jjoraey@naver.com';
 const TERMS_URL = 'https://www.adminnote.co.kr/terms';
@@ -9,8 +10,8 @@ const PRIVACY_URL = 'https://www.adminnote.co.kr/privacy';
 const WITHDRAW_API = 'https://adminnote.co.kr/api/auth/withdraw';
 
 const GRADE_STYLE: Record<string, { label: string; bg: string; color: string }> = {
-  vip:  { label: 'VIP',  bg: '#FEF3C7', color: '#D97706' },
-  vvip: { label: 'VVIP', bg: '#EDE9FE', color: '#7C3AED' },
+  vip:  { label: 'VIP',  bg: palette.warnTint, color: palette.warn },
+  vvip: { label: 'VVIP', bg: palette.accentTint, color: palette.accent },
 };
 
 interface Props {
@@ -49,11 +50,11 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
   const gradeStyle = GRADE_STYLE[gradeKey];
 
   const PROVIDER_STYLE: Record<string, { label: string; color: string }> = {
-    email:  { label: '이메일', color: '#2563EB' },
+    email:  { label: '이메일', color: palette.primary },
     google: { label: 'Google', color: '#EA4335' },
-    apple:  { label: 'Apple',  color: '#1C1C1E' },
+    apple:  { label: 'Apple',  color: palette.text },
   };
-  const providerInfo = PROVIDER_STYLE[provider] ?? { label: provider, color: '#6B7280' };
+  const providerInfo = PROVIDER_STYLE[provider] ?? { label: provider, color: palette.textSub };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -150,7 +151,7 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
       >
         {/* 사이드 패널 */}
         <div style={{
-          width: 380, height: '100%', background: '#F9FAFB',
+          width: 380, height: '100%', background: palette.surfaceSunken,
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
           boxShadow: '-4px 0 20px rgba(0,0,0,0.12)',
         }}>
@@ -159,44 +160,44 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '20px 20px 16px', background: '#fff',
-            borderBottom: '1px solid #E5E7EB',
+            borderBottom: `1px solid ${palette.border}`,
           }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#1C1C1E' }}>마이페이지</span>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#6B7280', padding: '4px' }}>✕</button>
+            <span style={{ fontSize: font.xl, fontWeight: weight.bold, color: palette.text }}>마이페이지</span>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: font['3xl'], color: palette.textSub, padding: '4px' }}>✕</button>
           </div>
 
           <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* 프로필 카드 */}
             <div style={{
-              background: '#fff', borderRadius: 14, padding: '18px',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #F3F4F6',
+              background: '#fff', borderRadius: radius.lg, padding: '18px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: `1px solid ${palette.borderSubtle}`,
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 26,
-                background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 52, height: 52, borderRadius: radius.xl,
+                background: palette.primary, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <span style={{ fontSize: 22, color: '#fff' }}>👤</span>
+                <span style={{ fontSize: font['3xl'], color: '#fff' }}>👤</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>{displayName}</span>
+                  <span style={{ fontSize: font.lg, fontWeight: weight.semibold, color: palette.text }}>{displayName}</span>
                   {gradeStyle && (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: gradeStyle.bg, color: gradeStyle.color }}>
+                    <span style={{ fontSize: font['2xs'], fontWeight: weight.bold, padding: '2px 8px', borderRadius: radius.full, background: gradeStyle.bg, color: gradeStyle.color }}>
                       {gradeStyle.label}
                     </span>
                   )}
                 </div>
                 {user?.email && (
-                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: font.sm, color: palette.textSub, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.email}
                   </div>
                 )}
               </div>
               <span style={{
-                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 99,
+                fontSize: font['2xs'], fontWeight: weight.semibold, padding: '3px 8px', borderRadius: radius.full,
                 border: `1.5px solid ${providerInfo.color}`, color: providerInfo.color, flexShrink: 0,
               }}>
                 {providerInfo.label}
@@ -221,15 +222,15 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
               {nickOpen && (
                 <div style={{ padding: '0 16px 16px' }}>
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>닉네임 (2~20자)</div>
+                    <div style={{ fontSize: font.xs, color: palette.textSub, marginBottom: 4 }}>닉네임 (2~20자)</div>
                     <input
                       type="text"
                       value={nickValue}
                       onChange={e => setNickValue(e.target.value)}
                       maxLength={20}
                       style={{
-                        width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB',
-                        borderRadius: 8, fontSize: 14, color: '#1C1C1E', background: '#FAFAFA',
+                        width: '100%', padding: '10px 12px', border: `1px solid ${palette.border}`,
+                        borderRadius: radius.sm, fontSize: font.base, color: palette.text, background: palette.surfaceSunken,
                         boxSizing: 'border-box',
                       }}
                     />
@@ -238,8 +239,8 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
                     onClick={handleChangeNickname}
                     disabled={savingNick}
                     style={{
-                      width: '100%', padding: '11px 0', background: '#2563EB', color: '#fff',
-                      border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      width: '100%', padding: '11px 0', background: palette.primary, color: '#fff',
+                      border: 'none', borderRadius: radius.md, fontSize: font.base, fontWeight: weight.bold,
                       cursor: savingNick ? 'default' : 'pointer', opacity: savingNick ? 0.6 : 1,
                     }}
                   >
@@ -265,8 +266,8 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
                         onClick={handleChangePassword}
                         disabled={changingPw}
                         style={{
-                          width: '100%', padding: '11px 0', background: '#2563EB', color: '#fff',
-                          border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                          width: '100%', padding: '11px 0', background: palette.primary, color: '#fff',
+                          border: 'none', borderRadius: radius.md, fontSize: font.base, fontWeight: weight.bold,
                           cursor: changingPw ? 'default' : 'pointer', opacity: changingPw ? 0.6 : 1,
                         }}
                       >
@@ -296,8 +297,8 @@ export default function MyPageView({ user, onClose, onLogout }: Props) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 8, marginLeft: 4 }}>{label}</div>
-      <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #F3F4F6', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div style={{ fontSize: font.xs, fontWeight: weight.semibold, color: palette.textMuted, marginBottom: 8, marginLeft: 4 }}>{label}</div>
+      <div style={{ background: '#fff', borderRadius: radius.lg, overflow: 'hidden', border: `1px solid ${palette.borderSubtle}`, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         {children}
       </div>
     </div>
@@ -319,29 +320,29 @@ function Row({ label, icon, onClick, arrow, danger, disabled }: {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
-        <span style={{ fontSize: 15, color: danger ? '#EF4444' : '#1C1C1E' }}>{label}</span>
+        {icon && <span style={{ fontSize: font.lg }}>{icon}</span>}
+        <span style={{ fontSize: font.md, color: danger ? palette.danger : palette.text }}>{label}</span>
       </div>
-      {arrow && <span style={{ color: '#D1D5DB', fontSize: 16 }}>›</span>}
+      {arrow && <span style={{ color: palette.borderStrong, fontSize: font.lg }}>›</span>}
     </button>
   );
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: '#F3F4F6', margin: '0 16px' }} />;
+  return <div style={{ height: 1, background: palette.borderSubtle, margin: '0 16px' }} />;
 }
 
 function PwInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: font.xs, color: palette.textSub, marginBottom: 4 }}>{label}</div>
       <input
         type="password"
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB',
-          borderRadius: 8, fontSize: 14, color: '#1C1C1E', background: '#FAFAFA',
+          width: '100%', padding: '10px 12px', border: `1px solid ${palette.border}`,
+          borderRadius: radius.sm, fontSize: font.base, color: palette.text, background: palette.surfaceSunken,
           boxSizing: 'border-box',
         }}
       />

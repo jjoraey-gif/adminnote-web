@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import MainLayout from './MainLayout';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 export default function RootPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -45,7 +46,7 @@ export default function RootPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-        <div style={{ fontSize: 14, color: '#9CA3AF' }}>불러오는 중...</div>
+        <div style={{ fontSize: font.base, color: palette.textMuted }}>불러오는 중...</div>
       </div>
     );
   }
@@ -74,15 +75,15 @@ function AuthPage() {
     }}>
       {/* 로고 */}
       <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 6 }}>
-          <span style={{ color: '#2563EB' }}>Admin</span>
-          <span style={{ color: '#1C1C1E' }}>Note</span>
+        <div style={{ fontSize: 28, fontWeight: weight.extrabold, letterSpacing: -0.5, marginBottom: 6 }}>
+          <span style={{ color: palette.primary }}>Admin</span>
+          <span style={{ color: palette.text }}>Note</span>
         </div>
-        <p style={{ fontSize: 14, color: '#9CA3AF', margin: 0 }}>공무원 업무수첩</p>
+        <p style={{ fontSize: font.base, color: palette.textMuted, margin: 0 }}>공무원 업무수첩</p>
       </div>
 
       {/* 로그인 / 회원가입 스위치 */}
-      <div style={{ display: 'flex', marginBottom: 24, background: '#F3F4F6', borderRadius: 12, padding: 4, width: '100%', maxWidth: 380 }}>
+      <div style={{ display: 'flex', marginBottom: 24, background: palette.borderSubtle, borderRadius: radius.md, padding: 4, width: '100%', maxWidth: 380 }}>
         {(['login', 'signup'] as AuthMode[]).map(m => (
           <button
             key={m}
@@ -90,13 +91,13 @@ function AuthPage() {
             style={{
               flex: 1,
               padding: '9px 0',
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: font.base,
+              fontWeight: weight.semibold,
               border: 'none',
-              borderRadius: 9,
+              borderRadius: radius.sm,
               cursor: 'pointer',
               background: mode === m ? '#fff' : 'transparent',
-              color: mode === m ? '#1C1C1E' : '#9CA3AF',
+              color: mode === m ? palette.text : palette.textMuted,
               boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 0.15s',
             }}
@@ -107,7 +108,7 @@ function AuthPage() {
       </div>
 
       {/* 개인 / 공용폰 탭 */}
-      <div style={{ display: 'flex', width: '100%', maxWidth: 380, borderBottom: '1px solid #E5E7EB', marginBottom: 24 }}>
+      <div style={{ display: 'flex', width: '100%', maxWidth: 380, borderBottom: `1px solid ${palette.border}`, marginBottom: 24 }}>
         {(['personal', 'shared'] as AccountType[]).map(t => (
           <button
             key={t}
@@ -115,12 +116,12 @@ function AuthPage() {
             style={{
               flex: 1,
               padding: '10px 0',
-              fontSize: 14,
-              fontWeight: accountType === t ? 600 : 400,
+              fontSize: font.base,
+              fontWeight: accountType === t ? weight.semibold : weight.regular,
               border: 'none',
-              borderBottom: accountType === t ? '2px solid #2563EB' : '2px solid transparent',
+              borderBottom: accountType === t ? `2px solid ${palette.primary}` : '2px solid transparent',
               background: 'none',
-              color: accountType === t ? '#2563EB' : '#9CA3AF',
+              color: accountType === t ? palette.primary : palette.textMuted,
               cursor: 'pointer',
               marginBottom: -1,
               transition: 'all 0.15s',
@@ -145,7 +146,7 @@ function AuthPage() {
           href="https://apps.apple.com/kr/app/%EA%B3%B5%EB%AC%B4%EC%9B%90-%EC%97%85%EB%AC%B4%EC%88%98%EC%B2%A9/id6760883601"
           target="_blank"
           rel="noreferrer"
-          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1C1C1E', color: '#fff', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: palette.text, color: '#fff', padding: '11px 0', borderRadius: radius.md, fontSize: font.sm, fontWeight: weight.bold, textDecoration: 'none' }}
         >
           <svg width="14" height="17" viewBox="0 0 20 24" fill="none"><path d="M16.5 12.4C16.48 9.86 18.6 8.61 18.7 8.55C17.48 6.74 15.55 6.51 14.88 6.49C13.28 6.31 11.73 7.41 10.9 7.41C10.06 7.41 8.78 6.51 7.43 6.54C5.66 6.57 4.01 7.59 3.1 9.19C1.22 12.41 2.63 17.1 4.44 19.69C5.35 20.96 6.41 22.38 7.8 22.33C9.15 22.28 9.65 21.49 11.28 21.49C12.9 21.49 13.37 22.33 14.77 22.3C16.21 22.28 17.13 21.01 18.01 19.73C19.07 18.27 19.5 16.84 19.52 16.77C19.49 16.76 16.52 15.66 16.5 12.4Z" fill="white"/><path d="M13.66 4.44C14.39 3.55 14.89 2.33 14.75 1.09C13.73 1.13 12.48 1.78 11.73 2.65C11.06 3.43 10.47 4.71 10.62 5.9C11.76 5.99 12.91 5.3 13.66 4.44Z" fill="white"/></svg>
           App Store
@@ -154,7 +155,7 @@ function AuthPage() {
           href="https://play.google.com/store/apps/details?id=com.jjoraey.adminnote"
           target="_blank"
           rel="noreferrer"
-          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#01875F', color: '#fff', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+          style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#01875F', color: '#fff', padding: '11px 0', borderRadius: radius.md, fontSize: font.sm, fontWeight: weight.bold, textDecoration: 'none' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3.18 23.76c.3.17.64.2.97.1l11.65-11.65L12.34 8.75 3.18 23.76z" fill="white" opacity=".6"/><path d="M1.5 2.67A1.5 1.5 0 0 0 1 3.87v16.26a1.5 1.5 0 0 0 .5 1.2l.07.06 9.11-9.11v-.21L1.57 2.6l-.07.07z" fill="white"/><path d="M15.8 15.73l-3.04-3.04v-.22l3.04-3.04.07.04 3.6 2.05c1.03.58 1.03 1.54 0 2.12l-3.6 2.05-.07.04z" fill="white" opacity=".8"/><path d="M15.87 15.69L12.76 12.6 3.18 23.76c.34.36.89.4 1.3.1l11.39-8.17" fill="white" opacity=".4"/><path d="M15.87 9.51L4.48 1.34A1.02 1.02 0 0 0 3.18.25L12.76 12.6 15.87 9.51z" fill="white" opacity=".4"/></svg>
           Google Play
@@ -168,8 +169,8 @@ function AuthPage() {
 
       {/* 푸터 */}
       <div style={{ marginTop: 36, display: 'flex', gap: 20 }}>
-        <a href="/terms" style={{ fontSize: 12, color: '#D1D5DB', textDecoration: 'none' }}>이용약관</a>
-        <a href="/privacy" style={{ fontSize: 12, color: '#D1D5DB', textDecoration: 'none' }}>개인정보처리방침</a>
+        <a href="/terms" style={{ fontSize: font.xs, color: palette.borderStrong, textDecoration: 'none' }}>이용약관</a>
+        <a href="/privacy" style={{ fontSize: font.xs, color: palette.borderStrong, textDecoration: 'none' }}>개인정보처리방침</a>
       </div>
     </div>
   );
@@ -294,22 +295,22 @@ function LoginForm({ accountType }: { accountType: AccountType }) {
             type="checkbox"
             checked={autoLogin}
             onChange={e => setAutoLogin(e.target.checked)}
-            style={{ width: 15, height: 15, accentColor: '#2563EB', cursor: 'pointer' }}
+            style={{ width: 15, height: 15, accentColor: palette.primary, cursor: 'pointer' }}
           />
-          <span style={{ fontSize: 13, color: '#6B7280' }}>자동로그인</span>
+          <span style={{ fontSize: font.sm, color: palette.textSub }}>자동로그인</span>
         </label>
         {accountType === 'personal' && (
           <button
             type="button"
             onClick={() => setShowReset(true)}
-            style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', padding: 0, fontSize: font.sm, color: palette.textSub, textDecoration: 'underline', cursor: 'pointer' }}
           >
             비밀번호를 잊으셨나요?
           </button>
         )}
       </div>
 
-      {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: font.sm, color: palette.danger, margin: 0 }}>{error}</p>}
 
       <button type="submit" disabled={loading} style={submitBtn(loading)}>
         {loading ? '로그인 중...' : '로그인'}
@@ -357,19 +358,19 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
     return (
       <div style={{ textAlign: 'center', padding: '10px 0' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E', margin: '0 0 8px' }}>
+        <p style={{ fontSize: font.md, fontWeight: weight.semibold, color: palette.text, margin: '0 0 8px' }}>
           초기화 요청이 접수되었습니다
         </p>
         <div style={{
-          background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10,
+          background: palette.primaryTint, border: `1px solid ${palette.primaryTintBorder}`, borderRadius: radius.md,
           padding: '12px 14px', margin: '0 0 16px',
         }}>
-          <p style={{ fontSize: 13, color: '#1D4ED8', lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
+          <p style={{ fontSize: font.sm, color: palette.primaryHover, lineHeight: 1.6, margin: 0, fontWeight: weight.semibold }}>
             24시간 내에 해당 메일로<br />초기화된 비밀번호가 전송됩니다
           </p>
         </div>
-        <p style={{ fontSize: 12.5, color: '#9CA3AF', lineHeight: 1.6, margin: '0 0 20px' }}>
-          <b style={{ color: '#6B7280' }}>{email.trim().toLowerCase()}</b><br />
+        <p style={{ fontSize: 12.5, color: palette.textMuted, lineHeight: 1.6, margin: '0 0 20px' }}>
+          <b style={{ color: palette.textSub }}>{email.trim().toLowerCase()}</b><br />
           메일이 보이지 않으면 스팸함도 확인해주세요.
         </p>
         <button type="button" onClick={onBack} style={submitBtn(false)}>로그인으로 돌아가기</button>
@@ -379,12 +380,12 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>
+      <p style={{ fontSize: font.sm, color: palette.textSub, lineHeight: 1.6, margin: 0 }}>
         가입할 때 등록한 이메일 주소를 입력하고 초기화를 요청하시면, 확인 후 해당 메일로 초기화된 비밀번호를 보내드립니다.
       </p>
       <Input label="이메일" type="email" value={email} onChange={setEmail} placeholder="가입한 이메일을 입력하세요" autoComplete="email" />
 
-      {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: font.sm, color: palette.danger, margin: 0 }}>{error}</p>}
 
       <button type="submit" disabled={loading} style={submitBtn(loading)}>
         {loading ? '요청 중...' : '비밀번호 초기화 요청하기'}
@@ -392,7 +393,7 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
       <button
         type="button"
         onClick={onBack}
-        style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: font.sm, color: palette.textSub, textDecoration: 'underline', cursor: 'pointer' }}
       >
         로그인으로 돌아가기
       </button>
@@ -416,9 +417,9 @@ async function checkDuplicate(type: 'email' | 'nickname' | 'orgName', value: str
 
 function CheckBadge({ state }: { state: CheckState }) {
   if (state === 'idle') return null;
-  if (state === 'checking') return <span style={{ fontSize: 12, color: '#9CA3AF' }}>확인 중...</span>;
-  if (state === 'ok') return <span style={{ fontSize: 12, color: '#16A34A' }}>✓ 사용 가능</span>;
-  return <span style={{ fontSize: 12, color: '#EF4444' }}>✗ 이미 사용 중</span>;
+  if (state === 'checking') return <span style={{ fontSize: font.xs, color: palette.textMuted }}>확인 중...</span>;
+  if (state === 'ok') return <span style={{ fontSize: font.xs, color: palette.success }}>✓ 사용 가능</span>;
+  return <span style={{ fontSize: font.xs, color: palette.danger }}>✗ 이미 사용 중</span>;
 }
 
 function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSuccess: () => void }) {
@@ -538,16 +539,16 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
     return (
       <div style={{ textAlign: 'center', padding: '24px 0' }}>
         <div style={{ fontSize: 40, marginBottom: 14 }}>📧</div>
-        <p style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E', margin: '0 0 8px' }}>인증 메일을 발송했습니다</p>
-        <p style={{ fontSize: 14, color: '#2563EB', fontWeight: 600, margin: '0 0 8px' }}>{sentEmail}</p>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 4px' }}>
+        <p style={{ fontSize: font.lg, fontWeight: weight.bold, color: palette.text, margin: '0 0 8px' }}>인증 메일을 발송했습니다</p>
+        <p style={{ fontSize: font.base, color: palette.primary, fontWeight: weight.semibold, margin: '0 0 8px' }}>{sentEmail}</p>
+        <p style={{ fontSize: font.sm, color: palette.textSub, margin: '0 0 4px' }}>
           위 이메일의 받은 편지함을 확인해주세요.
         </p>
-        <p style={{ fontSize: 12, color: '#9CA3AF', margin: '0 0 20px' }}>
+        <p style={{ fontSize: font.xs, color: palette.textMuted, margin: '0 0 20px' }}>
           스팸 폴더도 확인해주세요.
         </p>
         {accountType === 'shared' && (
-          <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px', background: '#F3F4F6', padding: '10px 14px', borderRadius: 8 }}>
+          <p style={{ fontSize: font.sm, color: palette.textSub, margin: '0 0 20px', background: palette.borderSubtle, padding: '10px 14px', borderRadius: radius.sm }}>
             인증 완료 후 <strong>기관이름</strong>과 <strong>아이디</strong>로 로그인해주세요.
           </p>
         )}
@@ -557,7 +558,7 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
             await createClient().auth.resend({ type: 'signup', email: resendEmail });
             alert('인증 메일을 재발송했습니다.');
           }}
-          style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#6B7280', cursor: 'pointer', marginBottom: 12 }}
+          style={{ background: 'none', border: `1px solid ${palette.border}`, borderRadius: radius.sm, padding: '8px 16px', fontSize: font.sm, color: palette.textSub, cursor: 'pointer', marginBottom: 12 }}
         >
           인증 메일 재발송
         </button>
@@ -622,21 +623,21 @@ function SignupForm({ accountType, onSuccess }: { accountType: AccountType; onSu
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: '#2563EB' }} />
-          <span style={{ fontSize: 13, color: '#374151' }}>
-            <a href="/terms" target="_blank" style={{ color: '#2563EB', textDecoration: 'none' }}>이용약관</a>에 동의합니다 (필수)
+            style={{ width: 16, height: 16, accentColor: palette.primary }} />
+          <span style={{ fontSize: font.sm, color: palette.textBody }}>
+            <a href="/terms" target="_blank" style={{ color: palette.primary, textDecoration: 'none' }}>이용약관</a>에 동의합니다 (필수)
           </span>
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: '#2563EB' }} />
-          <span style={{ fontSize: 13, color: '#374151' }}>
-            <a href="/privacy" target="_blank" style={{ color: '#2563EB', textDecoration: 'none' }}>개인정보처리방침</a>에 동의합니다 (필수)
+            style={{ width: 16, height: 16, accentColor: palette.primary }} />
+          <span style={{ fontSize: font.sm, color: palette.textBody }}>
+            <a href="/privacy" target="_blank" style={{ color: palette.primary, textDecoration: 'none' }}>개인정보처리방침</a>에 동의합니다 (필수)
           </span>
         </label>
       </div>
 
-      {error && <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: font.sm, color: palette.danger, margin: 0 }}>{error}</p>}
 
       <button type="submit" disabled={loading} style={submitBtn(loading)}>
         {loading ? '가입 중...' : '회원가입'}
@@ -663,22 +664,22 @@ function SocialLogin() {
   return (
     <div style={{ width: '100%', maxWidth: 380, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>SNS 로그인</span>
-        <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
+        <div style={{ flex: 1, height: 1, background: palette.border }} />
+        <span style={{ fontSize: font.xs, color: palette.textMuted }}>SNS 로그인</span>
+        <div style={{ flex: 1, height: 1, background: palette.border }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button onClick={() => handleSocialLogin('google')} disabled={!!socialLoading}
-          style={{ width: '100%', padding: '12px 0', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          style={{ width: '100%', padding: '12px 0', background: '#fff', border: `1px solid ${palette.border}`, borderRadius: radius.md, fontSize: font.base, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Google로 계속하기
         </button>
         <button onClick={() => handleSocialLogin('kakao')} disabled={!!socialLoading}
-          style={{ width: '100%', padding: '12px 0', background: '#FEE500', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+          style={{ width: '100%', padding: '12px 0', background: '#FEE500', border: 'none', borderRadius: radius.md, fontSize: font.base, fontWeight: weight.medium, cursor: 'pointer' }}>
           카카오로 계속하기
         </button>
         <button onClick={() => handleSocialLogin('apple')} disabled={!!socialLoading}
-          style={{ width: '100%', padding: '12px 0', background: '#000', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500, color: '#fff', cursor: 'pointer' }}>
+          style={{ width: '100%', padding: '12px 0', background: '#000', border: 'none', borderRadius: radius.md, fontSize: font.base, fontWeight: weight.medium, color: '#fff', cursor: 'pointer' }}>
           Apple로 계속하기
         </button>
       </div>
@@ -690,12 +691,12 @@ function SocialLogin() {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 14px',
-  border: '1px solid #E5E7EB',
-  borderRadius: 10,
-  fontSize: 14,
+  border: `1px solid ${palette.border}`,
+  borderRadius: radius.md,
+  fontSize: font.base,
   outline: 'none',
   background: '#fff',
-  color: '#1C1C1E',
+  color: palette.text,
   boxSizing: 'border-box',
 };
 
@@ -707,7 +708,7 @@ function Input({ label, type, value, onChange, placeholder, required = true, aut
   const isPassword = type === 'password';
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 5 }}>{label}</label>
+      <label style={{ display: 'block', fontSize: font.sm, fontWeight: weight.medium, color: palette.textBody, marginBottom: 5 }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input type={isPassword && showPw ? 'text' : type} value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder} required={required} autoComplete={autoComplete}
@@ -720,7 +721,7 @@ function Input({ label, type, value, onChange, placeholder, required = true, aut
             style={{
               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', padding: 4, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', color: '#9CA3AF',
+              display: 'flex', alignItems: 'center', color: palette.textMuted,
             }}
           >
             {showPw ? (
@@ -746,11 +747,11 @@ function InputWithCheck({ label, type, value, onChange, onBlur, placeholder, req
   onChange: (v: string) => void; onBlur: () => void;
   placeholder: string; required?: boolean; checkState: CheckState;
 }) {
-  const borderColor = checkState === 'ok' ? '#16A34A' : checkState === 'taken' ? '#EF4444' : '#E5E7EB';
+  const borderColor = checkState === 'ok' ? palette.success : checkState === 'taken' ? palette.danger : palette.border;
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-        <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</label>
+        <label style={{ fontSize: font.sm, fontWeight: weight.medium, color: palette.textBody }}>{label}</label>
         <CheckBadge state={checkState} />
       </div>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur}
@@ -764,12 +765,12 @@ function submitBtn(loading: boolean): React.CSSProperties {
   return {
     width: '100%',
     padding: '12px 0',
-    background: loading ? '#93C5FD' : '#2563EB',
+    background: loading ? '#93C5FD' : palette.primary,
     color: '#fff',
     border: 'none',
-    borderRadius: 10,
-    fontSize: 15,
-    fontWeight: 600,
+    borderRadius: radius.md,
+    fontSize: font.md,
+    fontWeight: weight.semibold,
     cursor: loading ? 'not-allowed' : 'pointer',
     marginTop: 4,
   };

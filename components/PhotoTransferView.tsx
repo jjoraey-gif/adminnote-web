@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { getCachedSignedUrl, setCachedSignedUrls, pruneSignedUrlCache } from '@/lib/signedUrlCache';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 const BUCKET = 'photo-transfers';
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
@@ -511,15 +512,15 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
   };
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: '#9CA3AF' }}>불러오는 중...</div>;
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: palette.textMuted }}>불러오는 중...</div>;
   }
 
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 0' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-        <div style={{ fontSize: 14, color: '#EF4444', marginBottom: 16 }}>{error}</div>
-        <button onClick={fetchPhotos} style={{ padding: '8px 20px', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>다시 시도</button>
+        <div style={{ fontSize: font.base, color: palette.danger, marginBottom: 16 }}>{error}</div>
+        <button onClick={fetchPhotos} style={{ padding: '8px 20px', border: `1px solid ${palette.border}`, borderRadius: radius.sm, cursor: 'pointer', fontSize: font.base }}>다시 시도</button>
       </div>
     );
   }
@@ -544,28 +545,28 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             onClick={e => e.stopPropagation()}
             style={{
               maxWidth: '90vw', maxHeight: '82vh',
-              objectFit: 'contain', borderRadius: 8,
+              objectFit: 'contain', borderRadius: radius.sm,
               boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
               cursor: 'default',
             }}
           />
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ color: '#D1D5DB', fontSize: 13 }}>{preview.file_name} · {formatSize(preview.file_size)}</span>
+            <span style={{ color: palette.borderStrong, fontSize: font.sm }}>{preview.file_name} · {formatSize(preview.file_size)}</span>
             <button
               onClick={e => { e.stopPropagation(); downloadPhoto(preview); }}
-              style={{ padding: '8px 20px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+              style={{ padding: '8px 20px', background: palette.primary, color: '#fff', border: 'none', borderRadius: radius.sm, cursor: 'pointer', fontSize: font.sm, fontWeight: weight.semibold }}
             >
               ⬇ 다운로드
             </button>
             <button
               onClick={e => { e.stopPropagation(); deletePhoto(preview); }}
-              style={{ padding: '8px 16px', background: 'transparent', color: '#EF4444', border: '1px solid #EF4444', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+              style={{ padding: '8px 16px', background: 'transparent', color: palette.danger, border: `1px solid ${palette.danger}`, borderRadius: radius.sm, cursor: 'pointer', fontSize: font.sm }}
             >
               🗑 삭제
             </button>
             <button
               onClick={() => setPreview(null)}
-              style={{ padding: '8px 16px', background: 'transparent', color: '#9CA3AF', border: '1px solid #4B5563', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+              style={{ padding: '8px 16px', background: 'transparent', color: palette.textMuted, border: `1px solid ${palette.textBody}`, borderRadius: radius.sm, cursor: 'pointer', fontSize: font.sm }}
             >
               닫기
             </button>
@@ -577,51 +578,51 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', margin: '0 auto 24px',
-        background: '#EFF6FF', borderRadius: 12, border: '1px solid #BFDBFE',
+        background: palette.primaryTint, borderRadius: radius.md, border: `1px solid ${palette.primaryTintBorder}`,
         flexWrap: 'wrap', gap: 8, maxWidth: '90%',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 일반 등급은 휴대폰 → 컴퓨터만 가능하고,
               업로드 권한이 있는 등급(VIP/VVIP/관리자)만 양방향으로 표시한다 */}
-          <span style={{ fontSize: 20 }}>{canUpload ? '📱⇄💻' : '📱→💻'}</span>
+          <span style={{ fontSize: font['2xl'] }}>{canUpload ? '📱⇄💻' : '📱→💻'}</span>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>
+              <div style={{ fontSize: font.sm, fontWeight: weight.semibold, color: palette.primaryHover }}>
                 {limits.dayMB === null
-                  ? <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>MB</>
-                  : <>오늘 사용량 <span style={{ fontSize: 15 }}>{todaySizeMB.toFixed(1)}</span>/{limits.dayMB}MB</>
+                  ? <>오늘 사용량 <span style={{ fontSize: font.md }}>{todaySizeMB.toFixed(1)}</span>MB</>
+                  : <>오늘 사용량 <span style={{ fontSize: font.md }}>{todaySizeMB.toFixed(1)}</span>/{limits.dayMB}MB</>
                 }
               </div>
               {isAdmin
-                ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#EDE9FE', color: '#7C3AED' }}>VVIP</span>
+                ? <span style={{ fontSize: font['2xs'], fontWeight: weight.bold, padding: '2px 8px', borderRadius: radius.full, background: palette.accentTint, color: palette.accent }}>VVIP</span>
                 : grade === 'vvip'
-                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#EDE9FE', color: '#7C3AED' }}>VVIP</span>
+                  ? <span style={{ fontSize: font['2xs'], fontWeight: weight.bold, padding: '2px 8px', borderRadius: radius.full, background: palette.accentTint, color: palette.accent }}>VVIP</span>
                   : grade === 'vip'
-                    ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#FEF3C7', color: '#D97706' }}>VIP</span>
-                    : <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280' }}>일반</span>
+                    ? <span style={{ fontSize: font['2xs'], fontWeight: weight.bold, padding: '2px 8px', borderRadius: radius.full, background: palette.warnTint, color: palette.warn }}>VIP</span>
+                    : <span style={{ fontSize: font['2xs'], fontWeight: weight.bold, padding: '2px 8px', borderRadius: radius.full, background: palette.borderSubtle, color: palette.textSub }}>일반</span>
               }
             </div>
-            <div style={{ fontSize: 11, color: '#3B82F6' }}>
+            <div style={{ fontSize: font['2xs'], color: palette.saturday }}>
               파일 추가 후 3일 보관 · 자동삭제
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {(downloadProgress || uploadProgress) && (
-            <span style={{ fontSize: 13, color: '#2563EB', fontWeight: 500 }}>{uploadProgress || downloadProgress}</span>
+            <span style={{ fontSize: font.sm, color: palette.primary, fontWeight: weight.medium }}>{uploadProgress || downloadProgress}</span>
           )}
-          <button onClick={fetchPhotos} style={btnStyle('#fff', '#E5E7EB', '#374151')}>새로고침</button>
+          <button onClick={fetchPhotos} style={btnStyle('#fff', palette.border, palette.textBody)}>새로고침</button>
           {photos.length > 0 && (
-            <button onClick={toggleSelectMode} style={selectMode ? btnStyle('#2563EB', '#2563EB', '#fff') : btnStyle('#fff', '#E5E7EB', '#374151')}>
+            <button onClick={toggleSelectMode} style={selectMode ? btnStyle(palette.primary, palette.primary, '#fff') : btnStyle('#fff', palette.border, palette.textBody)}>
               {selectMode ? '선택 취소' : '선택'}
             </button>
           )}
-          {!selectMode && <button onClick={deleteAll} style={btnStyle('#fff', '#FEE2E2', '#EF4444')}>전체삭제</button>}
+          {!selectMode && <button onClick={deleteAll} style={btnStyle('#fff', palette.dangerTint, palette.danger)}>전체삭제</button>}
           {canUpload && !selectMode && (
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              style={{ ...btnStyle('#2563EB', '#2563EB', '#fff'), opacity: uploading ? 0.6 : 1 }}
+              style={{ ...btnStyle(palette.primary, palette.primary, '#fff'), opacity: uploading ? 0.6 : 1 }}
             >
               {uploading ? '업로드 중...' : (grade === 'vip' ? '+ 사진 추가' : '+ 파일 추가')}
             </button>
@@ -630,7 +631,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             <button
               onClick={downloadAll}
               disabled={downloadingAll}
-              style={{ ...btnStyle('#1C1C1E', '#1C1C1E', '#fff'), opacity: downloadingAll ? 0.6 : 1 }}
+              style={{ ...btnStyle(palette.text, palette.text, '#fff'), opacity: downloadingAll ? 0.6 : 1 }}
             >
               {downloadingAll ? downloadProgress || '저장 중...' : `⬇ 전체 다운로드 (${photos.length}개)`}
             </button>
@@ -651,25 +652,25 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
           padding: '10px 16px', margin: '-16px auto 24px', maxWidth: '90%',
-          background: '#F9FAFB', borderRadius: 12, border: '1px solid #E5E7EB',
+          background: palette.surfaceSunken, borderRadius: radius.md, border: `1px solid ${palette.border}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{selectedIds.size}개 선택됨</span>
-            <button onClick={selectAll} style={btnStyle('#fff', '#E5E7EB', '#374151')}>전체선택</button>
-            <button onClick={clearSelection} style={btnStyle('#fff', '#E5E7EB', '#374151')}>선택해제</button>
+            <span style={{ fontSize: font.sm, fontWeight: weight.semibold, color: palette.textBody }}>{selectedIds.size}개 선택됨</span>
+            <button onClick={selectAll} style={btnStyle('#fff', palette.border, palette.textBody)}>전체선택</button>
+            <button onClick={clearSelection} style={btnStyle('#fff', palette.border, palette.textBody)}>선택해제</button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={downloadSelected}
               disabled={selectedIds.size === 0 || downloadingAll}
-              style={{ ...btnStyle('#1C1C1E', '#1C1C1E', '#fff'), opacity: selectedIds.size === 0 || downloadingAll ? 0.5 : 1 }}
+              style={{ ...btnStyle(palette.text, palette.text, '#fff'), opacity: selectedIds.size === 0 || downloadingAll ? 0.5 : 1 }}
             >
               ⬇ 선택 다운로드
             </button>
             <button
               onClick={deleteSelected}
               disabled={selectedIds.size === 0}
-              style={{ ...btnStyle('#fff', '#FEE2E2', '#EF4444'), opacity: selectedIds.size === 0 ? 0.5 : 1 }}
+              style={{ ...btnStyle('#fff', palette.dangerTint, palette.danger), opacity: selectedIds.size === 0 ? 0.5 : 1 }}
             >
               🗑 선택 삭제
             </button>
@@ -689,22 +690,22 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
           <div style={{
             position: 'absolute', inset: -8, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-            background: 'rgba(239,246,255,0.92)', border: '2px dashed #2563EB', borderRadius: 16,
+            background: 'rgba(239,246,255,0.92)', border: `2px dashed ${palette.primary}`, borderRadius: radius.lg,
             pointerEvents: 'none',
           }}>
             <span style={{ fontSize: 32 }}>📥</span>
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#1D4ED8' }}>여기에 파일을 놓아 추가하세요</span>
+            <span style={{ fontSize: font.md, fontWeight: weight.semibold, color: palette.primaryHover }}>여기에 파일을 놓아 추가하세요</span>
           </div>
         )}
 
         {photos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
+          <div style={{ textAlign: 'center', padding: '80px 0', color: palette.textMuted }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🖼️</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <div style={{ fontSize: font.lg, fontWeight: weight.semibold, color: palette.textBody, marginBottom: 6 }}>
               {canUpload ? '업로드 된 사진이나 파일이 없습니다' : '업로드 된 사진이 없습니다'}
             </div>
             {canUpload && (
-              <div style={{ fontSize: 13, color: '#9CA3AF' }}>파일을 드래그해서 놓거나, 파일 추가 버튼을 눌러주세요</div>
+              <div style={{ fontSize: font.sm, color: palette.textMuted }}>파일을 드래그해서 놓거나, 파일 추가 버튼을 눌러주세요</div>
             )}
           </div>
         ) : (
@@ -714,24 +715,24 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
             const isSelected = selectedIds.has(photo.id);
             return (
               <div key={photo.id} style={{
-                border: `1px solid ${selectMode && isSelected ? '#2563EB' : '#E5E7EB'}`,
-                borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                border: `1px solid ${selectMode && isSelected ? palette.primary : palette.border}`,
+                borderRadius: radius.md, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
               }}>
 
                 {/* 썸네일 or 파일 아이콘 */}
                 <div
                   onClick={() => selectMode ? toggleSelected(photo.id) : (img && photo.signedUrl && setPreview(photo))}
-                  style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: '#F3F4F6', cursor: selectMode ? 'pointer' : (img && photo.signedUrl ? 'zoom-in' : 'default') }}
+                  style={{ width: '100%', paddingBottom: '100%', position: 'relative', background: palette.borderSubtle, cursor: selectMode ? 'pointer' : (img && photo.signedUrl ? 'zoom-in' : 'default') }}
                 >
                   {selectMode && (
                     <div style={{
                       position: 'absolute', top: 8, left: 8, zIndex: 2,
-                      width: 22, height: 22, borderRadius: 6,
+                      width: 22, height: 22, borderRadius: radius.sm,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: isSelected ? '#2563EB' : 'rgba(255,255,255,0.85)',
-                      border: `2px solid ${isSelected ? '#2563EB' : '#D1D5DB'}`,
+                      background: isSelected ? palette.primary : 'rgba(255,255,255,0.85)',
+                      border: `2px solid ${isSelected ? palette.primary : palette.borderStrong}`,
                     }}>
-                      {isSelected && <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>✓</span>}
+                      {isSelected && <span style={{ color: '#fff', fontSize: font.sm, fontWeight: weight.bold }}>✓</span>}
                     </div>
                   )}
                   {img && photo.thumbUrl ? (
@@ -746,7 +747,7 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
                   ) : (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       <span style={{ fontSize: 48 }}>{fileEmoji(photo.file_name)}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', letterSpacing: 1 }}>
+                      <span style={{ fontSize: font.xs, fontWeight: weight.bold, color: palette.textSub, letterSpacing: 1 }}>
                         {photo.file_name.split('.').pop()?.toUpperCase()}
                       </span>
                     </div>
@@ -755,20 +756,20 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
 
                 {/* 정보 */}
                 <div style={{ padding: '10px 12px' }}>
-                  <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: font.xs, color: palette.textBody, fontWeight: weight.medium, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {photo.file_name}
                   </div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>
-                    {formatSize(photo.file_size)} · <span style={{ color: '#EF4444' }}>{daysLeft(photo.expires_at)}</span>
+                  <div style={{ fontSize: font['2xs'], color: palette.textMuted, marginBottom: 8 }}>
+                    {formatSize(photo.file_size)} · <span style={{ color: palette.danger }}>{daysLeft(photo.expires_at)}</span>
                   </div>
                   {selectMode ? (
                     <button
                       onClick={() => toggleSelected(photo.id)}
                       style={{
-                        width: '100%', padding: '7px 0', fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: 'pointer',
-                        background: isSelected ? '#2563EB' : '#fff',
-                        color: isSelected ? '#fff' : '#374151',
-                        border: `1px solid ${isSelected ? '#2563EB' : '#E5E7EB'}`,
+                        width: '100%', padding: '7px 0', fontSize: font.xs, fontWeight: weight.semibold, borderRadius: radius.sm, cursor: 'pointer',
+                        background: isSelected ? palette.primary : '#fff',
+                        color: isSelected ? '#fff' : palette.textBody,
+                        border: `1px solid ${isSelected ? palette.primary : palette.border}`,
                       }}
                     >
                       {isSelected ? '선택됨' : '선택'}
@@ -778,13 +779,13 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
                       <button
                         onClick={() => downloadPhoto(photo)}
                         disabled={downloading === photo.id}
-                        style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 7, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
+                        style={{ flex: 1, padding: '7px 0', fontSize: font.xs, fontWeight: weight.semibold, background: palette.primary, color: '#fff', border: 'none', borderRadius: radius.sm, cursor: downloading === photo.id ? 'default' : 'pointer', opacity: downloading === photo.id ? 0.6 : 1 }}
                       >
                         {downloading === photo.id ? '저장 중...' : '⬇ 저장'}
                       </button>
                       <button
                         onClick={() => deletePhoto(photo)}
-                        style={{ padding: '7px 10px', fontSize: 12, background: '#fff', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: 7, cursor: 'pointer' }}
+                        style={{ padding: '7px 10px', fontSize: font.xs, background: '#fff', color: palette.danger, border: `1px solid ${palette.dangerTint}`, borderRadius: radius.sm, cursor: 'pointer' }}
                       >
                         🗑
                       </button>
@@ -802,5 +803,5 @@ export default function PhotoTransferView({ userId, userEmail }: { userId: strin
 }
 
 function btnStyle(bg: string, border: string, color: string): React.CSSProperties {
-  return { padding: '8px 16px', fontSize: 13, fontWeight: 500, background: bg, color, border: `1px solid ${border}`, borderRadius: 8, cursor: 'pointer' };
+  return { padding: '8px 16px', fontSize: font.sm, fontWeight: weight.medium, background: bg, color, border: `1px solid ${border}`, borderRadius: radius.sm, cursor: 'pointer' };
 }

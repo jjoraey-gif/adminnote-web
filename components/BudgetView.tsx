@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { SubProject, Pyeonsongmok, Seomok, colorHex, comma } from '@/lib/useSnapshot';
 import { pyeonsongmokMasterList, PyeonsongmokMaster, masterFullName } from '@/lib/budgetMasterList';
+import { font, palette, radius, weight } from '@/lib/theme';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function uuid() {
@@ -76,29 +77,29 @@ function ModalShell({
   return (
     <Overlay onClose={onClose}>
       <div style={{
-        background: '#fff', borderRadius: 20, width: 480, maxWidth: '95vw',
+        background: '#fff', borderRadius: radius.xl, width: 480, maxWidth: '95vw',
         maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
       }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '18px 24px', borderBottom: '1px solid #E5E7EB',
+          padding: '18px 24px', borderBottom: `1px solid ${palette.border}`,
         }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E' }}>{title}</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+          <span style={{ fontSize: font.lg, fontWeight: weight.bold, color: palette.text }}>{title}</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: font['2xl'], cursor: 'pointer', color: palette.textSub }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1 }}>
           {children}
         </div>
         {onSave && (
-          <div style={{ padding: '12px 24px', borderTop: '1px solid #E5E7EB' }}>
+          <div style={{ padding: '12px 24px', borderTop: `1px solid ${palette.border}` }}>
             <button
               onClick={canSave ? onSave : undefined}
               style={{
-                width: '100%', padding: '13px', borderRadius: 12, border: 'none',
-                background: canSave ? '#2563EB' : '#E5E7EB',
-                color: canSave ? '#fff' : '#9CA3AF',
-                fontSize: 15, fontWeight: 600, cursor: canSave ? 'pointer' : 'default',
+                width: '100%', padding: '13px', borderRadius: radius.md, border: 'none',
+                background: canSave ? palette.primary : palette.border,
+                color: canSave ? '#fff' : palette.textMuted,
+                fontSize: font.md, fontWeight: weight.semibold, cursor: canSave ? 'pointer' : 'default',
               }}
             >
               {saveLabel}
@@ -120,8 +121,8 @@ function Field({
   return (
     <div style={{ marginBottom: 12 }}>
       {label && (
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 5 }}>
-          {label}{required && <span style={{ color: '#EF4444' }}> *</span>}
+        <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 5 }}>
+          {label}{required && <span style={{ color: palette.danger }}> *</span>}
         </div>
       )}
       <input
@@ -130,8 +131,8 @@ function Field({
         onChange={e => onChange(numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value)}
         placeholder={placeholder}
         style={{
-          width: '100%', padding: '10px 12px', borderRadius: 10,
-          border: '1px solid #E5E7EB', fontSize: 14, color: '#1C1C1E',
+          width: '100%', padding: '10px 12px', borderRadius: radius.md,
+          border: `1px solid ${palette.border}`, fontSize: font.base, color: palette.text,
           outline: 'none', boxSizing: 'border-box',
         }}
       />
@@ -142,7 +143,7 @@ function Field({
 // ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ pct, color, height = 6 }: { pct: number; color: string; height?: number }) {
   return (
-    <div style={{ height, background: '#E5E7EB', borderRadius: height / 2, overflow: 'hidden' }}>
+    <div style={{ height, background: palette.border, borderRadius: height / 2, overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: height / 2, transition: 'width 0.3s' }} />
     </div>
   );
@@ -178,29 +179,29 @@ function AddSubProjectModal({ onClose, onSave }: { onClose: () => void; onSave: 
       <ModalShell title="세부사업 추가" onClose={onClose} onSave={() => { onSave(buildSp()); onClose(); }} saveLabel="추가" canSave={!!name.trim()}>
         <Field label="세부사업명" value={name} onChange={setName} placeholder="예: 청년정책네트워크 운영" required />
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>색상</div>
+          <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 8 }}>색상</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {COLOR_OPTIONS.map(c => (
               <div
                 key={c}
                 onClick={() => setColor(c)}
                 style={{
-                  width: 28, height: 28, borderRadius: 14, backgroundColor: colorHex(c), cursor: 'pointer',
-                  border: color === c ? `3px solid #1C1C1E` : '3px solid transparent',
+                  width: 28, height: 28, borderRadius: radius.lg, backgroundColor: colorHex(c), cursor: 'pointer',
+                  border: color === c ? `3px solid ${palette.text}` : '3px solid transparent',
                 }}
               />
             ))}
           </div>
         </div>
         {pms.map((row, i) => (
-          <div key={row.pm.id} style={{ background: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+          <div key={row.pm.id} style={{ background: palette.surfaceSunken, borderRadius: radius.md, padding: 14, marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontWeight: 600, color: '#1C1C1E', fontSize: 13 }}>
+              <span style={{ fontWeight: weight.semibold, color: palette.text, fontSize: font.sm }}>
                 {row.pm.seomoks[0] ? `${row.pm.seomoks[0].code} ${row.pm.seomoks[0].name}` : `${row.pm.code} ${row.pm.name}`}
               </span>
-              <button onClick={() => setPms(p => p.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setPms(p => p.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }}>✕</button>
             </div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>{row.pm.code} {row.pm.name}</div>
+            <div style={{ fontSize: font['2xs'], color: palette.textMuted, marginBottom: 8 }}>{row.pm.code} {row.pm.name}</div>
             <Field value={row.budget} onChange={v => setPms(p => p.map((x, idx) => idx === i ? { ...x, budget: v } : x))} numeric placeholder="편성금액(천원)" />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
               <Field value={row.nat} onChange={v => setPms(p => p.map((x, idx) => idx === i ? { ...x, nat: v } : x))} numeric placeholder="국비%" />
@@ -217,8 +218,8 @@ function AddSubProjectModal({ onClose, onSave }: { onClose: () => void; onSave: 
         <button
           onClick={() => setShowPicker(true)}
           style={{
-            width: '100%', padding: '11px', borderRadius: 12, border: '1px dashed #D1D5DB',
-            background: '#F9FAFB', color: '#2563EB', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            width: '100%', padding: '11px', borderRadius: radius.md, border: `1px dashed ${palette.borderStrong}`,
+            background: palette.surfaceSunken, color: palette.primary, fontWeight: weight.semibold, fontSize: font.base, cursor: 'pointer',
           }}
         >
           ＋ 통계목 추가
@@ -243,15 +244,15 @@ function EditSubProjectModal({ sp, onClose, onSave }: { sp: SubProject; onClose:
     <ModalShell title="세부사업 수정" onClose={onClose} onSave={() => { onSave({ ...sp, name: name.trim(), color }); onClose(); }} canSave={!!name.trim()}>
       <Field label="세부사업명" value={name} onChange={setName} required />
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>색상</div>
+        <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 8 }}>색상</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {COLOR_OPTIONS.map(c => (
             <div
               key={c}
               onClick={() => setColor(c)}
               style={{
-                width: 28, height: 28, borderRadius: 14, backgroundColor: colorHex(c), cursor: 'pointer',
-                border: color === c ? '3px solid #1C1C1E' : '3px solid transparent',
+                width: 28, height: 28, borderRadius: radius.lg, backgroundColor: colorHex(c), cursor: 'pointer',
+                border: color === c ? `3px solid ${palette.text}` : '3px solid transparent',
               }}
             />
           ))}
@@ -279,12 +280,12 @@ function AddPmModal({ existingCodes, onClose, onPick }: { existingCodes: string[
               }}
               style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '11px 14px', borderRadius: 10, border: 'none', background: '#F9FAFB',
-                cursor: 'pointer', fontSize: 14, color: '#1C1C1E', textAlign: 'left',
+                padding: '11px 14px', borderRadius: radius.md, border: 'none', background: palette.surfaceSunken,
+                cursor: 'pointer', fontSize: font.base, color: palette.text, textAlign: 'left',
               }}
             >
               <span>{masterFullName(m)}</span>
-              <span style={{ color: '#9CA3AF', fontSize: 12 }}>{m.seomoks.length ? `통계목 ${m.seomoks.length}개 ›` : '＋'}</span>
+              <span style={{ color: palette.textMuted, fontSize: font.xs }}>{m.seomoks.length ? `통계목 ${m.seomoks.length}개 ›` : '＋'}</span>
             </button>
           ))}
         </div>
@@ -296,12 +297,12 @@ function AddPmModal({ existingCodes, onClose, onPick }: { existingCodes: string[
               onClick={() => onPick(newPyeonsongmok({ code: master.code, name: master.name, seomoks: [newSeomok({ code, name })] }))}
               style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '11px 14px', borderRadius: 10, border: 'none', background: '#F9FAFB',
-                cursor: 'pointer', fontSize: 14, color: '#1C1C1E', textAlign: 'left',
+                padding: '11px 14px', borderRadius: radius.md, border: 'none', background: palette.surfaceSunken,
+                cursor: 'pointer', fontSize: font.base, color: palette.text, textAlign: 'left',
               }}
             >
               <span>{code} {name}</span>
-              <span style={{ color: '#2563EB' }}>＋</span>
+              <span style={{ color: palette.primary }}>＋</span>
             </button>
           ))}
         </div>
@@ -337,24 +338,24 @@ function AddSeomokModal({ pmCode, pmName, existingCodes, onClose, onSave }: {
     >
       {!manual && masterSeomoks.length > 0 ? (
         <>
-          <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>통계목 선택 ({pmName})</div>
+          <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 8 }}>통계목 선택 ({pmName})</div>
           {masterSeomoks.map(([c, n]) => (
             <button
               key={c}
               onClick={() => { setCode(c); setName(n); }}
               style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '10px 14px', borderRadius: 10,
-                border: code === c ? '2px solid #2563EB' : '1px solid #E5E7EB',
-                background: code === c ? '#EFF6FF' : '#F9FAFB',
-                cursor: 'pointer', fontSize: 14, color: '#1C1C1E', marginBottom: 4,
+                width: '100%', padding: '10px 14px', borderRadius: radius.md,
+                border: code === c ? `2px solid ${palette.primary}` : `1px solid ${palette.border}`,
+                background: code === c ? palette.primaryTint : palette.surfaceSunken,
+                cursor: 'pointer', fontSize: font.base, color: palette.text, marginBottom: 4,
               }}
             >
               <span>{c} {n}</span>
-              {code === c && <span style={{ color: '#2563EB' }}>✓</span>}
+              {code === c && <span style={{ color: palette.primary }}>✓</span>}
             </button>
           ))}
-          <button onClick={() => { setManual(true); setCode(''); setName(''); }} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}>직접 입력</button>
+          <button onClick={() => { setManual(true); setCode(''); setName(''); }} style={{ background: 'none', border: 'none', color: palette.textMuted, fontSize: font.xs, cursor: 'pointer', padding: '4px 0' }}>직접 입력</button>
         </>
       ) : (
         <>
@@ -362,9 +363,9 @@ function AddSeomokModal({ pmCode, pmName, existingCodes, onClose, onSave }: {
           <Field label="통계목명" value={name} onChange={setName} required />
         </>
       )}
-      <div style={{ height: 1, background: '#E5E7EB', margin: '12px 0' }} />
+      <div style={{ height: 1, background: palette.border, margin: '12px 0' }} />
       <Field label="편성액 (원)" value={budget} onChange={setBudget} numeric placeholder="0" />
-      <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>재원 비율 (%)</div>
+      <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 6 }}>재원 비율 (%)</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6 }}>
         <Field value={nat} onChange={setNat} numeric placeholder="국비%" />
         <Field value={prov} onChange={setProv} numeric placeholder="도비%" />
@@ -397,7 +398,7 @@ function EditSeomokModal({ sm, onClose, onSave }: { sm: Seomok; onClose: () => v
     >
       <Field label="편성액 (원)" value={budget} onChange={setBudget} numeric />
       <Field label="지출액 (원)" value={spent} onChange={setSpent} numeric />
-      <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>재원 비율 (%)</div>
+      <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 6 }}>재원 비율 (%)</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6 }}>
         <Field value={nat} onChange={setNat} numeric placeholder="국비%" />
         <Field value={prov} onChange={setProv} numeric placeholder="도비%" />
@@ -424,36 +425,36 @@ function SpentModal({ sm, onClose, onSave }: { sm: Seomok; onClose: () => void; 
       onSave={() => { const a = (Number(amount) || 0) * 1000; if (a > 0) onSave(refund ? -a : a); }}
       canSave={canSave}
     >
-      <div style={{ fontSize: 18, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>{sm.code} {sm.name}</div>
-      <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 16 }}>
+      <div style={{ fontSize: font.xl, fontWeight: weight.bold, color: palette.text, marginBottom: 4 }}>{sm.code} {sm.name}</div>
+      <div style={{ fontSize: font.sm, color: palette.textMuted, marginBottom: 16 }}>
         편성 {inThousands(sm.budgetAmount)}천원 · 잔여 {inThousands(sm.budgetAmount - sm.spentAmount)}천원
       </div>
-      <div style={{ display: 'flex', background: '#F3F4F6', borderRadius: 12, padding: 4, marginBottom: 16 }}>
+      <div style={{ display: 'flex', background: palette.borderSubtle, borderRadius: radius.md, padding: 4, marginBottom: 16 }}>
         {[{ r: false, l: '지출' }, { r: true, l: '반납 (−)' }].map(({ r, l }) => (
           <button
             key={l}
             onClick={() => setRefund(r)}
             style={{
-              flex: 1, padding: '11px', borderRadius: 10, border: 'none',
-              background: refund === r ? '#2563EB' : 'transparent',
-              color: refund === r ? '#fff' : '#374151',
-              fontWeight: 600, cursor: 'pointer', fontSize: 14,
+              flex: 1, padding: '11px', borderRadius: radius.md, border: 'none',
+              background: refund === r ? palette.primary : 'transparent',
+              color: refund === r ? '#fff' : palette.textBody,
+              fontWeight: weight.semibold, cursor: 'pointer', fontSize: font.base,
             }}
           >
             {l}
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>금액(천원)</div>
+      <div style={{ fontSize: font.sm, color: palette.textSub, marginBottom: 6 }}>금액(천원)</div>
       <input
         type="number"
         value={amount}
         onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
         placeholder="0"
         style={{
-          width: '100%', padding: '14px 12px', borderRadius: 10,
-          border: '1px solid #E5E7EB', fontSize: 24, fontWeight: 600,
-          color: '#1C1C1E', outline: 'none', boxSizing: 'border-box',
+          width: '100%', padding: '14px 12px', borderRadius: radius.md,
+          border: `1px solid ${palette.border}`, fontSize: 24, fontWeight: weight.semibold,
+          color: palette.text, outline: 'none', boxSizing: 'border-box',
         }}
       />
     </ModalShell>
@@ -479,24 +480,24 @@ function SeomokRow({
   };
 
   return (
-    <div style={{ padding: '10px 16px', borderTop: '1px solid #F3F4F6' }}>
+    <div style={{ padding: '10px 16px', borderTop: `1px solid ${palette.borderSubtle}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 4, height: 28, borderRadius: 2, background: '#D1D5DB', flexShrink: 0 }} />
+        <div style={{ width: 4, height: 28, borderRadius: 2, background: palette.borderStrong, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>{sm.code} {sm.name}</span>
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>{inThousands(sm.budgetAmount)}천원</span>
-            {ratio && <span style={{ fontSize: 11, color: '#60A5FA' }}>{ratio}</span>}
+            <span style={{ fontSize: font.sm, fontWeight: weight.semibold, color: palette.text }}>{sm.code} {sm.name}</span>
+            <span style={{ fontSize: font.xs, color: palette.textMuted }}>{inThousands(sm.budgetAmount)}천원</span>
+            {ratio && <span style={{ fontSize: font['2xs'], color: '#60A5FA' }}>{ratio}</span>}
           </div>
-          <div style={{ fontSize: 12, color: '#6B7280' }}>
+          <div style={{ fontSize: font.xs, color: palette.textSub }}>
             집행 {inThousands(sm.spentAmount)}천원 · 잔액 {inThousands(sm.budgetAmount - sm.spentAmount)}천원
           </div>
         </div>
         <button
           onClick={() => setShowSpent(true)}
           style={{
-            padding: '5px 12px', borderRadius: 8, border: 'none',
-            background: '#BFDBFE', color: '#1E40AF', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+            padding: '5px 12px', borderRadius: radius.sm, border: 'none',
+            background: palette.primaryTintBorder, color: '#1E40AF', fontWeight: weight.semibold, fontSize: font.sm, cursor: 'pointer', flexShrink: 0,
           }}
         >
           지출
@@ -504,17 +505,17 @@ function SeomokRow({
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => setMenuOpen(v => !v)}
-            style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#9CA3AF', padding: '0 4px' }}
+            style={{ background: 'none', border: 'none', fontSize: font.xl, cursor: 'pointer', color: palette.textMuted, padding: '0 4px' }}
           >
             ⋯
           </button>
           {menuOpen && (
             <div style={{
               position: 'absolute', right: 0, top: '100%', zIndex: 50, background: '#fff',
-              borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', minWidth: 90, overflow: 'hidden',
+              borderRadius: radius.md, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', minWidth: 90, overflow: 'hidden',
             }}>
               <button onClick={() => { setMenuOpen(false); setShowEdit(true); }} style={menuItemStyle}>수정</button>
-              <button onClick={() => { setMenuOpen(false); deleteSeomok(); }} style={{ ...menuItemStyle, color: '#EF4444' }}>삭제</button>
+              <button onClick={() => { setMenuOpen(false); deleteSeomok(); }} style={{ ...menuItemStyle, color: palette.danger }}>삭제</button>
             </div>
           )}
         </div>
@@ -565,29 +566,29 @@ function PmSection({
   };
 
   return (
-    <div style={{ border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+    <div style={{ border: `1px solid ${palette.border}`, borderRadius: radius.md, overflow: 'hidden', marginBottom: 8 }}>
       <div
         onClick={() => setExpanded(v => !v)}
         style={{
-          padding: '11px 14px', background: '#F9FAFB', cursor: 'pointer',
+          padding: '11px 14px', background: palette.surfaceSunken, cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
-        <div style={{ width: 4, height: 28, borderRadius: 2, background: '#374151', flexShrink: 0 }} />
+        <div style={{ width: 4, height: 28, borderRadius: 2, background: palette.textBody, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>{pm.code} {pm.name}</div>
-          <div style={{ fontSize: 12, color: '#6B7280' }}>
+          <div style={{ fontSize: font.sm, fontWeight: weight.semibold, color: palette.text }}>{pm.code} {pm.name}</div>
+          <div style={{ fontSize: font.xs, color: palette.textSub }}>
             집행 {inThousands(spent)}천원 · 잔액 {inThousands(budget - spent)}천원 · {inThousands(budget)}천원
           </div>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB', flexShrink: 0 }}>{rate.toFixed(0)}%</span>
+        <span style={{ fontSize: font.xs, fontWeight: weight.semibold, color: palette.primary, flexShrink: 0 }}>{rate.toFixed(0)}%</span>
         <button
           onClick={e => { e.stopPropagation(); deletePm(); }}
-          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#9CA3AF', flexShrink: 0 }}
+          style={{ background: 'none', border: 'none', fontSize: font.xl, cursor: 'pointer', color: palette.textMuted, flexShrink: 0 }}
         >
           ⊖
         </button>
-        <span style={{ fontSize: 12, color: '#9CA3AF', flexShrink: 0 }}>{expanded ? '▲' : '▼'}</span>
+        <span style={{ fontSize: font.xs, color: palette.textMuted, flexShrink: 0 }}>{expanded ? '▲' : '▼'}</span>
       </div>
       <ProgressBar pct={rate} color={color} height={2} />
       {expanded && (
@@ -598,7 +599,7 @@ function PmSection({
           <div style={{ padding: '8px 16px' }}>
             <button
               onClick={() => setShowAddSm(true)}
-              style={{ background: 'none', border: 'none', color, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color, fontWeight: weight.semibold, fontSize: font.sm, cursor: 'pointer' }}
             >
               ＋ 통계목 추가
             </button>
@@ -644,7 +645,7 @@ function SubProjectCard({
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E5E7EB', marginBottom: 12 }}>
+    <div style={{ background: '#fff', borderRadius: radius.lg, overflow: 'hidden', border: `1px solid ${palette.border}`, marginBottom: 12 }}>
       {/* 헤더 */}
       <div
         style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', background: color + '18', cursor: 'pointer', gap: 10 }}
@@ -653,33 +654,33 @@ function SubProjectCard({
         <div style={{ width: 4, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#1C1C1E' }}>{sp.name}</span>
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>{inThousands(budget)}천원</span>
+            <span style={{ fontSize: font.md, fontWeight: weight.bold, color: palette.text }}>{sp.name}</span>
+            <span style={{ fontSize: font.xs, color: palette.textMuted }}>{inThousands(budget)}천원</span>
           </div>
-          <div style={{ fontSize: 12 }}>
-            <span style={{ color: '#EF4444' }}>집행 {inThousands(spent)}천원</span>
-            <span style={{ color: '#16A34A', marginLeft: 8 }}>잔액 {inThousands(budget - spent)}천원</span>
+          <div style={{ fontSize: font.xs }}>
+            <span style={{ color: palette.danger }}>집행 {inThousands(spent)}천원</span>
+            <span style={{ color: palette.success, marginLeft: 8 }}>잔액 {inThousands(budget - spent)}천원</span>
           </div>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color, flexShrink: 0 }}>{rate.toFixed(1)}%</span>
+        <span style={{ fontSize: font.sm, fontWeight: weight.semibold, color, flexShrink: 0 }}>{rate.toFixed(1)}%</span>
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
-            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9CA3AF', padding: '0 6px' }}
+            style={{ background: 'none', border: 'none', fontSize: font['3xl'], cursor: 'pointer', color: palette.textMuted, padding: '0 6px' }}
           >
             ⋯
           </button>
           {menuOpen && (
             <div style={{
               position: 'absolute', right: 0, top: '100%', zIndex: 50, background: '#fff',
-              borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', minWidth: 90, overflow: 'hidden',
+              borderRadius: radius.md, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', minWidth: 90, overflow: 'hidden',
             }}>
               <button onClick={() => { setMenuOpen(false); setShowEdit(true); }} style={menuItemStyle}>수정</button>
-              <button onClick={() => { setMenuOpen(false); deleteSp(); }} style={{ ...menuItemStyle, color: '#EF4444' }}>삭제</button>
+              <button onClick={() => { setMenuOpen(false); deleteSp(); }} style={{ ...menuItemStyle, color: palette.danger }}>삭제</button>
             </div>
           )}
         </div>
-        <span style={{ fontSize: 14, color: '#9CA3AF', flexShrink: 0 }}>{expanded ? '▲' : '▼'}</span>
+        <span style={{ fontSize: font.base, color: palette.textMuted, flexShrink: 0 }}>{expanded ? '▲' : '▼'}</span>
       </div>
       <ProgressBar pct={rate} color={color} height={3} />
 
@@ -692,7 +693,7 @@ function SubProjectCard({
           <div style={{ padding: '4px 4px 10px', textAlign: 'center' }}>
             <button
               onClick={() => setShowAddPm(true)}
-              style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: palette.primary, fontWeight: weight.semibold, fontSize: font.sm, cursor: 'pointer' }}
             >
               ＋ 편성목 추가
             </button>
@@ -714,7 +715,7 @@ function SubProjectCard({
 
 const menuItemStyle: React.CSSProperties = {
   display: 'block', width: '100%', padding: '10px 16px', border: 'none',
-  background: '#fff', fontSize: 14, color: '#1C1C1E', cursor: 'pointer', textAlign: 'left',
+  background: '#fff', fontSize: font.base, color: palette.text, cursor: 'pointer', textAlign: 'left',
 };
 
 // ── Main BudgetView ───────────────────────────────────────────────────────────
@@ -733,24 +734,24 @@ export default function BudgetView({
       {/* 전체 요약 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: '총 예산', value: inThousands(totalBudget) + '천원', color: '#1C1C1E' },
-          { label: '집행액', value: inThousands(totalSpent) + '천원', color: '#2563EB' },
-          { label: '잔액', value: inThousands(totalBudget - totalSpent) + '천원', color: totalBudget - totalSpent < 0 ? '#EF4444' : '#16A34A' },
+          { label: '총 예산', value: inThousands(totalBudget) + '천원', color: palette.text },
+          { label: '집행액', value: inThousands(totalSpent) + '천원', color: palette.primary },
+          { label: '잔액', value: inThousands(totalBudget - totalSpent) + '천원', color: totalBudget - totalSpent < 0 ? palette.danger : palette.success },
         ].map(item => (
-          <div key={item.label} style={{ padding: '16px 20px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, textAlign: 'center' }}>
-            <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: item.color }}>{item.value}</div>
+          <div key={item.label} style={{ padding: '16px 20px', background: '#fff', border: `1px solid ${palette.border}`, borderRadius: radius.lg, textAlign: 'center' }}>
+            <div style={{ fontSize: font.xs, color: palette.textMuted, marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: font['2xl'], fontWeight: weight.bold, color: item.color }}>{item.value}</div>
           </div>
         ))}
       </div>
 
       {/* 전체 집행률 바 */}
-      <div style={{ marginBottom: 20, padding: '14px 20px', background: '#F9FAFB', borderRadius: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#374151', marginBottom: 8 }}>
-          <span style={{ fontWeight: 600 }}>전체 집행률</span>
-          <span style={{ fontWeight: 700, color: '#2563EB' }}>{execRate(totalBudget, totalSpent).toFixed(1)}%</span>
+      <div style={{ marginBottom: 20, padding: '14px 20px', background: palette.surfaceSunken, borderRadius: radius.lg }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: font.sm, color: palette.textBody, marginBottom: 8 }}>
+          <span style={{ fontWeight: weight.semibold }}>전체 집행률</span>
+          <span style={{ fontWeight: weight.bold, color: palette.primary }}>{execRate(totalBudget, totalSpent).toFixed(1)}%</span>
         </div>
-        <ProgressBar pct={execRate(totalBudget, totalSpent)} color="#2563EB" height={10} />
+        <ProgressBar pct={execRate(totalBudget, totalSpent)} color={palette.primary} height={10} />
       </div>
 
       {/* 세부사업 추가 버튼 */}
@@ -758,8 +759,8 @@ export default function BudgetView({
         <button
           onClick={() => setShowAdd(true)}
           style={{
-            padding: '9px 18px', borderRadius: 20, border: 'none',
-            background: '#2563EB', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            padding: '9px 18px', borderRadius: radius.xl, border: 'none',
+            background: palette.primary, color: '#fff', fontWeight: weight.semibold, fontSize: font.sm, cursor: 'pointer',
           }}
         >
           ＋ 세부사업 추가
@@ -768,7 +769,7 @@ export default function BudgetView({
 
       {/* 세부사업 카드 목록 */}
       {sorted.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: palette.textMuted, fontSize: font.base }}>
           등록된 예산이 없습니다. 세부사업을 추가해 보세요.
         </div>
       ) : (
