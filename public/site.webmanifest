@@ -1,0 +1,15 @@
+{
+  "name": "AdminNote | 공무원 업무수첩",
+  "short_name": "AdminNote",
+  "description": "공무원을 위한 스마트 업무 관리 앱",
+  "lang": "ko",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
