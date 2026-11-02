@@ -32,6 +32,10 @@ const HEADER_H = 100;
 /** 메인 탭 바 높이 (글자 20px + 상하 여백 15px + 밑줄 3px) */
 const TABBAR_H = 53;
 
+/** 로고 크기 — SVG 비율 5639:833 ≒ 6.77:1 */
+const LOGO_H = 38;
+const LOGO_W = Math.round(LOGO_H * 6.77);
+
 const MORE_TABS = [
   { key: 'history',   label: '이력관리' },
   { key: 'budget',    label: '예산관리' },
@@ -106,13 +110,16 @@ export default function MainLayout({ user, onLogout }: Props) {
         }}>
           {/* 좌측 균형용 빈 영역 — 우측과 동일 너비 */}
           <div style={{ flex: '0 0 200px' }} />
-          <span
+          {/* 로고 — 글자를 외곽선으로 변환해둔 SVG라서 기기에 폰트가 없어도 같은 모양으로 보인다 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-adminnote.svg"
+            alt="AdminNote"
+            width={LOGO_W}
+            height={LOGO_H}
             onClick={() => setActiveTab('photo')}
-            style={{ fontSize: 44, fontWeight: weight.bold, letterSpacing: -1.2, flexShrink: 0, cursor: 'pointer' }}
-          >
-            <span style={{ color: palette.primary }}>Admin</span>
-            <span style={{ color: palette.text }}>Note</span>
-          </span>
+            style={{ height: LOGO_H, width: 'auto', flexShrink: 0, cursor: 'pointer', display: 'block' }}
+          />
           <div style={{
             flex: '0 0 200px', display: 'flex', alignItems: 'center',
             gap: 10, justifyContent: 'flex-end', whiteSpace: 'nowrap',
