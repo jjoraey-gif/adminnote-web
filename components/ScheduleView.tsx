@@ -42,6 +42,8 @@ interface Props {
   onUpdate: (e: ScheduleEvent) => void;
   onDelete: (id: string) => void;
   onToggle: (id: string) => void;
+  /** 그 날짜 일정들의 id를 원하는 순서대로 넘기면 순서가 바뀐다 */
+  onReorder: (ids: string[]) => void;
 }
 
 interface FormState {
@@ -129,7 +131,12 @@ function layoutWeekEvents(
   return slots;
 }
 
-export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle }: Props) {
+// 달력 칸에 들어가는 일정 막대 — 제목이 길면 두 줄까지 보여준다.
+// (한 줄만 보이던 때는 긴 제목이 잘려서 무슨 일정인지 알 수 없다는 의견이 있었다)
+const EVENT_H = 32;      // 막대 높이: 11px 글자 두 줄 + 위아래 여백
+const LANE_PITCH = 34;   // 막대 사이 간격
+
+export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle, onReorder }: Props) {
   const today = new Date();
   const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
   // 달력을 월이 아니라 "연속된 주"로 본다. 앞뒤 주가 늘 함께 보이도록.
@@ -255,6 +262,16 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
   };
 
   const selectedEvents = eventsOn(selectedDate);
+
+  /** 선택한 날짜 안에서 일정 하나를 위/아래로 한 칸 옮긴다 */
+  const moveEvent = (id: string, dir: -1 | 1) => {
+    const ids = selectedEvents.map(e => e.id);
+    const from = ids.indexOf(id);
+    const to = from + dir;
+    if (from === -1 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    onReorder(ids);
+  };
 
   const handleDayClick = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -424,8 +441,8 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                         position: 'absolute',
                         left: `calc(${leftPct}% + ${padL}px)`,
                         width: `calc(${widthPct}% - ${padL + padR}px)`,
-                        top: lane * 22,
-                        height: 20,
+                        top: lane * LANE_PITCH,
+                        height: EVENT_H,
                         background: colorHex(event.color),
                         borderRadius: br,
                         display: 'flex',
@@ -439,17 +456,26 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       }}
                     >
                       {isStart && (
-                        <span style={{
-                          fontSize: font['2xs'],
-                          color: '#fff',
-                          fontWeight: weight.semibold,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          width: '100%',
-                          textAlign: 'center',
-                        }}>
-                          {event.title.slice(0, 10)}
+                        <span
+                          title={event.title}
+                          style={{
+                            fontSize: font['2xs'],
+                            color: '#fff',
+                            fontWeight: weight.semibold,
+                            // 두 줄까지 보여주고 넘치면 … 으로 줄인다
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: 1.25,
+                            whiteSpace: 'normal',
+                            // 한글은 긴 단어가 통으로 넘어가 한 글자도 안 보이는 일이 있어 강제로 끊는다
+                            wordBreak: 'break-all',
+                            width: '100%',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {event.title}
                         </span>
                       )}
                     </div>
@@ -512,7 +538,7 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {selectedEvents.map(e => (
+              {selectedEvents.map((e, idx) => (
                 <div key={e.id}>
                   {/* 수정 폼 (인라인) */}
                   {editingId === e.id && editForm ? (
@@ -530,7 +556,14 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                       border: `1px solid ${palette.border}`, borderRadius: radius.md,
                       borderLeft: `4px solid ${colorHex(e.color)}`,
                     }}>
-                      <div style={{ flex: 1 }}>
+                      {/* 순서 변경 — 앱과 동일하게 한 칸씩 위아래로 옮긴다 */}
+                      {selectedEvents.length > 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, marginTop: 1 }}>
+                          <OrderBtn label="▲" disabled={idx === 0} onClick={() => moveEvent(e.id, -1)} />
+                          <OrderBtn label="▼" disabled={idx === selectedEvents.length - 1} onClick={() => moveEvent(e.id, 1)} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: e.memo ? 4 : 0 }}>
                           <span style={{
                             fontSize: font.md, fontWeight: weight.semibold,
@@ -578,6 +611,28 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
       )}
       </div>
     </div>
+  );
+}
+
+/** 순서 변경 화살표 버튼 */
+function OrderBtn({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={label === '▲' ? '위로' : '아래로'}
+      style={{
+        width: 22, height: 18, padding: 0, lineHeight: 1,
+        fontSize: 9,
+        border: `1px solid ${palette.border}`,
+        borderRadius: radius.sm,
+        background: '#fff',
+        color: disabled ? palette.textFaint : palette.textSub,
+        cursor: disabled ? 'default' : 'pointer',
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

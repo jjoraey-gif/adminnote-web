@@ -222,6 +222,7 @@ export default function MainLayout({ user, onLogout }: Props) {
                   onUpdate={store.updateEvent}
                   onDelete={store.deleteEvent}
                   onToggle={store.toggleEvent}
+                  onReorder={store.reorderEvents}
                 />
               )}
               {currentTab === 'todo' && (

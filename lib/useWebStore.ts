@@ -329,6 +329,20 @@ export function useWebStore(userId: string | undefined) {
     });
   }, [push]);
 
+  /**
+   * 일정 순서 변경. 넘겨받은 id 순서대로 sortOrder를 0부터 다시 매긴다.
+   * 보통 '선택한 하루치'만 넘어오는데, 일정은 늘 날짜로 먼저 묶고 그 안에서
+   * sortOrder로 정렬하므로 다른 날 일정과 번호가 겹쳐도 문제되지 않는다. (앱과 같은 방식)
+   */
+  const reorderEvents = useCallback((ids: string[]) => {
+    setEvents(prev => {
+      const order = new Map(ids.map((id, i) => [id, i] as const));
+      const next = prev.map(e => order.has(e.id) ? { ...e, sortOrder: order.get(e.id)! } : e);
+      push({ ...dataRef.current, events: next });
+      return next;
+    });
+  }, [push]);
+
   const reorderTodos = useCallback((ids: string[]) => {
     setTodos(prev => {
       const order = new Map(ids.map((id, i) => [id, i] as const));
@@ -608,7 +622,7 @@ export function useWebStore(userId: string | undefined) {
     promotions, assignments, awards, careerInfo,
     performanceRatings, pastPerformanceRatings, sameGradePromotions, orgDepartments,
     overtimeSettings, updateOvertimeSettings, loading,
-    addEvent, updateEvent, deleteEvent, toggleEvent,
+    addEvent, updateEvent, deleteEvent, toggleEvent, reorderEvents,
     addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
     addTodoTopic, renameTodoTopic, deleteTodoTopic, reorderTodoTopics,
     addSubProject, updateSubProject, deleteSubProject, reorderSubProjects, updateSpent, addSpent,
