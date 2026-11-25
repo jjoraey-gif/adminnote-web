@@ -131,10 +131,35 @@ function layoutWeekEvents(
   return slots;
 }
 
-// 달력 칸에 들어가는 일정 막대 — 제목이 길면 두 줄까지 보여준다.
+// 달력 칸에 들어가는 일정 막대.
+// 제목이 짧으면 한 줄, 길면 두 줄까지 보여주고 막대 두께도 거기 맞춰 달라진다.
 // (한 줄만 보이던 때는 긴 제목이 잘려서 무슨 일정인지 알 수 없다는 의견이 있었다)
-const EVENT_H = 32;      // 막대 높이: 11px 글자 두 줄 + 위아래 여백
-const LANE_PITCH = 34;   // 막대 사이 간격
+const EVENT_FONT_PX = 11;
+const EVENT_H1 = 20;     // 한 줄짜리 막대 높이 (원래 높이)
+const EVENT_H2 = 32;     // 두 줄짜리 막대 높이
+const LANE_GAP = 2;      // 막대 사이 간격
+const MAX_LINES = 2;
+
+/**
+ * 제목이 몇 줄로 그려질지 계산한다.
+ *
+ * 막대는 `word-break: break-all`이라 단어 단위가 아니라 폭이 차면 그냥 다음 줄로 넘어간다.
+ * 그래서 글자 전체 폭을 한 줄 폭으로 나누면 줄 수가 그대로 나온다.
+ * canvas로 실제 글꼴을 재기 때문에 '한글 몇 자' 식으로 어림잡는 것보다 정확하다.
+ */
+let measureCtx: CanvasRenderingContext2D | null = null;
+function lineCountOf(title: string, availPx: number): number {
+  if (availPx <= 0) return 1;   // 아직 폭을 못 쟀으면 일단 한 줄로 본다
+  if (!measureCtx && typeof document !== 'undefined') {
+    measureCtx = document.createElement('canvas').getContext('2d');
+    if (measureCtx) {
+      measureCtx.font = `600 ${EVENT_FONT_PX}px ${getComputedStyle(document.body).fontFamily}`;
+    }
+  }
+  if (!measureCtx) return 1;
+  const w = measureCtx.measureText(title).width;
+  return Math.min(MAX_LINES, Math.max(1, Math.ceil(w / availPx)));
+}
 
 export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onToggle, onReorder }: Props) {
   const today = new Date();
@@ -223,6 +248,18 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
    * 페이지가 같이 스크롤되지 않게 하려면 직접 passive:false로 붙여야 한다.
    */
   const calRef = useRef<HTMLDivElement | null>(null);
+
+  // 막대가 몇 줄이 될지 알려면 칸 하나의 실제 픽셀 폭이 필요하다 (창 크기·배율에 따라 달라진다)
+  const [colW, setColW] = useState(0);
+  useEffect(() => {
+    const el = calRef.current;
+    if (!el) return;
+    const update = () => setColW(el.getBoundingClientRect().width / 7);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const shiftRef = useRef<(d: number) => void>(() => {});
 
   useEffect(() => {
@@ -358,6 +395,21 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
           const slots = layoutWeekEvents(week, events);
           const monthChanged = wi > 0 && rows[wi - 1].month !== row.month;
 
+          // 막대마다 줄 수가 달라 높이가 제각각이므로, 레인별로 가장 두꺼운 막대에 맞춰
+          // 그 레인의 높이를 정하고 시작 위치를 누적해서 구한다.
+          const laneH: number[] = [];
+          const slotH = new Map<string, number>();
+          for (const s of slots) {
+            const span = s.colEnd - s.colStart + 1;
+            const padX = (s.isStart ? 3 : 0) + (s.isEnd ? 3 : 0) + 10;   // 좌우 여백 + 안쪽 패딩
+            const avail = colW * span - padX;
+            const h = s.isStart && lineCountOf(s.event.title, avail) > 1 ? EVENT_H2 : EVENT_H1;
+            slotH.set(`${s.event.id}-${s.lane}`, h);
+            laneH[s.lane] = Math.max(laneH[s.lane] ?? 0, h);
+          }
+          const laneTop: number[] = [];
+          laneH.reduce((acc, h, i) => { laneTop[i] = acc; return acc + h + LANE_GAP; }, 0);
+
           return (
             // 행 높이가 화면에 맞춰 줄어들 수 있어, 일정 바가 아랫줄로 흘러넘치지 않게 잘라낸다
             <div key={row.key} style={{
@@ -441,8 +493,8 @@ export default function ScheduleView({ events, onAdd, onUpdate, onDelete, onTogg
                         position: 'absolute',
                         left: `calc(${leftPct}% + ${padL}px)`,
                         width: `calc(${widthPct}% - ${padL + padR}px)`,
-                        top: lane * LANE_PITCH,
-                        height: EVENT_H,
+                        top: laneTop[lane] ?? 0,
+                        height: slotH.get(`${event.id}-${lane}`) ?? EVENT_H1,
                         background: colorHex(event.color),
                         borderRadius: br,
                         display: 'flex',
